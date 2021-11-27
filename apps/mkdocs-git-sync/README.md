@@ -6,7 +6,7 @@ Run MkDocs site in Docker and have it automatically synced from the source git r
 - [MkDocs configuration](./config/syncer/mkdocs.yml)
 - [Additional Python modules](./config/syncer/requirements.txt)
 - [Docker Compose](docker-compose.yml) - use the following environment variables
-  - **GIT_CREDENTIALS**: if using a private repo, use this variable to pass <username>:<password> or <token_name>:<token>
+  - **GIT_CREDENTIALS**: if using a private repo, use this variable to pass `<username>:<password>` or `<token_name>:<token>`
   - **GIT_REPO**: source of markdown files for MkDocs build
   - **GIT_BRANCH**: repository's branch to use (`default: main`)
   - **UPDATE_INTERVAL**: pull from repository every x seconds (`default: 900`)
