@@ -28,7 +28,7 @@ RUN set -eux && \
 
 USER app
 
-ADD --chown=app:app container-files/syncer /app
+ADD --chown=app:app ./apps/mkdocs-git-sync/container-files/syncer /app
 WORKDIR /app
 
 RUN mkdir /app/site
