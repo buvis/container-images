@@ -1,0 +1,23 @@
+---
+site_name: MkDocs Zettelkasten
+docs_dir: /app/source_repo/docs
+site_dir: /app/site
+site_url: http://127.0.0.1:8000/
+
+theme:
+  name: zettelkasten-solarized-light
+
+markdown_extensions:
+- admonition
+- pymdownx.superfences
+
+plugins:
+- search
+- tags
+- zettelkasten
+
+nav:
+- Install: 20211122194827.md
+- Run a demo: 20211122195311.md
+- Requirements: 20211122195910.md
+- Features: features/index.md
