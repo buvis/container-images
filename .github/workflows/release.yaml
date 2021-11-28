@@ -105,6 +105,13 @@ jobs:
       with:
         platforms: amd64,arm64
 
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      if: github.event_name != 'pull_request'
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASS }}
+
     - name: Login to GHCR
       uses: docker/login-action@v1
       if: github.event_name != 'pull_request'
@@ -169,6 +176,8 @@ jobs:
         file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
         push: ${{ steps.prep.outputs.push }}
         tags: |
+          tbouska/${{ matrix.container }}:latest
+          tbouska/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
           ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:latest
           ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
         cache-from: ${{ steps.prep.outputs.cache_from }}
