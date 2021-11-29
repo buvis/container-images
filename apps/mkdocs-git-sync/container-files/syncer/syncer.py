@@ -6,13 +6,15 @@ from datetime import datetime
 
 
 class Syncer:
-    def __init__(self, repo, branch):
-        self.branch = branch
+    def __init__(self, config):
+        self.branch = config.branch
+        self.repo = config.repo
+        self.repo_url = config.repo_url
         self.docs = "/app/source_repo"
         self.prev_sha = ""
-        self._clone(repo)
+        self._clone()
 
-    def _clone(self, repo):
+    def _clone(self):
         if not os.path.exists(self.docs):
             os.mkdir(self.docs)
         else:
@@ -20,8 +22,8 @@ class Syncer:
 
         if not os.path.exists("/app/config/mkdocs.yml"):
             exit("mkdocs.yml not provided")
-        print(f"Getting documentation from: {repo}")
-        git.Repo.clone_from(repo, self.docs, branch=self.branch)
+        print(f"Getting documentation from: {self.repo_url}")
+        git.Repo.clone_from(self.repo, self.docs, branch=self.branch)
         self.local = git.Repo(self.docs)
         self.remote = self.local.remotes[0]
 
