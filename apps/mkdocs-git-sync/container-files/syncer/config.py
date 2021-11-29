@@ -4,16 +4,19 @@ from config_defaults import DEFAULT_BRANCH, DEFAULT_INTERVAL
 
 class Config:
     def __init__(self):
-        self.repo = os.environ["GIT_REPO"]
+        self.repo_url = os.environ["GIT_REPO"]
+        self.repo = self.repo_url
 
-        if self.repo == "none":
+        if self.repo_url == "none":
             exit("No git repo set via GIT_REPO environment variable")
 
         if os.environ["GIT_CREDENTIALS"]:
-            if not self.repo.startswith("https://"):
+            if not self.repo_url.startswith("https://"):
                 exit("Expected repo URL to start with https://")
             else:
-                self.repo = f"https://{os.environ['GIT_CREDENTIALS']}@{self.repo[8:]}"
+                self.repo = (
+                    f"https://{os.environ['GIT_CREDENTIALS']}@{self.repo_url[8:]}"
+                )
 
         self.branch = os.environ["GIT_BRANCH"] or DEFAULT_BRANCH
 

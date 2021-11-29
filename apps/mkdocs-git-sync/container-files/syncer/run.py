@@ -6,7 +6,7 @@ from config import Config
 
 if __name__ == "__main__":
     cfg = Config()
-    syncer = Syncer(cfg.repo, cfg.branch)
+    syncer = Syncer(cfg)
 
     print(f"Source repo will be checked every {cfg.interval}s")
 
