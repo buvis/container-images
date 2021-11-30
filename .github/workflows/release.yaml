@@ -176,8 +176,8 @@ jobs:
         file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
         push: ${{ steps.prep.outputs.push }}
         tags: |
-          tbouska/${{ matrix.container }}:latest
-          tbouska/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
+          buvis/${{ matrix.container }}:latest
+          buvis/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
           ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:latest
           ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
         cache-from: ${{ steps.prep.outputs.cache_from }}
