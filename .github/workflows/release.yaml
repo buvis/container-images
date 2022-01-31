@@ -10,10 +10,6 @@ on:
     paths:
     - 'apps/**'
     - 'base/**'
-  pull_request:
-    paths:
-    - 'apps/**'
-    - 'base/**'
 
 env:
   # How long to sleep before running the tests (gives the application time to start)
