@@ -8,8 +8,7 @@ on:
     branches:
     - main
     paths:
-    - 'apps/**'
-    - 'base/**'
+    - 'apps/*/VERSION'
 
 env:
   # How long to sleep before running the tests (gives the application time to start)
