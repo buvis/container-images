@@ -14,7 +14,7 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
   For example, mount from NAS over NFS:
   ```
   # add this to /etc/fstab
-  <NAS_IP>:/mnt/nas/upload /mnt/weiss/upload nfs rw,auto,_netdev,noatime,nolock,bg,intr,tcp,actimeo=1800 0 0
+  <NAS_IP>:/mnt/tank/media/music /var/local/docker/mopidy/media nfs ro,auto,_netdev,noatime,nolock,bg,intr,tcp,actimeo=1800 0 0
   ```
 
 ## Run
