@@ -10,6 +10,11 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container.
 4. Configure [Mopidy](https://docs.mopidy.com/en/latest/config/) in [config/mopidy.conf](https://github.com/buvis-net/container-images/blob/0f86f9beeba54f77d0301e4d31a2ae6d022815ec/apps/mopidy/config/mopidy.conf) mount as `/app/config/mopidy.conf` inside the container. Don't forget to replace the secrets by their real content.
 5. Copy [config/mopidy.conf](https://github.com/buvis-net/container-images/blob/0f86f9beeba54f77d0301e4d31a2ae6d022815ec/apps/mopidy/config/mopidy.conf) to host's `/var/local/docker/mopidy/config/mopidy.conf`
 6. Mount or copy media and playlists to host's `/var/local/docker/mopidy/media` and `/var/local/docker/mopidy/playlists`
+  For example, mount from NAS over NFS:
+  ```
+  # add this to /etc/fstab
+  <NAS_IP>:/mnt/nas/upload /mnt/weiss/upload nfs rw,auto,_netdev,noatime,nolock,bg,intr,tcp,actimeo=1800 0 0
+  ```
 
 ## Run
 
