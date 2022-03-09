@@ -9,13 +9,14 @@ ARG VERSION
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         ca-certificates \
+        curl \
         gnupg2 \
         sudo \
-        wget \
- && wget -q -O mopidy.key https://apt.mopidy.com/mopidy.gpg \
- && apt-key add mopidy.key \
- && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list \
- && apt-get purge -y wget \
+ && curl -s https://apt.mopidy.com/mopidy.gpg | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/mopidy.gpg --import \
+ && chown _apt /etc/apt/trusted.gpg.d/mopidy.gpg \
+ && curl -s https://apt.mopidy.com/buster.list > /etc/apt/sources.list.d/mopidy.list \
+ && apt-get update \
+ && apt-get purge -y curl \
  && apt-get autoremove -y \
  && apt-get clean -y \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
