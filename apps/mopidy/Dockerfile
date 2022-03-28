@@ -55,13 +55,17 @@ RUN apt-get update \
  && apt-get clean -y \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
  && update-ca-certificates -f \
- && echo "mopidy ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/mopidy-is-superuser
+ && echo "mopidy ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/mopidy-is-superuser \
+ && usermod -G audio,sudo mopidy
 
 # Create volumes
 VOLUME ["/app/config", "/var/lib/mopidy/local", "/var/lib/mopidy/media", "/var/lib/mopidy/playlists"]
 
 # Open the ports
 EXPOSE 6680 6600
+
+# Run as mopidy user
+USER mopidy
 
 # Start Mopidy
 CMD mopidy --config /app/config/mopidy.conf
