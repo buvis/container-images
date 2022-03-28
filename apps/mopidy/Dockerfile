@@ -38,19 +38,17 @@ RUN apt-get update \
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         mopidy \
-        mopidy-mpd \
-        mopidy-local \
-        mopidy-scrobbler \
-        mopidy-soundcloud \
-        mopidy-tunein \
         python3-pip \
         python3-setuptools \
  && python3 -m pip install \
         Mopidy-DefaultPlaylist==0.1.0 \
         Mopidy-Iris==3.62.0 \
+        Mopidy-Local==3.2.1 \
         Mopidy-MPD==3.2.0 \
-        Mopidy-Youtube==3.5 \
+        Mopidy-Scrobbler==2.0.1 \
         Mopidy-Tidal==0.2.7 \
+        Mopidy-TuneIn==1.1.0 \
+        Mopidy-Youtube==3.5 \
  && apt-get autoremove -y \
  && apt-get clean -y \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
