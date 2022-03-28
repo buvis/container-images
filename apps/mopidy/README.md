@@ -5,7 +5,7 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
 ## Prepare
 
 1. Create directories for [Mopidy](https://docs.mopidy.com/en/latest/): `sudo mkdir -p {/var/local/docker/mopidy/config,/var/local/docker/mopidy/local,/var/local/docker/mopidy/media,/var/local/docker/mopidy/playlists}`
-2. Create Mopidy user: `sudo useradd mopidy`
+2. Create Mopidy user: `sudo useradd -u 105 mopidy` (mopidy is id 105 in the container)
 3. Make Mopidy owner of its directories: `sudo chown -R mopidy:root /var/local/docker/mopidy`
 4. Get `mopidy.conf` from [source repository](https://raw.githubusercontent.com/buvis-net/container-images/main/apps/mopidy/config/mopidy.conf)
 5. Edit `mopidy.conf` to configure [Mopidy](https://docs.mopidy.com/en/latest/config/). Don't forget to replace the secrets by their real content.
@@ -34,8 +34,8 @@ docker run --detach --restart=always \
 
 [Mopidy-Tidal](https://pypi.org/project/Mopidy-Tidal/) requires authentication to be done after running [Mopidy](https://docs.mopidy.com/en/latest/).
 
-1. Get container's shell: `docker exec -it mopidy bash`
-2. Get OAuth link ("Visit link.tidal.com/AAAAA to log in, the code will expire in 300 seconds"): `journalctl -u mopidy | tail -5`
+1. Get container's logs: `docker logs mopidy`
+2. Get OAuth link from line looking like: "Visit link.tidal.com/AAAAA to log in, the code will expire in 300 seconds"
 3. Copy&paste the link to your browser and approve
 
 ## Hosting
