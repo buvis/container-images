@@ -50,7 +50,7 @@ RUN apt-get update \
         Mopidy-Iris==3.62.0 \
         Mopidy-MPD==3.2.0 \
         Mopidy-Youtube==3.5 \
-        Mopidy-YTMusic==0.3.5 \
+        Mopidy-Tidal==0.2.7 \
  && apt-get autoremove -y \
  && apt-get clean -y \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
