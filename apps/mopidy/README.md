@@ -32,11 +32,11 @@ docker run --detach --restart=always \
 
 ## Post-run activities
 
-[Mopidy-YTMusic](https://github.com/OzymandiasTheGreat/mopidy-ytmusic#configuration) requires authentication to be done after running [Mopidy](https://docs.mopidy.com/en/latest/).
+[Mopidy-Tidal](https://pypi.org/project/Mopidy-Tidal/) requires authentication to be done after running [Mopidy](https://docs.mopidy.com/en/latest/).
 
 1. Get container's shell: `docker exec -it mopidy bash`
-2. Run YTMusic setup: `mopidy --config /app/config/mopidy.conf ytmusic setup`
-3. Select `/var/lib/mopidy/local` as directory where to save `auth.json`
+2. Get OAuth link ("Visit link.tidal.com/AAAAA to log in, the code will expire in 300 seconds"): `journalctl -u mopidy | tail -5`
+3. Copy&paste the link to your browser and approve
 
 ## Hosting
 
