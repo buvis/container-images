@@ -5,7 +5,7 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
 ## Prepare
 
 1. Create directories for [Mopidy](https://docs.mopidy.com/en/latest/): `sudo mkdir -p {/var/local/docker/mopidy/config,/var/local/docker/mopidy/local,/var/local/docker/mopidy/media,/var/local/docker/mopidy/playlists}`
-2. Create Mopidy user: `sudo useradd mopidy -u 105`
+2. Create Mopidy user: `sudo useradd mopidy`
 3. Make Mopidy owner of its directories: `sudo chown -R mopidy:root /var/local/docker/mopidy`
 4. Get `mopidy.conf` from [source repository](https://raw.githubusercontent.com/buvis-net/container-images/main/apps/mopidy/config/mopidy.conf)
 5. Edit `mopidy.conf` to configure [Mopidy](https://docs.mopidy.com/en/latest/config/). Don't forget to replace the secrets by their real content.
