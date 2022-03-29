@@ -50,6 +50,7 @@ RUN apt-get update \
         Mopidy-TuneIn==1.1.0 \
         Mopidy-Youtube==3.5 \
         youtube-dl==2021.12.17 \
+        ytmusicapi==0.21.0 \
  && apt-get autoremove -y \
  && apt-get clean -y \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
