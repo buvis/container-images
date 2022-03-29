@@ -46,6 +46,7 @@ RUN apt-get update \
         Mopidy-Local==3.2.1 \
         Mopidy-MPD==3.2.0 \
         Mopidy-Scrobbler==2.0.1 \
+        Mopidy-SoundCloud==3.0.1 \
         Mopidy-Tidal==0.2.7 \
         Mopidy-TuneIn==1.1.0 \
         Mopidy-Youtube==3.5 \
