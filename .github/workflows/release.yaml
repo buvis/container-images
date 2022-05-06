@@ -96,7 +96,7 @@ jobs:
         fi
 
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v2
       with:
         platforms: amd64,arm64,arm
 
