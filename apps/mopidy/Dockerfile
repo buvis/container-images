@@ -25,6 +25,7 @@ RUN apt-get update \
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         gstreamer1.0-alsa \
+        gstreamer1.0-pulseaudio \
         gstreamer1.0-plugins-base \
         gstreamer1.0-plugins-bad \
         gstreamer1.0-plugins-good \
