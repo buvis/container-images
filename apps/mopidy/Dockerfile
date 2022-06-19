@@ -68,6 +68,9 @@ EXPOSE 6680 6600
 # Run as mopidy user
 USER mopidy
 
+# Switch to app directory
+WORKDIR /app
+
 # Copy the scripts
 COPY ./shim/scan-local.sh /shim/scan-local.sh
 COPY ./entrypoint.sh /entrypoint.sh
