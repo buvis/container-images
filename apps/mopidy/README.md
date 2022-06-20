@@ -8,7 +8,7 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
 2. Create Mopidy user: `sudo useradd -u 105 mopidy` (mopidy is id 105 in the container)
 3. Let Mopidy control audio devices: `sudo usermod -G audio mopidy`
 4. Make Mopidy owner of its directories: `sudo chown -R mopidy:root /var/local/docker/mopidy`
-5. Get `mopidy.conf` from [source repository](https://raw.githubusercontent.com/buvis-net/container-images/main/apps/mopidy/config/mopidy.conf)
+5. Get `mopidy.conf` from [source repository](https://raw.githubusercontent.com/buvis/container-images/main/apps/mopidy/config/mopidy.conf)
 6. Edit `mopidy.conf` to configure [Mopidy](https://docs.mopidy.com/en/latest/config/). Don't forget to replace the secrets by their real content.
 7. Copy `mopidy.conf` to host's `/var/local/docker/mopidy/config/mopidy.conf`
 8. Mount or copy media and playlists to host's `/var/local/docker/mopidy/media` and `/var/local/docker/mopidy/playlists`
@@ -43,4 +43,4 @@ docker run --detach --restart=always \
 ## Hosting
 
 - [Docker Hub](https://hub.docker.com/repository/docker/buvis/mopidy)
-- [GitHub Container registry](https://ghcr.io/buvis-net/mopidy)
+- [GitHub Container registry](https://ghcr.io/buvis/mopidy)
