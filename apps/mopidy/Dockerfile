@@ -17,7 +17,6 @@ RUN \
        ca-certificates \
        wget \
        gnupg2 \
-       sudo \
   && mkdir -p /usr/local/share/keyrings \
   && wget -q -O /usr/local/share/keyrings/mopidy-archive-keyring.gpg https://apt.mopidy.com/mopidy.gpg \
   && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list \
@@ -69,9 +68,7 @@ RUN \
   && mkdir -p /app/mopidy \
   && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
-  && usermod -G audio,sudo kah \
-  # Iris needs sudo to control the server
-  && echo "kah ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/kah-is-superuser \
+  && usermod -G audio kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
 
 # Switch to app directory
