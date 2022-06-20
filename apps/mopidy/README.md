@@ -5,9 +5,9 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
 ## Prepare
 
 1. Create directories for [Mopidy](https://docs.mopidy.com/en/latest/): `sudo mkdir -p {/var/local/docker/mopidy/config,/var/local/docker/mopidy/local,/var/local/docker/mopidy/media,/var/local/docker/mopidy/playlists}`
-2. Create kah user: `sudo useradd -u 568 kah` (kah is id 105 in the container)
+2. Create kah user: `sudo useradd -u 568 kah` (kah is the user executing the entrypoint in the container)
 3. Let Mopidy control audio devices: `sudo usermod -G audio kah`
-4. Make Mopidy owner of its directories: `sudo chown -R kah:audio /var/local/docker/mopidy`
+4. Make kah owner of its directories: `sudo chown -R kah:audio /var/local/docker/mopidy`
 5. Get `mopidy.conf` from [source repository](https://raw.githubusercontent.com/buvis/container-images/main/apps/mopidy/config/mopidy.conf)
 6. Edit `mopidy.conf` to configure [Mopidy](https://docs.mopidy.com/en/latest/config/). Don't forget to replace the secrets by their real content.
 7. Copy `mopidy.conf` to host's `/var/local/docker/mopidy/config/mopidy.conf`
@@ -23,6 +23,7 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
 ``` bash
 docker run --detach --restart=always \
   -p 6680:6680 -p 6600:6600 \
+  -u 568:29 \
   --device /dev/snd \
   --group-add $(getent group audio | cut -d: -f3) \
   --mount type=bind,source=/var/local/docker/mopidy/config,target=/config,readonly \
@@ -31,6 +32,11 @@ docker run --detach --restart=always \
   --mount type=bind,source=/var/local/docker/mopidy/playlists,target=/app/mopidy/playlists \
   --name mopidy buvis/mopidy
 ```
+
+### Use host's pulseaudio server
+
+1. Modify the run command above by replacing `--device /dev/snd \` by `--env PULSE_SERVER=tcp:<HOST_IP>:34567 \`
+2. Set the `output = pulsesink server=<HOST_IP>:34567` in `mopidy.conf` `[audio]` section 
 
 ## Post-run activities
 
