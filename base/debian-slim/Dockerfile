@@ -61,7 +61,7 @@ RUN \
   && \
   && dpkgArch=$(dpkg --print-architecture) \
   && case "$dpkgArch" in \
-    armhf)
+    armhf) \
         apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 \
         echo "deb http://deb.debian.org/debian buster-backports main" | tee -a /etc/apt/sources.list.d/buster-backports.list \
         apt update \
