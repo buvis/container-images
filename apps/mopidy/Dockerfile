@@ -79,24 +79,23 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
   && update-ca-certificates -f \
-  && echo "kah ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/mopidy-is-superuser \
   && mkdir -p /app \
   && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
-  && usermod -G audio,sudo kah \
+  && usermod -G audio kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
 
 # Switch to app directory
 WORKDIR "/app"
 
-# Create volumes
-VOLUME ["/config", "/app/mopidy/local", "/app/mopidy/media", "/app/mopidy/playlists"]
+# Run as kah user
+USER kah
 
 # Open the ports
 EXPOSE 6680 6600
 
-# Run as kah user
-USER kah
+# Create volumes
+VOLUME ["/config", "/app/mopidy/local", "/app/mopidy/media", "/app/mopidy/playlists"]
 
 # Copy the configuration and scripts
 COPY ./apps/mopidy/config/mopidy.conf /config/mopidy.conf
