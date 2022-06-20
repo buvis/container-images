@@ -59,6 +59,12 @@ RUN apt-get update \
  && echo "mopidy ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/mopidy-is-superuser \
  && usermod -G audio,sudo mopidy
 
+# Switch to app directory
+WORKDIR "/app"
+
+RUN chown -R mopidy:audio /app \
+ && chmod -R u=rwX,go=rX /app \
+
 # Create volumes
 VOLUME ["/app/config", "/var/lib/mopidy/local", "/var/lib/mopidy/media", "/var/lib/mopidy/playlists"]
 
@@ -67,9 +73,6 @@ EXPOSE 6680 6600
 
 # Run as mopidy user
 USER mopidy
-
-# Switch to app directory
-WORKDIR "/app"
 
 # Copy the scripts
 COPY ./shim/scan-local.sh /shim/scan-local.sh
