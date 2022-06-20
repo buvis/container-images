@@ -69,7 +69,7 @@ EXPOSE 6680 6600
 USER mopidy
 
 # Switch to app directory
-WORKDIR /app
+WORKDIR "/app"
 
 # Copy the scripts
 COPY ./shim/scan-local.sh /shim/scan-local.sh
