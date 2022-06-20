@@ -1,31 +1,16 @@
+# hadolint ignore=DL3007
+FROM ghcr.io/buvis/debian-slim:latest
+
 ARG VERSION
 
-FROM debian:buster-slim
+USER root
 
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV \
-  HOME=/config \
-  VERSION="${VERSION}" \
-  DEBCONF_NONINTERACTIVE_SEEN=true \
-  DEBIAN_FRONTEND="noninteractive" \
-  APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn \
-  UMASK=0002
-
-RUN \
-  adduser kah \
-  --uid 568 \
-  --group \
-  --system \
-  --disabled-password \
-  --no-create-home \
-  && mkdir -p /config \
-  && chown -R kah:kah /config \
-  && chmod -R 775 /config
+ENV HOME=/config
 
 # Add Mopidy to sources
+# hadolint ignore=DL3008,DL3015,SC2086
 RUN \
   apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -43,6 +28,7 @@ RUN \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
 # Install codecs
+# hadolint ignore=DL3008,DL3015,SC2086
 RUN \
   apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -58,6 +44,7 @@ RUN \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
 # Install Mopidy and extensions
+# hadolint ignore=DL3008,DL3015,SC2086
 RUN \
   apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -106,3 +93,8 @@ COPY --chown=kah:audio ./apps/mopidy/entrypoint.sh /entrypoint.sh
 
 # Start Mopidy
 CMD ["/entrypoint.sh"]
+
+LABEL \
+  org.opencontainers.image.title="Mopidy" \
+  org.opencontainers.image.source="https://github.com/buvis/container-images/tree/main/apps/mopidy" \
+  org.opencontainers.image.version="${VERSION}"
