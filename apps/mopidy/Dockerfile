@@ -64,16 +64,16 @@ RUN \
        python3-pip \
        python3-setuptools \
   && python3 -m pip install \
-       Mopidy-DefaultPlaylist==0.1.0 \
-       Mopidy-Iris==3.64.0 \
-       Mopidy-Local==3.2.1 \
-       Mopidy-MPD==3.3.0 \
-       Mopidy-Scrobbler==2.0.1 \
-       Mopidy-Tidal==0.2.7 \
-       Mopidy-TuneIn==1.1.0 \
-       Mopidy-Youtube==3.5 \
-       youtube-dl==2021.12.17 \
-       ytmusicapi==0.22.0 \
+       Mopidy-DefaultPlaylist \
+       Mopidy-Iris \
+       Mopidy-Local \
+       Mopidy-MPD \
+       Mopidy-Scrobbler \
+       Mopidy-Tidal \
+       Mopidy-TuneIn \
+       Mopidy-Youtube \
+       youtube-dl \
+       ytmusicapi \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
