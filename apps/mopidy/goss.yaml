@@ -1,0 +1,8 @@
+---
+process:
+  python3:
+    running: true
+
+port:
+  tcp:6680:
+    listening: true
