@@ -97,7 +97,8 @@ EXPOSE 6680 6600
 # Run as kah user
 USER kah
 
-# Copy the scripts
+# Copy the configuration and scripts
+COPY ./apps/mopidy/config/mopidy.conf /config/mopidy.conf
 COPY ./apps/mopidy/shim/scan-local.sh /shim/scan-local.sh
 COPY ./apps/mopidy/entrypoint.sh /entrypoint.sh
 
