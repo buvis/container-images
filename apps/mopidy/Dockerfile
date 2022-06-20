@@ -75,8 +75,8 @@ EXPOSE 6680 6600
 USER mopidy
 
 # Copy the scripts
-COPY ./shim/scan-local.sh /shim/scan-local.sh
-COPY ./entrypoint.sh /entrypoint.sh
+COPY ./shim/scan-local.sh /app/shim/scan-local.sh
+COPY ./entrypoint.sh /app/entrypoint.sh
 
 # Start Mopidy
-CMD ["/entrypoint.sh"]
+CMD ["/app/entrypoint.sh"]
