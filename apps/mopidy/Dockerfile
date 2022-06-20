@@ -79,17 +79,17 @@ RUN \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
   && update-ca-certificates -f \
   && echo "kah ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/mopidy-is-superuser \
-  && usermod -G audio,sudo kah
+  && mkdir -p /app \
+  && chown -R mopidy:audio /app \
+  && chmod -R u=rwX,go=rX /app \
+  && usermod -G audio,sudo kah \
+  && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
 
 # Switch to app directory
 WORKDIR "/app"
 
-RUN \
-  chown -R mopidy:audio /app \
-  && chmod -R u=rwX,go=rX /app
-
 # Create volumes
-VOLUME ["/config", "/var/lib/mopidy/local", "/var/lib/mopidy/media", "/var/lib/mopidy/playlists"]
+VOLUME ["/config", "/app/mopidy/local", "/app/mopidy/media", "/app/mopidy/playlists"]
 
 # Open the ports
 EXPOSE 6680 6600
