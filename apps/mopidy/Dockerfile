@@ -36,7 +36,13 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
 # Install Mopidy and extensions
-RUN apt-get update \
+RUN adduser mopidy \
+    --uid 105 \
+    --group \
+    --system \
+    --disabled-password \
+    --no-create-home \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
         mopidy \
         python3-pip \
@@ -75,8 +81,8 @@ EXPOSE 6680 6600
 USER mopidy
 
 # Copy the scripts
-COPY ./shim/scan-local.sh /app/shim/scan-local.sh
-COPY ./entrypoint.sh /app/entrypoint.sh
+COPY ./apps/mopidy/shim/scan-local.sh /shim/scan-local.sh
+COPY ./apps/mopidy/entrypoint.sh /entrypoint.sh
 
 # Start Mopidy
-CMD ["/app/entrypoint.sh"]
+CMD ["/entrypoint.sh"]
