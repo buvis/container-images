@@ -59,6 +59,14 @@ RUN \
   && \
   printf "/bin/bash /shim/greeting.sh\n" >> /etc/bash.bashrc \
   && \
+  && dpkgArch=$(dpkg --print-architecture) \
+  && case "$dpkgArch" in \
+    armhf)
+        apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 \
+        echo "deb http://deb.debian.org/debian buster-backports main" | tee -a /etc/apt/sources.list.d/buster-backports.list \
+        apt update \
+        apt install -t buster-backports libseccomp2 ;;\
+    esac; \
   apt-get remove -y jq \
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && apt-get autoremove -y \
