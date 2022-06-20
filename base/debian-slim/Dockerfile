@@ -68,15 +68,6 @@ RUN \
     /var/cache/apt/* \
     /var/tmp/*
 
-RUN \
-  dpkgArch=$(dpkg --print-architecture) \
-  && if [ "$dpkgArch" = "armhf" ]; then \
-        apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 \
-        && echo "deb http://deb.debian.org/debian buster-backports main" | tee -a /etc/apt/sources.list.d/buster-backports.list \
-        && apt update \
-        && apt install -t buster-backports libseccomp2 ;\
-  && fi
-
 ENV LANG en_US.UTF-8
 
 USER kah
