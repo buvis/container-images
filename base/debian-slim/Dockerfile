@@ -58,7 +58,6 @@ RUN \
   && chown -R kah:kah /app \
   && \
   printf "/bin/bash /shim/greeting.sh\n" >> /etc/bash.bashrc \
-  && \
   && dpkgArch=$(dpkg --print-architecture) \
   && if [ "$dpkgArch" = "armhf" ]; then \
         apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 \
