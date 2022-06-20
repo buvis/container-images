@@ -86,7 +86,7 @@ WORKDIR "/app"
 
 RUN \
   chown -R mopidy:audio /app \
-  && chmod -R u=rwX,go=rX /app \
+  && chmod -R u=rwX,go=rX /app
 
 # Create volumes
 VOLUME ["/config", "/var/lib/mopidy/local", "/var/lib/mopidy/media", "/var/lib/mopidy/playlists"]
