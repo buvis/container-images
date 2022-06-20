@@ -80,7 +80,7 @@ RUN \
   && update-ca-certificates -f \
   && echo "kah ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/mopidy-is-superuser \
   && mkdir -p /app \
-  && chown -R mopidy:audio /app \
+  && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
   && usermod -G audio,sudo kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
