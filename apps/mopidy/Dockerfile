@@ -65,7 +65,7 @@ RUN \
        python3-setuptools \
   && python3 -m pip install \
        Mopidy-DefaultPlaylist==0.1.0 \
-       Mopidy-Iris==3.63.0 \
+       Mopidy-Iris==3.64.0 \
        Mopidy-Local==3.2.1 \
        Mopidy-MPD==3.3.0 \
        Mopidy-Scrobbler==2.0.1 \
