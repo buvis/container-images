@@ -82,7 +82,8 @@ RUN \
   && mkdir -p /app/mopidy \
   && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
-  && usermod -G audio kah \
+  && usermod -G audio,sudo kah \
+  && echo "kah ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/kah-is-superuser \  ## this is needed so Mopidy-Iris can control the server
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
 
 # Switch to app directory
