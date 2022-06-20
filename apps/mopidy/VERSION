@@ -1,1 +1,1 @@
-0.18.1
+curl -Ls https://pypi.org/pypi/Mopidy-Iris/json | jq -r .info.version
