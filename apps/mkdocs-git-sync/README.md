@@ -12,7 +12,7 @@ This image only builds the site to container's `/app/site` directory. Use Docker
     syncer:
       image: buvis/mkdocs-git-sync
       environment:
-        - GIT_REPO=https://github.com/buvis-net/mkdocs-zettelkasten.git
+        - GIT_REPO=https://github.com/buvis/mkdocs-zettelkasten.git
         - GIT_BRANCH=main
         - UPDATE_INTERVAL=60
       volumes:
@@ -30,7 +30,7 @@ This image only builds the site to container's `/app/site` directory. Use Docker
   volumes:
     site:
 ```
-2. Copy `https://github.com/buvis-net/container-images/tree/main/apps/mkdocs-git-sync/config` to `config` directory
+2. Copy `https://github.com/buvis/container-images/tree/main/apps/mkdocs-git-sync/config` to `config` directory
 3. Run Docker Compose
   ``` bash
   docker-compose up
@@ -38,7 +38,7 @@ This image only builds the site to container's `/app/site` directory. Use Docker
 
 This will run two services: `syncer` built from the `Dockerfile` in this repository and `nginx` web server. They share `site` volume, where `syncer` outputs the site built by MkDocs and `nginx` serves it from there.
 
-Once started, navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000). You will see MkDocs Zettelkasten documentation generated from [its repository](https://github.com/buvis-net/mkdocs-zettelkasten)
+Once started, navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000). You will see MkDocs Zettelkasten documentation generated from [its repository](https://github.com/buvis/mkdocs-zettelkasten)
 
 ## Configure
 
