@@ -79,7 +79,7 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
   && update-ca-certificates -f \
-  && mkdir -p /app \
+  && mkdir -p /app/mopidy \
   && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
   && usermod -G audio kah \
@@ -98,9 +98,9 @@ EXPOSE 6680 6600
 VOLUME ["/config", "/app/mopidy/local", "/app/mopidy/media", "/app/mopidy/playlists"]
 
 # Copy the configuration and scripts
-COPY ./apps/mopidy/config/mopidy.conf /config/mopidy.conf
-COPY ./apps/mopidy/shim/scan-local.sh /shim/scan-local.sh
-COPY ./apps/mopidy/entrypoint.sh /entrypoint.sh
+COPY --chown=kah:audio ./apps/mopidy/config/mopidy.conf /config/mopidy.conf
+COPY --chown=kah:audio ./apps/mopidy/shim/scan-local.sh /shim/scan-local.sh
+COPY --chown=kah:audio ./apps/mopidy/entrypoint.sh /entrypoint.sh
 
 # Start Mopidy
 CMD ["/entrypoint.sh"]
