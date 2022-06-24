@@ -21,15 +21,19 @@ Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,
 ## Run
 
 ``` bash
-docker run --detach --restart=always \
-  -p 6680:6680 -p 6600:6600 \
-  -u 568:29 \
-  --device /dev/snd \
+docker run \
+  --detach \
+  --restart=always \
+  --name mopidy \
+  --publish 6600:6600 \
+  --publish 6680:6680 \
+  --user kah:audio \
   --group-add $(getent group audio | cut -d: -f3) \
+  --device /dev/snd \
   --mount type=bind,source=/var/local/docker/mopidy/data,target=/app \
   --mount type=bind,source=/var/local/docker/mopidy/config,target=/config,readonly \
   --mount type=bind,source=/var/local/docker/mopidy/media,target=/media \
-  --name mopidy buvis/mopidy
+  buvis/mopidy
 ```
 
 ### Use host's pulseaudio server
