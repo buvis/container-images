@@ -7,7 +7,7 @@ USER root
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV HOME=/config
+ENV HOME=/app
 
 # Add Mopidy to sources
 # hadolint ignore=DL3008,DL3015,SC2086
@@ -65,9 +65,10 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
   && update-ca-certificates -f \
-  && mkdir -p /app/mopidy \
   && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
+  && chown -R kah:audio /media \
+  && chmod -R u=rwX,go=rX /media \
   && usermod -G audio kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
 
@@ -81,7 +82,7 @@ USER kah
 EXPOSE 6680 6600
 
 # Create volumes
-VOLUME ["/config", "/app/mopidy/local", "/app/mopidy/media", "/app/mopidy/playlists"]
+VOLUME ["/app", "/config", "/media"]
 
 # Copy the configuration and scripts
 COPY --chown=kah:audio ./apps/mopidy/config/mopidy.conf /config/mopidy.conf
