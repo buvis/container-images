@@ -1,12 +1,12 @@
 from os import environ as env
 
 import urllib3
-from kubernetes import config_cluster
+from kubernetes import config
 from kubernetes.client import Configuration
 from kubernetes.client.apis import core_v1_api
 from kubernetes.stream import stream
 
-config_cluster.load_incluster_config()
+config.load_incluster_config()
 
 config_client = Configuration()
 config_client.verify_ssl = False
