@@ -10,12 +10,8 @@ response = api.list_namespaced_pod(namespace=env["NAMESPACE"],
                                    label_selector=env["LABEL"])
 
 for pod in response.items:
-    name = pod.spec.hostname
-
-    response = api.read_namespaced_pod(name=name, namespace=env["NAMESPACE"])
-
+    name = pod.metadata.name
     exec_command = ["/bin/sh", "-c", env["COMMAND"]]
-
     response = stream(
         api.connect_get_namespaced_pod_exec,
         name,
@@ -26,6 +22,5 @@ for pod in response.items:
         stdout=True,
         tty=False,
     )
-
     print("=== kube-exec %s: ===\n%s\n" %
           (name, response if response else "<no output>"))
