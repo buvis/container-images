@@ -1,26 +1,16 @@
 from os import environ as env
 
-import urllib3
-from kubernetes import config
-from kubernetes.client import Configuration
-from kubernetes.client.apis import core_v1_api
+from kubernetes import client, config
 from kubernetes.stream import stream
 
 config.load_incluster_config()
-
-config_client = Configuration()
-config_client.verify_ssl = False
-# config_client.assert_hostname = False
-urllib3.disable_warnings()
-Configuration.set_default(config_client)
-
-api = core_v1_api.CoreV1Api()
+api = client.CoreV1Api()
 
 response = api.list_namespaced_pod(namespace=env["NAMESPACE"],
                                    label_selector=env["LABEL"])
 
-for x in response.items:
-    name = x.spec.hostname
+for pod in response.items:
+    name = pod.spec.hostname
 
     response = api.read_namespaced_pod(name=name, namespace=env["NAMESPACE"])
 
