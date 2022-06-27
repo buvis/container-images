@@ -1,4 +1,4 @@
-import os.environ as env
+from os import environ as env
 
 import urllib3
 from kubernetes import config_cluster
