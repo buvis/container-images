@@ -21,6 +21,11 @@ for pod in response.items:
         stdin=False,
         stdout=True,
         tty=False,
+        _preload_content=False,
     )
-    print("=== kube-exec %s: ===\n%s\n" %
-          (name, response if response else "<no output>"))
+
+    while response.is_open():
+        response.update(timeout=1)
+
+    if response.peek_stdout():
+        print(response.read_stdout().strip())
