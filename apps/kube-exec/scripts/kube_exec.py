@@ -10,7 +10,7 @@ config.load_incluster_config()
 
 config_client = Configuration()
 config_client.verify_ssl = False
-config_client.assert_hostname = False
+# config_client.assert_hostname = False
 urllib3.disable_warnings()
 Configuration.set_default(config_client)
 
