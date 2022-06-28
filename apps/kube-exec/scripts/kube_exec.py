@@ -26,6 +26,7 @@ for pod in response.items:
 
     while response.is_open():
         response.update(timeout=1)
-
-    if response.peek_stdout():
-        print(response.read_stdout().strip())
+        if response.peek_stdout():
+            print(response.read_stdout())
+        if response.peek_stderr():
+            print(response.read_stderr())
