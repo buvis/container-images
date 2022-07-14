@@ -55,6 +55,7 @@ RUN \
        Mopidy-Iris \
        Mopidy-Local \
        Mopidy-MPD \
+       Mopidy-Muse \
        Mopidy-Scrobbler \
        Mopidy-Tidal \
        Mopidy-TuneIn \
