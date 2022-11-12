@@ -3,10 +3,7 @@
 name: Release
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-    - main
     paths:
     - 'apps/**'
     - 'base/**'
@@ -14,6 +11,7 @@ on:
     paths:
     - 'apps/**'
     - 'base/**'
+  workflow_dispatch:
 
 env:
   # How long to sleep before running the tests (gives the application time to start)
