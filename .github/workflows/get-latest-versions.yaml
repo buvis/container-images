@@ -25,6 +25,7 @@ jobs:
           fi
         done
     - name: Fetch new app versions
+      id: update
       run: |
         find ./apps -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | while read app; do
           if test -f "./apps/${app}/latest-version.sh"; then
@@ -32,15 +33,21 @@ jobs:
             if [[ ! -z "${version}" || "${version}" != "null" ]]; then
               echo "${version}" | tee "./apps/${app}/VERSION" > /dev/null
               echo "${app} ${version}"
+              echo "::set-output name=app::${app}"
+              echo "::set-output name=version::${version}"
             fi
           fi
         done
-    - name: Add, commit and push to applications version file
-      run: |
-        if [[ -n $(git status --porcelain) ]]; then
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git add -A
-          git commit -sam "chore: add new release versions" || exit 0
-          git push
-        fi
+    - name: Create pull request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: "chore/update-${{ steps.update.outputs.app }}-${{ steps.update.outputs.version }}"
+        delete-branch: true
+        title: "Update ${{ steps.update.outputs.app }} to version ${{ steps.update.outputs.version }}"
+        signoff: true
+        committer: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
+        author: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
+        assignees: "tbouska"
+        commit-message: "chore: update ${{ steps.update.outputs.app }} to version ${{ steps.update.outputs.version }}"
+        labels: chore/update
