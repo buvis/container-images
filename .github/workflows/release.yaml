@@ -3,10 +3,7 @@
 name: Release
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-    - main
     paths:
     - 'apps/**'
     - 'base/**'
@@ -14,6 +11,7 @@ on:
     paths:
     - 'apps/**'
     - 'base/**'
+  workflow_dispatch:
 
 env:
   # How long to sleep before running the tests (gives the application time to start)
@@ -50,7 +48,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
     - name: hadolint
-      uses: reviewdog/action-hadolint@v1.33.0
+      uses: reviewdog/action-hadolint@v1.34.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         reporter: github-pr-review
