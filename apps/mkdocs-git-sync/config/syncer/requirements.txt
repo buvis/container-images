@@ -1,2 +1,2 @@
-mkdocs-zettelkasten==0.1.7
+mkdocs-zettelkasten==0.1.8
 git+https://github.com/jldiaz/mkdocs-plugin-tags.git#egg=tags-macros-plugin
