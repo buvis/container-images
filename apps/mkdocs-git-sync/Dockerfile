@@ -22,7 +22,7 @@ RUN set -eux && \
     apt-get -qq update && \
     apt-get install -y git && \
     python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir GitPython==3.1.24 && \
+    python3 -m pip install --no-cache-dir GitPython==3.1.31 && \
     rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/* && \
     adduser --disabled-login app
 
