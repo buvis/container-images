@@ -51,3 +51,11 @@ Once started, navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000). You wi
   - **GIT_REPO**: source of markdown files for MkDocs build
   - **GIT_BRANCH**: repository's branch to use (`default: main`)
   - **UPDATE_INTERVAL**: pull from repository every x seconds (`default: 900`)
+
+## Develop
+
+### Update
+
+1. Set `mkdocs-zettelkasten` to latest version (https://pypi.org/project/mkdocs-zettelkasten/) in `config/syncer/requirements.txt`
+2. Set `GitPython` to latest version (https://pypi.org/project/GitPython/) in `Dockerfile`
+3. Increment version in `VERSION`
