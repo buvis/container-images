@@ -41,10 +41,10 @@ RUN \
        gstreamer1.0-plugins-bad \
        gstreamer1.0-plugins-good \
        gstreamer1.0-plugins-ugly \
-       gstreamer1.0-libav \
-  && apt-get autoremove -y \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
+       gstreamer1.0-libav
+  #&& apt-get autoremove -y \
+  #&& apt-get clean -y \
+  #&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
 # Install Mopidy and extensions
 # hadolint ignore=DL3008,DL3015,SC2086
