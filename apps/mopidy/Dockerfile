@@ -19,15 +19,16 @@ RUN \
   && apt-get install -y --no-install-recommends \
        ca-certificates \
        wget \
-       gnupg2 \
-  && mkdir -p /usr/local/share/keyrings \
+       gnupg2
+RUN \
+  mkdir -p /usr/local/share/keyrings \
   && wget -q -O /usr/local/share/keyrings/mopidy-archive-keyring.gpg https://apt.mopidy.com/mopidy.gpg \
-  && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bullseye.list \
-  && apt-get purge -y wget \
-  && apt-get update \
-  && apt-get autoremove -y \
-  && apt-get clean -y \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
+  && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bullseye.list
+  #&& apt-get purge -y wget \
+  #&& apt-get update \
+  #&& apt-get autoremove -y \
+  #&& apt-get clean -y \
+  #&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
 # Install codecs
 # hadolint ignore=DL3008,DL3015,SC2086
