@@ -52,18 +52,17 @@ RUN \
        mopidy \
        python3-pip \
        python3-setuptools \
-  && python3 -m pip install \
-       Mopidy-DefaultPlaylist \
-       Mopidy-Iris \
-       Mopidy-Local \
-       Mopidy-MPD \
-       Mopidy-Muse \
-       Mopidy-Scrobbler \
-       Mopidy-Tidal \
-       Mopidy-TuneIn \
-       Mopidy-Youtube \
-       youtube-dl \
-       ytmusicapi \
+       python3-Mopidy-DefaultPlaylist \
+       python3-Mopidy-Iris \
+       python3-Mopidy-Local \
+       python3-Mopidy-MPD \
+       python3-Mopidy-Muse \
+       python3-Mopidy-Scrobbler \
+       python3-Mopidy-Tidal \
+       python3-Mopidy-TuneIn \
+       python3-Mopidy-Youtube \
+       python3-youtube-dl \
+       python3-ytmusicapi \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
