@@ -55,6 +55,8 @@ RUN \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
+  && python3 -m pip install --user pipx \
+  && python3 -m pipx ensurepath \
   && update-ca-certificates -f
 
 # Switch to kah user
@@ -70,7 +72,7 @@ USER kah
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
-  python3 -m pip install \
+  python3 -m pipx install \
     Mopidy-DefaultPlaylist \
     Mopidy-Iris \
     Mopidy-Local \
