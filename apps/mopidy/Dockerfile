@@ -51,7 +51,6 @@ RUN \
   && apt-get install -y --no-install-recommends \
        mopidy \
        python3-pip \
-       python3-pipx \
        python3-setuptools \
   && apt-get autoremove -y \
   && apt-get clean -y \
