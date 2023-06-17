@@ -71,18 +71,20 @@ USER kah
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
-  pipx install \
-    Mopidy-DefaultPlaylist \
-    Mopidy-Iris \
-    Mopidy-Local \
-    Mopidy-MPD \
-    Mopidy-Muse \
-    Mopidy-Scrobbler \
-    Mopidy-Tidal \
-    Mopidy-TuneIn \
-    Mopidy-Youtube \
-    youtube-dl \
-    ytmusicapi
+  python3 -m pip install --user pipx \
+  && python3 -m pipx ensurepath \
+  && pipx install \
+       Mopidy-DefaultPlaylist \
+       Mopidy-Iris \
+       Mopidy-Local \
+       Mopidy-MPD \
+       Mopidy-Muse \
+       Mopidy-Scrobbler \
+       Mopidy-Tidal \
+       Mopidy-TuneIn \
+       Mopidy-Youtube \
+       youtube-dl \
+       ytmusicapi
 
 # Switch to app directory
 WORKDIR "/app"
