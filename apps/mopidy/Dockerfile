@@ -70,7 +70,7 @@ USER kah
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
-  python3 -m pip install --user pipx \
+  python3 -m pip install --user pipx --break-system-packages \
   && python3 -m pipx ensurepath \
   && pipx install \
        Mopidy-DefaultPlaylist \
