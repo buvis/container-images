@@ -44,7 +44,7 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
-# Install Mopidy and extensions
+# Install Mopidy
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
   apt-get update \
@@ -52,33 +52,39 @@ RUN \
        mopidy \
        python3-pip \
        python3-setuptools \
-       python3-Mopidy-DefaultPlaylist \
-       python3-Mopidy-Iris \
-       python3-Mopidy-Local \
-       python3-Mopidy-MPD \
-       python3-Mopidy-Muse \
-       python3-Mopidy-Scrobbler \
-       python3-Mopidy-Tidal \
-       python3-Mopidy-TuneIn \
-       python3-Mopidy-Youtube \
-       python3-youtube-dl \
-       python3-ytmusicapi \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
-  && update-ca-certificates -f \
-  && chown -R kah:audio /app \
+  && update-ca-certificates -f
+
+# Switch to kah user
+RUN \
+  chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
   && chown -R kah:audio /media \
   && chmod -R u=rwX,go=rX /media \
   && usermod -G audio kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
+USER kah
+
+# Install Mopidy extensions
+# hadolint ignore=DL3008,DL3015,SC2086
+RUN \
+  python3 -m pip install \
+    Mopidy-DefaultPlaylist \
+    Mopidy-Iris \
+    Mopidy-Local \
+    Mopidy-MPD \
+    Mopidy-Muse \
+    Mopidy-Scrobbler \
+    Mopidy-Tidal \
+    Mopidy-TuneIn \
+    Mopidy-Youtube \
+    youtube-dl \
+    ytmusicapi
 
 # Switch to app directory
 WORKDIR "/app"
-
-# Run as kah user
-USER kah
 
 # Open the ports
 EXPOSE 6680 6600
