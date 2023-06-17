@@ -13,6 +13,7 @@ ENV HOME=/app
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
   apt-get update \
+  && apt-get install -y apt-transport-https \
   && apt-get install -y --no-install-recommends \
        ca-certificates \
        wget \
