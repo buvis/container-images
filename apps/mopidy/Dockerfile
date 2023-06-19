@@ -50,6 +50,7 @@ RUN \
   apt-get update \
   && apt-get install -y --no-install-recommends \
        mopidy \
+       python3-full \
        python3-pip \
        python3-setuptools \
   && apt-get autoremove -y \
@@ -70,7 +71,7 @@ USER kah
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
-  python3 -m pip install --user \
+  python3 -m pip install --user --break-system-packages \
     Mopidy-DefaultPlaylist \
     Mopidy-Iris \
     Mopidy-Local \
