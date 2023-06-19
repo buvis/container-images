@@ -72,18 +72,18 @@ USER kah
 RUN \
   python3 -m pip install --user pipx --break-system-packages \
   && python3 -m pipx ensurepath \
-  && pipx install \
-       Mopidy-DefaultPlaylist \
-       Mopidy-Iris \
-       Mopidy-Local \
-       Mopidy-MPD \
-       Mopidy-Muse \
-       Mopidy-Scrobbler \
-       Mopidy-Tidal \
-       Mopidy-TuneIn \
-       Mopidy-Youtube \
-       youtube-dl \
-       ytmusicapi
+  && python3 -m pipx install \
+      Mopidy-DefaultPlaylist \
+      Mopidy-Iris \
+      Mopidy-Local \
+      Mopidy-MPD \
+      Mopidy-Muse \
+      Mopidy-Scrobbler \
+      Mopidy-Tidal \
+      Mopidy-TuneIn \
+      Mopidy-Youtube \
+      youtube-dl \
+      ytmusicapi
 
 # Switch to app directory
 WORKDIR "/app"
