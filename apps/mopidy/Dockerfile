@@ -56,17 +56,13 @@ RUN \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
-  && update-ca-certificates -f
-
-# Switch to kah user
-RUN \
+  && update-ca-certificates -f \
   chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
   && chown -R kah:audio /media \
   && chmod -R u=rwX,go=rX /media \
   && usermod -G audio kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
-USER kah
 
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
@@ -86,6 +82,9 @@ RUN \
 
 # Switch to app directory
 WORKDIR "/app"
+
+# Switch to kah user
+USER kah
 
 # Open the ports
 EXPOSE 6680 6600
