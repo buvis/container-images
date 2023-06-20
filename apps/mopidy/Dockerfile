@@ -71,7 +71,7 @@ USER kah
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
-  python3 -m pip install --user --break-system-packages \
+  python3 -m pip install --break-system-packages \
     Mopidy-DefaultPlaylist \
     Mopidy-Iris \
     Mopidy-Local \
