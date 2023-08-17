@@ -43,11 +43,18 @@ docker run \
 
 ## Post-run activities
 
+### Tidal login
+
 [Mopidy-Tidal](https://pypi.org/project/Mopidy-Tidal/) requires authentication to be done after running [Mopidy](https://docs.mopidy.com/en/latest/).
 
 1. Get container's logs: `docker logs mopidy`
 2. Get OAuth link from line looking like: "Visit link.tidal.com/AAAAA to log in, the code will expire in 300 seconds"
 3. Copy&paste the link to your browser and approve
+
+### Local media scan
+
+1. Get container ID: `docker ps`
+2. Run the scan script: `docker exec b1daa7dfeeb6 /shim/scan-local.sh`
 
 ## Hosting
 
