@@ -54,7 +54,7 @@ docker run \
 ### Local media scan
 
 1. Get container ID: `docker ps`
-2. Run the scan script: `docker exec b1daa7dfeeb6 /shim/scan-local.sh`
+2. Run the scan script: `docker exec <ID found in previous step> /shim/scan-local.sh`
 
 ## Hosting
 
