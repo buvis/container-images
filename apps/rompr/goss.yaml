@@ -1,4 +1,4 @@
 ---
 port:
-  tcp:80:
+  tcp:8123:
     listening: true
