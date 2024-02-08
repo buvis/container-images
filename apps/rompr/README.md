@@ -1,3 +1,5 @@
+TODO this needs to be updated to explain RompR
+
 ## Purpose
 
 Run [Mopidy](https://docs.mopidy.com/en/latest/) in a container. Works on amd64,arm64,arm. I use it on Raspberries a lot.
