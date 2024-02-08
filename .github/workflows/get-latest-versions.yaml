@@ -39,7 +39,7 @@ jobs:
           fi
         done
     - name: Create pull request
-      uses: peter-evans/create-pull-request@v5
+      uses: peter-evans/create-pull-request@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         branch: "chore/update-${{ steps.update.outputs.app }}-${{ steps.update.outputs.version }}"
