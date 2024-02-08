@@ -48,7 +48,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
     - name: hadolint
-      uses: reviewdog/action-hadolint@v1.36.0
+      uses: reviewdog/action-hadolint@v1.37.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         reporter: github-pr-review
@@ -128,7 +128,7 @@ jobs:
         driver-opts: image=moby/buildkit:latest
 
     - name: Cache Docker layers
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
         key: ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
@@ -137,7 +137,7 @@ jobs:
 
     # Install the GOSS testing framework
     - name: Set up goss/dgoss
-      uses: e1himself/goss-installation-action@v1.1.0
+      uses: e1himself/goss-installation-action@v1.2.1
       if: ${{ steps.prep.outputs.goss == 'true' }}
       with:
         version: 'v0.3.16'
