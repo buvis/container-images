@@ -77,6 +77,7 @@ RUN \
     Mopidy-Tidal \
     Mopidy-TuneIn \
     Mopidy-Youtube \
+    Mopidy-YTMusic \
     youtube-dl \
     ytmusicapi
 
