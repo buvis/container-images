@@ -33,6 +33,9 @@ USER kah
 # Create volumes
 VOLUME ["/data"]
 
+# Copy the entrypoint
+COPY --chown=kah ./apps/vifm/entrypoint.sh /entrypoint.sh
+
 # Start Mopidy
 CMD ["/entrypoint.sh"]
 
