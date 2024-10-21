@@ -7,7 +7,8 @@ USER root
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV HOME=/app
+ENV HOME=/app \
+    TERM=xterm-256color
 
 # Install vifm
 # hadolint ignore=DL3008,DL3015,SC2086
