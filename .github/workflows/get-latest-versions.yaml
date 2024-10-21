@@ -8,9 +8,9 @@ on:
 
 jobs:
   get-version:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+    - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4
       with:
         fetch-depth: 1
     - name: Fetch new base versions
@@ -39,7 +39,7 @@ jobs:
           fi
         done
     - name: Create pull request
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v7
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         branch: "chore/update-${{ steps.update.outputs.app }}-${{ steps.update.outputs.version }}"
