@@ -17,7 +17,7 @@ RUN \
   && apt-get install -y --no-install-recommends \
        ca-certificates \
        mediainfo \
-       nvim \
+       neovim \
        vifm \
   && apt-get autoremove -y \
   && apt-get clean -y \
