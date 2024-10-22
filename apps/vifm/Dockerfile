@@ -34,13 +34,14 @@ USER kah
 # Create volumes
 VOLUME ["/data"]
 
-# Copy the entrypoint
+# Copy the configuration and the entrypoint
+COPY --chown=kah ./apps/vifm/config/virmrc /app/.vifm/vifmrc
 COPY --chown=kah ./apps/vifm/entrypoint.sh /entrypoint.sh
 
 # Start Mopidy
 CMD ["/entrypoint.sh"]
 
 LABEL \
-  org.opencontainers.image.title="vofm" \
+  org.opencontainers.image.title="vifm" \
   org.opencontainers.image.source="https://github.com/buvis/container-images/tree/main/apps/vifm" \
   org.opencontainers.image.version="${VERSION}"
