@@ -16,6 +16,8 @@ RUN \
   apt-get update \
   && apt-get install -y --no-install-recommends \
        ca-certificates \
+       mediainfo \
+       nvim \
        vifm \
   && apt-get autoremove -y \
   && apt-get clean -y \
