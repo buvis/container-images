@@ -34,6 +34,8 @@ class Syncer:
             repo_url=self.repo_url, branch=self.branch, clone_path=self.clone_path
         )
         self.repo_manager.clone()
+        self._log_commit_details(self.repo_manager.head_commit)
+        self._build_docs()
         self.prev_sha = self.repo_manager.head_commit.hexsha
 
     def update(self) -> None:
