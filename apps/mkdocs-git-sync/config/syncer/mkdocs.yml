@@ -8,16 +8,15 @@ theme:
   name: zettelkasten-solarized-light
 
 markdown_extensions:
-- admonition
-- pymdownx.superfences
+  - admonition
+  - pymdownx.superfences
 
 plugins:
-- search
-- tags
-- zettelkasten
+  - search
+  - zettelkasten
 
 nav:
-- Install: 20211122194827.md
-- Run a demo: 20211122195311.md
-- Requirements: 20211122195910.md
-- Features: features/index.md
+  - Install: 20211122194827.md
+  - Run a demo: 20211122195311.md
+  - Requirements: 20211122195910.md
+  - Features: features/index.md
