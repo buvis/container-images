@@ -1,4 +1,4 @@
-FROM python:3.11-slim-buster
+FROM python:3.13-slim-bookworm
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -22,14 +22,16 @@ RUN set -eux && \
     apt-get -qq update && \
     apt-get install -y git && \
     python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir GitPython==3.1.31 && \
+    python3 -m pip install --no-cache-dir GitPython==3.1.44 && \
     rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/* && \
     adduser --disabled-login app
 
 USER app
 
+# use the line below when pushing back to repository
 ADD --chown=app:app ./apps/mkdocs-git-sync/container-files/syncer /app
-# use this when invoking docker-compose locally: ADD --chown=app:app container-files/syncer /app
+# use the line below when building locally
+# ADD --chown=app:app container-files/syncer /app
 WORKDIR /app
 
 RUN mkdir /app/site
