@@ -1,34 +1,102 @@
 import os
+import sys
+import logging
+from typing import Optional
+
 from config_defaults import DEFAULT_BRANCH, DEFAULT_INTERVAL
+
+# Environment variable names as constants
+GIT_REPO_ENV = "GIT_REPO"
+GIT_CREDENTIALS_ENV = "GIT_CREDENTIALS"
+GIT_BRANCH_ENV = "GIT_BRANCH"
+UPDATE_INTERVAL_ENV = "UPDATE_INTERVAL"
+REQUIREMENTS_PATH = "/app/config/requirements.txt"
+
+logger = logging.getLogger(__name__)
+
+
+class ConfigError(Exception):
+    """Custom exception for configuration errors."""
+
+    pass
 
 
 class Config:
-    def __init__(self):
-        self.repo_url = os.environ["GIT_REPO"]
-        self.repo = self.repo_url
+    """
+    Configuration loader for the application.
 
-        if self.repo_url == "none":
-            exit("No git repo set via GIT_REPO environment variable")
+    Loads configuration from environment variables, applies defaults,
+    and validates inputs.
+    """
 
-        if os.environ["GIT_CREDENTIALS"]:
-            if not self.repo_url.startswith("https://"):
-                exit("Expected repo URL to start with https://")
-            else:
-                self.repo = (
-                    f"https://{os.environ['GIT_CREDENTIALS']}@{self.repo_url[8:]}"
-                )
+    def __init__(self) -> None:
+        logger.info("Initializing configuration...")
 
-        self.branch = os.environ["GIT_BRANCH"] or DEFAULT_BRANCH
+        self.repo_url = os.environ.get(GIT_REPO_ENV)
+        if not self.repo_url:
+            logger.error(f"Environment variable {GIT_REPO_ENV} is required.")
+            raise ConfigError(f"Environment variable {GIT_REPO_ENV} is required.")
+        logger.info(f"Repository URL loaded from environment: {self.repo_url}.")
 
+        if not self.repo_url.startswith("https://"):
+            logger.error("Expected repo URL to start with https://")
+            raise ConfigError("Expected repo URL to start with https://")
+
+        credentials = os.environ.get(GIT_CREDENTIALS_ENV)
+        if credentials:
+            logger.info(
+                "Git credentials found in environment. Injecting credentials into repo URL (not logging credentials)."
+            )
+            self.repo = f"https://{credentials}@{self.repo_url[8:]}"
+        else:
+            self.repo = self.repo_url
+            logger.info("No git credentials found. Using plain repo URL.")
+
+        self.branch = os.environ.get(GIT_BRANCH_ENV, DEFAULT_BRANCH)
+        logger.info(f"Using branch: {self.branch}")
+
+        interval_str = os.environ.get(UPDATE_INTERVAL_ENV)
+        self.interval = self._parse_interval(interval_str)
+        logger.info(f"Update interval set to: {self.interval} seconds")
+
+    @staticmethod
+    def _parse_interval(value: Optional[str]) -> int:
+        """
+        Parse the update interval from string, fallback to default if invalid.
+
+        :param value: String value from environment.
+        :return: Parsed integer interval.
+        """
+        if value is None:
+            logger.info(
+                f"No {UPDATE_INTERVAL_ENV} set; using default: {DEFAULT_INTERVAL}"
+            )
+            return DEFAULT_INTERVAL
         try:
-            self.interval = int(os.environ["UPDATE_INTERVAL"])
+            return int(value)
         except ValueError:
-            self.interval = DEFAULT_INTERVAL
+            logger.warning(
+                f"Invalid {UPDATE_INTERVAL_ENV} value '{value}'; using default: {DEFAULT_INTERVAL}"
+            )
+            return DEFAULT_INTERVAL
 
-        self._install_requirements()
-
-    def _install_requirements(self):
-        if os.path.exists("/app/config/requirements.txt"):
-            os.system(
-                f"python3 -m pip install --no-cache-dir -q -r /app/config/requirements.txt"
+    @staticmethod
+    def install_requirements() -> None:
+        """
+        Install Python requirements if requirements.txt exists.
+        """
+        if os.path.exists(REQUIREMENTS_PATH):
+            logger.info(
+                f"requirements.txt found at {REQUIREMENTS_PATH}. Installing requirements..."
+            )
+            exit_code = os.system(
+                f"python3 -m pip install --force-reinstall --no-cache-dir -q -r {REQUIREMENTS_PATH}"
+            )
+            if exit_code == 0:
+                logger.info("Requirements installed successfully.")
+            else:
+                logger.error(f"Failed to install requirements (exit code {exit_code}).")
+        else:
+            logger.info(
+                f"No requirements.txt found at {REQUIREMENTS_PATH}. Skipping requirements installation."
             )
