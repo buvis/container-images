@@ -3,14 +3,15 @@ import sys
 import logging
 from typing import Optional
 
-from config_defaults import DEFAULT_BRANCH, DEFAULT_INTERVAL
-
 # Environment variable names as constants
 GIT_REPO_ENV = "GIT_REPO"
 GIT_CREDENTIALS_ENV = "GIT_CREDENTIALS"
 GIT_BRANCH_ENV = "GIT_BRANCH"
 UPDATE_INTERVAL_ENV = "UPDATE_INTERVAL"
-REQUIREMENTS_PATH = "/app/config/requirements.txt"
+# Defaults
+DEFAULT_BRANCH = "main"
+DEFAULT_INTERVAL = 900
+DEFAULT_REQUIREMENTS_PATH = "/app/config/requirements.txt"
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +86,12 @@ class Config:
         """
         Install Python requirements if requirements.txt exists.
         """
-        if os.path.exists(REQUIREMENTS_PATH):
+        if os.path.exists(DEFAULT_REQUIREMENTS_PATH):
             logger.info(
-                f"requirements.txt found at {REQUIREMENTS_PATH}. Installing requirements..."
+                f"requirements.txt found at {DEFAULT_REQUIREMENTS_PATH}. Installing requirements..."
             )
             exit_code = os.system(
-                f"python3 -m pip install --force-reinstall --no-cache-dir -q -r {REQUIREMENTS_PATH}"
+                f"python3 -m pip install --force-reinstall --no-cache-dir -q -r {DEFAULT_REQUIREMENTS_PATH}"
             )
             if exit_code == 0:
                 logger.info("Requirements installed successfully.")
@@ -98,5 +99,5 @@ class Config:
                 logger.error(f"Failed to install requirements (exit code {exit_code}).")
         else:
             logger.info(
-                f"No requirements.txt found at {REQUIREMENTS_PATH}. Skipping requirements installation."
+                f"No requirements.txt found at {DEFAULT_REQUIREMENTS_PATH}. Skipping requirements installation."
             )

@@ -71,11 +71,7 @@ Once started, navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000). You wi
 ### Fix/enhance
 
 1. Do the work
-2. Build image locally: `docker build . -t buvis/mkdocs-git-sync`
-3. Make sure docker compose is clean: `docker-compose down --rmi=local`
-4. Switch to local version of ADD in `Dockerfile`
-5. Follow the run instructions above
-6. Repeat steps 1-5 untill the work is done
-7. Switch to repository version of ADD in `Dockerfile`
-8. Increment version in `VERSION`
-9. Push to repository
+2. Build image: `make build`
+3. Run it: `make run` (`docker-compose.yml` is required, create it following run instructions above)
+4. Repeat steps 1-3 untill the work is done
+5. Increment version in `VERSION`
