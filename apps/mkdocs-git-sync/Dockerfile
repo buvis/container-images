@@ -18,10 +18,6 @@ WORKDIR /app
 RUN pip install --no-cache-dir --user GitPython==3.1.44
 
 # Add application code
-# use the line below when pushing back to repository
-# ADD --chown=app:app ./apps/mkdocs-git-sync/container-files/syncer /app
-# use the line below when building locally
-#ADD --chown=app:app container-files/syncer /app
-ADD --chown=app:app ./container-files/syncer /app
+ADD --chown=app:app container-files/syncer /app
 
 CMD ["python3", "/app/run.py"]
