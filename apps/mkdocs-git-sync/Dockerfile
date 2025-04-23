@@ -1,39 +1,27 @@
-FROM python:3.13-slim-bookworm
+FROM python:3.13-alpine
 
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ARG VERSION
-
-ENV DEBCONF_NONINTERACTIVE_SEEN=true \
-    DEBIAN_FRONTEND='noninteractive' \
-    APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn \
-    PYTHONUNBUFFERED=1 \
-    PATH=/home/app/.local/bin:$PATH \
-    GIT_CREDENTIALS='' \
-    GIT_REPO='none' \
-    GIT_BRANCH='main' \
+ENV PYTHONUNBUFFERED=1 \
+    PATH="/home/app/.local/bin:$PATH" \
     UPDATE_INTERVAL=900
 
-RUN set -eux && \
-    echo 'APT::Install-Recommends "false";' >/etc/apt/apt.conf.d/00recommends && \
-    echo 'APT::Install-Suggests "false";' >>/etc/apt/apt.conf.d/00recommends && \
-    echo 'APT::Get::Install-Recommends "false";' >>/etc/apt/apt.conf.d/00recommends && \
-    echo 'APT::Get::Install-Suggests "false";' >>/etc/apt/apt.conf.d/00recommends &&\
-    apt-get -qq update && \
-    apt-get install -y git && \
-    python3 -m pip install --no-cache-dir --upgrade pip && \
-    python3 -m pip install --no-cache-dir GitPython==3.1.44 && \
-    rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/* && \
-    adduser --disabled-login app
+# Create app user, install git, and set up directories in one layer
+RUN apk add --no-cache git && \
+    adduser -D -u 1001 -h /home/app app && \
+    mkdir -p /app/site && \
+    chown -R app:app /app && \
+    chmod -R 755 /app
 
 USER app
-
-# use the line below when pushing back to repository
-ADD --chown=app:app ./apps/mkdocs-git-sync/container-files/syncer /app
-# use the line below when building locally
-# ADD --chown=app:app container-files/syncer /app
 WORKDIR /app
 
-RUN mkdir /app/site
+# Install Python dependencies
+RUN pip install --no-cache-dir --user GitPython==3.1.44
+
+# Add application code
+# use the line below when pushing back to repository
+# ADD --chown=app:app ./apps/mkdocs-git-sync/container-files/syncer /app
+# use the line below when building locally
+#ADD --chown=app:app container-files/syncer /app
+ADD --chown=app:app ./container-files/syncer /app
 
 CMD ["python3", "/app/run.py"]
