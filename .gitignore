@@ -4,3 +4,34 @@
 static/
 dev/internal/
 apps/sw-factory/
+
+# =============================================================================
+# AI Tooling - Claude Code
+# =============================================================================
+.claude/settings.local.json
+.claude/cache/
+.claude/tmp/
+.claude/hooks/notify.log
+.devcontainer/.claude/
+.devcontainer/.codex/
+
+# =============================================================================
+# AI Tooling - MCP (Model Context Protocol)
+# =============================================================================
+.mcp.json
+.serena/
+
+# =============================================================================
+# AI Tooling - Task Master
+# =============================================================================
+.taskmaster/state.json
+.taskmaster/config.json
+.taskmaster/reports/
+.taskmaster/docs/
+.taskmaster/tasks/
+
+# =============================================================================
+# Project-specific
+# =============================================================================
+plan.md
+
