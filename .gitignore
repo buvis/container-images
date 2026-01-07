@@ -2,3 +2,5 @@
 *.swp
 .idea/
 static/
+dev/internal/
+apps/sw-factory/
