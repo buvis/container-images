@@ -16,18 +16,18 @@ RUN \
   && apt-get install -y apt-transport-https \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
-      curl \
-      imagemagick \
-      nginx \
-      php-curl \
-      php-fpm \
-      php-gd \
-      php-json \
-      php-mbstring \
-      php-mysql \
-      php-sqlite3 \
-      php-xml \
-      unzip \
+  curl \
+  imagemagick \
+  nginx \
+  php-curl \
+  php-fpm \
+  php-gd \
+  php-json \
+  php-mbstring \
+  php-mysql \
+  php-sqlite3 \
+  php-xml \
+  unzip \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
@@ -67,8 +67,8 @@ EXPOSE 8123
 VOLUME ["/app"]
 
 # Copy the configuration and scripts
-COPY ./apps/rompr/config/nginx_default /etc/nginx/sites-available/default
-COPY ./apps/rompr/entrypoint.sh /entrypoint.sh
+COPY ./config/nginx_default /etc/nginx/sites-available/default
+COPY ./entrypoint.sh /entrypoint.sh
 
 # Start rompr
 CMD ["/entrypoint.sh"]
