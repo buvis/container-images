@@ -39,16 +39,16 @@ RUN \
   apt-get -qq update \
   && \
   apt-get install -y \
-    bash \
-    ca-certificates \
-    curl \
-    dnsutils \
-    jq \
-    locales \
-    lsb-release \
-    tini \
-    tzdata \
-    vim-tiny \
+  bash \
+  ca-certificates \
+  curl \
+  dnsutils \
+  jq \
+  locales \
+  lsb-release \
+  tini \
+  tzdata \
+  vim-tiny \
   && \
   localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
   && ln -s /usr/bin/vim.tiny /usr/local/bin/vi \
@@ -63,10 +63,10 @@ RUN \
   && apt-get clean \
   && \
   rm -rf \
-    /tmp/* \
-    /var/lib/apt/lists/* \
-    /var/cache/apt/* \
-    /var/tmp/*
+  /tmp/* \
+  /var/lib/apt/lists/* \
+  /var/cache/apt/* \
+  /var/tmp/*
 
 ENV LANG en_US.UTF-8
 
@@ -74,7 +74,7 @@ USER kah
 
 VOLUME [ "/config" ]
 
-COPY ./base/debian-slim/shim /shim
+COPY ./shim /shim
 
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 
