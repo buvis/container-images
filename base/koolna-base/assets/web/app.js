@@ -337,11 +337,69 @@ async function init() {
   });
 
   const close = tty.open();
+  initKeypad(tty, term);
 
   window.addEventListener('beforeunload', () => {
     close();
     term.close();
   });
+}
+
+const KEY_MAP = {
+  Escape: '\x1b',
+  Tab: '\t',
+  ArrowUp: '\x1b[A',
+  ArrowDown: '\x1b[B',
+  ArrowRight: '\x1b[C',
+  ArrowLeft: '\x1b[D'
+};
+
+function initKeypad(tty, term) {
+  const keypad = document.getElementById('keypad');
+  const kbToggle = document.getElementById('kb-toggle');
+  const mobileInput = document.getElementById('mobile-input');
+  if (!keypad) return;
+
+  keypad.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn || btn.id === 'kb-toggle') return;
+
+    let seq;
+    if (btn.dataset.key) {
+      seq = KEY_MAP[btn.dataset.key] || '';
+    } else if (btn.dataset.ctrl) {
+      const char = btn.dataset.ctrl.toLowerCase();
+      seq = String.fromCharCode(char.charCodeAt(0) - 96);
+    }
+
+    if (seq) {
+      tty.sendInput(seq);
+      term.term.focus();
+    }
+  });
+
+  if (kbToggle && mobileInput) {
+    kbToggle.addEventListener('click', () => {
+      mobileInput.focus();
+    });
+
+    mobileInput.addEventListener('input', (e) => {
+      if (e.target.value) {
+        tty.sendInput(e.target.value);
+        e.target.value = '';
+      }
+    });
+
+    mobileInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        tty.sendInput('\r');
+        e.preventDefault();
+      } else if (e.key === 'Backspace') {
+        tty.sendInput('\x7f');
+        e.preventDefault();
+      }
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
