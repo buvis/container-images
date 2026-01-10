@@ -1,3 +1,7 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -6,6 +10,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* Session Picker */
 .session-picker {
   min-height: 100vh;
   display: flex;
@@ -36,4 +41,49 @@ body {
 
 .session-button:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* Terminal Page */
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #0a0c10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.session-label {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.connection-status {
+  font-size: 0.875rem;
+}
+
+.terminal-wrapper {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.5rem;
+}
+
+#terminal {
+  width: 100%;
+  height: 100%;
+}
+
+.xterm-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  font-size: 1.25rem;
+  z-index: 100;
 }
