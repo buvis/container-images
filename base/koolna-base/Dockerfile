@@ -27,7 +27,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   less \
   lazygit \
   vifm \
-  nodejs \
   && rm -rf /var/lib/apt/lists/*
 
 RUN arch="$(dpkg --print-architecture)" \
@@ -36,22 +35,35 @@ RUN arch="$(dpkg --print-architecture)" \
   && install -m 0755 /tmp/gotty /usr/local/bin/gotty \
   && rm -f /tmp/gotty.tar.gz /tmp/gotty
 
-RUN if [ ! -e /usr/bin/node ] && [ -e /usr/bin/nodejs ]; then ln -s /usr/bin/nodejs /usr/bin/node; fi
-
 RUN groupadd --gid $USER_GID $USERNAME \
   && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
   && usermod -aG sudo $USERNAME \
   && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME
 
-RUN mkdir -p /workspace /home/$USERNAME/.local/bin \
+RUN mkdir -p /workspace /home/$USERNAME/.local/bin /home/$USERNAME/.config/mise \
   && chown -R $USERNAME:$USERNAME /home/$USERNAME \
   && chown $USERNAME:$USERNAME /workspace
 
-ENV HOME=/home/$USERNAME
-ENV PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
+USER $USERNAME
 
+ENV HOME=/home/$USERNAME
+ENV PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/usr/local/bin:$PATH"
+ENV MISE_DATA_DIR="$HOME/.local/share/mise"
+ENV MISE_CONFIG_DIR="$HOME/.config/mise"
+ENV MISE_CACHE_DIR="$HOME/.cache/mise"
+ENV MISE_NODE_DEFAULT_PACKAGES_FILE="$HOME/.default-npm-packages"
+
+COPY --chown=${USERNAME}:${USERNAME} assets/config/.default-npm-packages /home/$USERNAME/.default-npm-packages
+COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERNAME/.config/mise/config.toml
 COPY --chown=${USERNAME}:${USERNAME} assets/config/tmux.conf /home/$USERNAME/.tmux.conf
+
+RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
+  && curl -fsSL https://mise.jdx.dev/install.sh | sh \
+  && bash -c 'eval "$(mise activate bash)" && mise install'
+
+USER root
+
 COPY --from=builder /build/koolna /usr/local/bin/koolna
 
 COPY assets/bin/startup.sh /usr/local/bin/startup.sh
