@@ -17,31 +17,70 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// DeletionPolicy governs how associated resources are handled when a Koolna is deleted.
+type DeletionPolicy string
+
+const (
+	DeletionPolicyDelete DeletionPolicy = "Delete"
+	DeletionPolicyRetain DeletionPolicy = "Retain"
+)
+
 // KoolnaSpec defines the desired state of Koolna
 type KoolnaSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-
-	// foo is an example field of Koolna. Edit koolna_types.go to remove/update
-	// +optional
-	Foo *string `json:"foo,omitempty"`
+	Repo           string                      `json:"repo"`
+	Branch         string                      `json:"branch"`
+	GitSecretRef   string                      `json:"gitSecretRef,omitempty"`
+	DotfilesRepo   string                      `json:"dotfilesRepo,omitempty"`
+	Image          string                      `json:"image"`
+	Storage        resource.Quantity           `json:"storage"`
+	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
+	Suspended      bool                        `json:"suspended,omitempty"`
+	DeletionPolicy DeletionPolicy              `json:"deletionPolicy,omitempty"`
 }
+
+// KoolnaPhase indicates the current lifecycle phase of a Koolna.
+type KoolnaPhase string
+
+const (
+	KoolnaPhasePending   KoolnaPhase = "Pending"
+	KoolnaPhaseRunning   KoolnaPhase = "Running"
+	KoolnaPhaseSuspended KoolnaPhase = "Suspended"
+	KoolnaPhaseFailed    KoolnaPhase = "Failed"
+)
 
 // KoolnaStatus defines the observed state of Koolna.
 type KoolnaStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Phase is the current lifecycle phase of the Koolna resource.
+	Phase KoolnaPhase `json:"phase,omitempty"`
 
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+	// IP is the current IP address of the running Koolna pod.
+	IP string `json:"ip,omitempty"`
+
+	// PodName is the name of the active pod for the Koolna instance.
+	PodName string `json:"podName,omitempty"`
+
+	// PVCName is the name of the persistent volume claim used by the Koolna workspace.
+	PVCName string `json:"pvcName,omitempty"`
+
+	// ServiceName is the load balancer or clusterIP service fronting the Koolna pod.
+	ServiceName string `json:"serviceName,omitempty"`
+
+	// CurrentBranch reflects the branch currently checked out inside the pod.
+	CurrentBranch string `json:"currentBranch,omitempty"`
+
+	// LastReconciled marks the most recent reconcile timestamp.
+	LastReconciled metav1.Time `json:"lastReconciled,omitempty"`
+
+	// LastError contains the last error encountered by the reconciler.
+	LastError string `json:"lastError,omitempty"`
 
 	// conditions represent the current state of the Koolna resource.
 	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
@@ -60,6 +99,10 @@ type KoolnaStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=".spec.repo"
+// +kubebuilder:printcolumn:name="Branch",type="string",JSONPath=".spec.branch"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Koolna is the Schema for the koolnas API
 type Koolna struct {
