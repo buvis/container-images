@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- koolna_v1alpha1_koolna.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
