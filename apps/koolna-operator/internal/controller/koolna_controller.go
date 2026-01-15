@@ -19,9 +19,14 @@ package controller
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	koolnav1alpha1 "github.com/buvis/koolna-operator/api/v1alpha1"
@@ -36,6 +41,7 @@ type KoolnaReconciler struct {
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,11 +53,76 @@ type KoolnaReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.4/pkg/reconcile
 func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var koolna koolnav1alpha1.Koolna
+	if err := r.Get(ctx, req.NamespacedName, &koolna); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "unable to fetch Koolna", "name", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	pvc, err := r.reconcilePVC(ctx, &koolna)
+	if err != nil {
+		log.Error(err, "unable to reconcile PVC", "name", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	if pvc != nil && koolna.Status.PVCName != pvc.Name {
+		koolna.Status.PVCName = pvc.Name
+		if err := r.Status().Update(ctx, &koolna); err != nil {
+			log.Error(err, "unable to update Koolna status")
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alpha1.Koolna) (*corev1.PersistentVolumeClaim, error) {
+	pvcName := koolna.Name + "-workspace"
+	pvc := &corev1.PersistentVolumeClaim{}
+
+	err := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: koolna.Namespace}, pvc)
+	if err == nil {
+		return pvc, nil
+	}
+
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	pvc = &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pvcName,
+			Namespace: koolna.Namespace,
+			Labels: map[string]string{
+				"koolna.buvis.net/name": koolna.Name,
+			},
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: koolna.Spec.Storage,
+				},
+			},
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(koolna, pvc, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	if err := r.Create(ctx, pvc); err != nil {
+		return nil, err
+	}
+
+	return pvc, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
