@@ -82,7 +82,7 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alpha1.Koolna) (*corev1.PersistentVolumeClaim, error) {
-	pvcName := koolna.Name + "-workspace"
+	pvcName := workspacePVCName(koolna)
 	pvc := &corev1.PersistentVolumeClaim{}
 
 	err := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: koolna.Namespace}, pvc)
@@ -123,6 +123,77 @@ func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alp
 	}
 
 	return pvc, nil
+}
+
+const workspaceVolumeName = "workspace"
+
+func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
+	secretName := koolna.Spec.GitSecretRef
+
+	return corev1.Container{
+		Name:  "git-clone",
+		Image: "alpine/git",
+		Command: []string{
+			"sh",
+			"-c",
+		},
+		Args: []string{
+			"if [ ! -d /workspace/.git ]; then git clone https://$GIT_USERNAME:$GIT_TOKEN@github.com/$REPO_URL /workspace && cd /workspace && git checkout $REPO_BRANCH; fi",
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "GIT_USERNAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "username",
+					},
+				},
+			},
+			{
+				Name: "GIT_TOKEN",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "token",
+					},
+				},
+			},
+			{
+				Name:  "REPO_URL",
+				Value: koolna.Spec.Repo,
+			},
+			{
+				Name:  "REPO_BRANCH",
+				Value: koolna.Spec.Branch,
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      workspaceVolumeName,
+				MountPath: "/workspace",
+			},
+		},
+	}
+}
+
+func buildWorkspaceVolume(koolna *koolnav1alpha1.Koolna) corev1.Volume {
+	return corev1.Volume{
+		Name: workspaceVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: workspacePVCName(koolna),
+			},
+		},
+	}
+}
+
+func workspacePVCName(koolna *koolnav1alpha1.Koolna) string {
+	return koolna.Name + "-workspace"
 }
 
 // SetupWithManager sets up the controller with the Manager.
