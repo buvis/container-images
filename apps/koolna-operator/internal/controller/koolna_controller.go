@@ -181,6 +181,60 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 	}
 }
 
+func buildDotfilesInitContainer(koolna *koolnav1alpha1.Koolna) *corev1.Container {
+	if koolna.Spec.DotfilesRepo == "" {
+		return nil
+	}
+
+	secretName := koolna.Spec.GitSecretRef
+
+	return &corev1.Container{
+		Name:  "dotfiles-setup",
+		Image: "alpine/git",
+		Command: []string{
+			"sh",
+			"-c",
+		},
+		Args: []string{
+			"git clone https://$GIT_USERNAME:$GIT_TOKEN@github.com/$DOTFILES_REPO ~/.dotfiles && [ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true",
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "GIT_USERNAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "username",
+					},
+				},
+			},
+			{
+				Name: "GIT_TOKEN",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key: "token",
+					},
+				},
+			},
+			{
+				Name:  "DOTFILES_REPO",
+				Value: koolna.Spec.DotfilesRepo,
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      workspaceVolumeName,
+				MountPath: "/workspace",
+			},
+		},
+	}
+}
+
 func buildWorkspaceVolume(koolna *koolnav1alpha1.Koolna) corev1.Volume {
 	return corev1.Volume{
 		Name: workspaceVolumeName,
