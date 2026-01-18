@@ -235,15 +235,76 @@ func buildDotfilesInitContainer(koolna *koolnav1alpha1.Koolna) *corev1.Container
 	}
 }
 
-func buildWorkspaceVolume(koolna *koolnav1alpha1.Koolna) corev1.Volume {
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string) *corev1.Pod {
+	initContainers := []corev1.Container{
+		buildGitCloneInitContainer(koolna),
+	}
+
+	if dotfiles := buildDotfilesInitContainer(koolna); dotfiles != nil {
+		initContainers = append(initContainers, *dotfiles)
+	}
+
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      koolna.Name,
+			Namespace: koolna.Namespace,
+			Labels: map[string]string{
+				"koolna.buvis.net/name": koolna.Name,
+			},
+		},
+		Spec: corev1.PodSpec{
+			RestartPolicy:      corev1.RestartPolicyAlways,
+			ServiceAccountName: "koolna-auth-syncer",
+			InitContainers:     initContainers,
+			Containers: []corev1.Container{
+				{
+					Name:       "koolna",
+					Image:      koolna.Spec.Image,
+					WorkingDir: "/workspace",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 3000,
+						},
+					},
+					Resources: koolna.Spec.Resources,
+					Env: []corev1.EnvVar{
+						{
+							Name:  "KOOLNA_AUTH_SECRET",
+							Value: authSecretName(koolna),
+						},
+						{
+							Name:  "KOOLNA_NAMESPACE",
+							Value: koolna.Namespace,
+						},
+					},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      workspaceVolumeName,
+							MountPath: "/workspace",
+						},
+					},
+				},
+			},
+			Volumes: []corev1.Volume{
+				buildWorkspaceVolume(pvcName),
+			},
+		},
+	}
+}
+
+func buildWorkspaceVolume(pvcName string) corev1.Volume {
 	return corev1.Volume{
 		Name: workspaceVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-				ClaimName: workspacePVCName(koolna),
+				ClaimName: pvcName,
 			},
 		},
 	}
+}
+
+func authSecretName(koolna *koolnav1alpha1.Koolna) string {
+	return koolna.Name + "-auth"
 }
 
 func workspacePVCName(koolna *koolnav1alpha1.Koolna) string {
