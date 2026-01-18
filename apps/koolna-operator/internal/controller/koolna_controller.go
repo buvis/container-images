@@ -70,8 +70,46 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
+	pvcName := ""
+	if pvc != nil {
+		pvcName = pvc.Name
+	}
+
+	statusChanged := false
 	if pvc != nil && koolna.Status.PVCName != pvc.Name {
 		koolna.Status.PVCName = pvc.Name
+		statusChanged = true
+	}
+
+	pod, err := r.reconcilePod(ctx, &koolna, pvcName)
+	if err != nil {
+		log.Error(err, "unable to reconcile pod", "name", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	desiredPhase := koolnav1alpha1.KoolnaPhasePending
+	if koolna.Spec.Suspended {
+		desiredPhase = koolnav1alpha1.KoolnaPhaseSuspended
+	} else if pod != nil {
+		desiredPhase = koolnav1alpha1.KoolnaPhaseRunning
+	}
+
+	podName := ""
+	if pod != nil {
+		podName = pod.Name
+	}
+
+	if koolna.Status.PodName != podName {
+		koolna.Status.PodName = podName
+		statusChanged = true
+	}
+
+	if koolna.Status.Phase != desiredPhase {
+		koolna.Status.Phase = desiredPhase
+		statusChanged = true
+	}
+
+	if statusChanged {
 		if err := r.Status().Update(ctx, &koolna); err != nil {
 			log.Error(err, "unable to update Koolna status")
 			return ctrl.Result{}, err
@@ -123,6 +161,42 @@ func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alp
 	}
 
 	return pvc, nil
+}
+
+func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alpha1.Koolna, pvcName string) (*corev1.Pod, error) {
+	pods := &corev1.PodList{}
+	if err := r.List(ctx, pods,
+		client.InNamespace(koolna.Namespace),
+		client.MatchingLabels{
+			"koolna.buvis.net/name": koolna.Name,
+		},
+	); err != nil {
+		return nil, err
+	}
+
+	if koolna.Spec.Suspended {
+		for _, pod := range pods.Items {
+			if err := r.Delete(ctx, &pod); err != nil && !apierrors.IsNotFound(err) {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
+
+	if len(pods.Items) > 0 {
+		return &pods.Items[0], nil
+	}
+
+	pod := buildPodSpec(koolna, pvcName)
+	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	if err := r.Create(ctx, pod); err != nil {
+		return nil, err
+	}
+
+	return pod, nil
 }
 
 const workspaceVolumeName = "workspace"
