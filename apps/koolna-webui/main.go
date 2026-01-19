@@ -28,6 +28,9 @@ func main() {
 
 	handlers.RegisterRoutes(router, apiHandler)
 
+	terminalHandler := handlers.NewTerminalHandler("")
+	handlers.RegisterTerminalRoutes(router, terminalHandler)
+
 	addr := fmt.Sprintf(":%d", *port)
 	fmt.Fprintf(os.Stdout, "Starting koolna-webui on %s\n", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
