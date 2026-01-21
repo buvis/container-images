@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -42,6 +43,7 @@ type KoolnaReconciler struct {
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -84,6 +86,12 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	pod, err := r.reconcilePod(ctx, &koolna, pvcName)
 	if err != nil {
 		log.Error(err, "unable to reconcile pod", "name", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	_, err = r.reconcileService(ctx, &koolna)
+	if err != nil {
+		log.Error(err, "unable to reconcile service", "name", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
 
@@ -161,6 +169,54 @@ func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alp
 	}
 
 	return pvc, nil
+}
+
+func (r *KoolnaReconciler) reconcileService(ctx context.Context, koolna *koolnav1alpha1.Koolna) (*corev1.Service, error) {
+	svcName := koolna.Name
+	svc := &corev1.Service{}
+
+	err := r.Get(ctx, types.NamespacedName{Name: svcName, Namespace: koolna.Namespace}, svc)
+	if err == nil {
+		return svc, nil
+	}
+
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	svc = &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: koolna.Namespace,
+			Labels: map[string]string{
+				"koolna.buvis.net/name": koolna.Name,
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP,
+			Selector: map[string]string{
+				"koolna.buvis.net/name": koolna.Name,
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Name:       "http",
+					Port:       3000,
+					TargetPort: intstr.FromInt(3000),
+					Protocol:   corev1.ProtocolTCP,
+				},
+			},
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(koolna, svc, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	if err := r.Create(ctx, svc); err != nil {
+		return nil, err
+	}
+
+	return svc, nil
 }
 
 func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alpha1.Koolna, pvcName string) (*corev1.Pod, error) {
