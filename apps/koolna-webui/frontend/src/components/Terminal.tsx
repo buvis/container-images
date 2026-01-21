@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { WebTTY, ConnectionFactory, GOTTY_PROTOCOLS, type ConnectionStatus } from '../lib/webtty';
 import { XtermAdapter } from '../lib/xterm-adapter';
+import { Keypad } from './Keypad';
 import 'xterm/css/xterm.css';
 
 interface TerminalProps {
@@ -22,26 +23,37 @@ const statusColors: Record<ConnectionStatus, string> = {
 
 export function Terminal({ name, session, onBack }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const ttyRef = useRef<WebTTY | null>(null);
+  const adapterRef = useRef<XtermAdapter | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const adapter = new XtermAdapter(containerRef.current, session);
+    adapterRef.current = adapter;
     const wsUrl = buildWebsocketUrl(name, session);
     const connectionFactory = new ConnectionFactory(wsUrl, GOTTY_PROTOCOLS);
 
     const tty = new WebTTY(adapter, connectionFactory, {
       onStatus: setStatus,
     });
+    ttyRef.current = tty;
 
     const close = tty.open();
 
     return () => {
       close();
       adapter.dispose();
+      ttyRef.current = null;
+      adapterRef.current = null;
     };
   }, [name, session]);
+
+  const handleKeypadKey = useCallback((seq: string) => {
+    ttyRef.current?.sendInput(seq);
+    adapterRef.current?.term.focus();
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-bg">
@@ -57,7 +69,8 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
           {status}
         </span>
       </header>
-      <div ref={containerRef} className="flex-1 overflow-hidden" />
+      <div ref={containerRef} className="flex-1 overflow-hidden pb-16 md:pb-0" />
+      <Keypad onKey={handleKeypadKey} />
     </div>
   );
 }
