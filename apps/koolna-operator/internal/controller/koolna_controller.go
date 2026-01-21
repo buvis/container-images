@@ -33,6 +33,8 @@ import (
 	koolnav1alpha1 "github.com/buvis/koolna-operator/api/v1alpha1"
 )
 
+const finalizerName = "koolna.buvis.net/finalizer"
+
 // KoolnaReconciler reconciles a Koolna object
 type KoolnaReconciler struct {
 	client.Client
@@ -42,7 +44,7 @@ type KoolnaReconciler struct {
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -64,6 +66,29 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 		log.Error(err, "unable to fetch Koolna", "name", req.NamespacedName)
 		return ctrl.Result{}, err
+	}
+
+	// Handle deletion
+	if !koolna.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(&koolna, finalizerName) {
+			if err := r.handleDeletion(ctx, &koolna); err != nil {
+				log.Error(err, "unable to handle deletion", "name", req.NamespacedName)
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(&koolna, finalizerName)
+			if err := r.Update(ctx, &koolna); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer if missing
+	if !controllerutil.ContainsFinalizer(&koolna, finalizerName) {
+		controllerutil.AddFinalizer(&koolna, finalizerName)
+		if err := r.Update(ctx, &koolna); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	pvc, err := r.reconcilePVC(ctx, &koolna)
@@ -125,6 +150,21 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *KoolnaReconciler) handleDeletion(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
+	// Pod and Service are deleted by owner reference GC
+	// PVC: check deletionPolicy
+	if koolna.Spec.DeletionPolicy == koolnav1alpha1.DeletionPolicyDelete {
+		pvc := &corev1.PersistentVolumeClaim{}
+		pvcName := workspacePVCName(koolna)
+		if err := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: koolna.Namespace}, pvc); err == nil {
+			return r.Delete(ctx, pvc)
+		} else if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alpha1.Koolna) (*corev1.PersistentVolumeClaim, error) {
