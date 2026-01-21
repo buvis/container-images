@@ -38,6 +38,12 @@ log_info "Starting clipboard bridge on 127.0.0.1:4040"
 /usr/local/bin/tmux-clipboard-server.js >/tmp/tmux-clipboard.log 2>&1 &
 CLIPBOARD_PID=$!
 
+if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
+  log_info "Starting auth sync to secret: $KOOLNA_AUTH_SECRET"
+  /usr/local/bin/sync-auth-to-secret.sh >/tmp/sync-auth.log 2>&1 &
+  SYNC_AUTH_PID=$!
+fi
+
 log_info "Starting koolna web server on http://localhost:${KOOLNA_PORT}"
 "${KOOLNA_BIN}" --port "${KOOLNA_PORT}" >/tmp/koolna.log 2>&1 &
 KOOLNA_PID=$!
@@ -61,6 +67,11 @@ shutdown() {
     log_info "Stopping clipboard bridge..."
     kill "${CLIPBOARD_PID}" 2>/dev/null || true
     wait "${CLIPBOARD_PID}" 2>/dev/null || true
+  fi
+  if [ -n "${SYNC_AUTH_PID:-}" ]; then
+    log_info "Stopping auth sync..."
+    kill "${SYNC_AUTH_PID}" 2>/dev/null || true
+    wait "${SYNC_AUTH_PID}" 2>/dev/null || true
   fi
 }
 
