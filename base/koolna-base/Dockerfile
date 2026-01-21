@@ -64,6 +64,7 @@ COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERN
 COPY --chown=${USERNAME}:${USERNAME} assets/config/tmux.conf /home/$USERNAME/.tmux.conf
 
 RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
+  && echo 'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"' >> ~/.profile \
   && curl -fsSL https://mise.jdx.dev/install.sh | sh \
   && bash -c 'eval "$(mise activate bash)" && mise install'
 
