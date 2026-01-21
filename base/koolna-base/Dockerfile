@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   less \
   lazygit \
   vifm \
+  inotify-tools \
   && rm -rf /var/lib/apt/lists/*
 
 RUN arch="$(dpkg --print-architecture)" \
@@ -34,6 +35,10 @@ RUN arch="$(dpkg --print-architecture)" \
   && tar -xzf /tmp/gotty.tar.gz -C /tmp \
   && install -m 0755 /tmp/gotty /usr/local/bin/gotty \
   && rm -f /tmp/gotty.tar.gz /tmp/gotty
+
+RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
+  && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
+  && rm /tmp/kubectl
 
 RUN groupadd --gid $USER_GID $USERNAME \
   && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
@@ -71,6 +76,9 @@ COPY assets/bin/respawn-shell.sh /usr/local/bin/respawn-shell.sh
 COPY assets/bin/start-gotty.sh /usr/local/bin/start-gotty.sh
 COPY assets/bin/tmux-clipboard-server.js /usr/local/bin/tmux-clipboard-server.js
 COPY assets/bin/tmux-clipboard-copy.sh /usr/local/bin/tmux-clipboard-copy.sh
+COPY assets/lib/whatwedo /usr/local/lib/whatwedo
+COPY assets/bin/whatwedo /usr/local/bin/whatwedo
+COPY assets/bin/sync-auth-to-secret.sh /usr/local/bin/sync-auth-to-secret.sh
 
 COPY assets/web/ /usr/share/koolna/web/
 
@@ -79,7 +87,10 @@ RUN chmod +x /usr/local/bin/koolna \
   && chmod +x /usr/local/bin/respawn-shell.sh \
   && chmod +x /usr/local/bin/start-gotty.sh \
   && chmod +x /usr/local/bin/tmux-clipboard-server.js \
-  && chmod +x /usr/local/bin/tmux-clipboard-copy.sh
+  && chmod +x /usr/local/bin/tmux-clipboard-copy.sh \
+  && chmod +x /usr/local/lib/whatwedo \
+  && chmod +x /usr/local/bin/whatwedo \
+  && chmod +x /usr/local/bin/sync-auth-to-secret.sh
 
 WORKDIR /workspace
 
