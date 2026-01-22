@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"k8s.io/client-go/kubernetes"
@@ -37,11 +39,32 @@ func main() {
 	terminalHandler := handlers.NewTerminalHandler("")
 	handlers.RegisterTerminalRoutes(router, terminalHandler)
 
+	distDir := filepath.Join("frontend", "dist")
+	router.PathPrefix("/").Handler(spaHandler(distDir))
+
 	addr := fmt.Sprintf(":%d", *port)
 	fmt.Fprintf(os.Stdout, "Starting koolna-webui on %s\n", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func spaHandler(distDir string) http.HandlerFunc {
+	fileServer := http.FileServer(http.Dir(distDir))
+	indexFile := filepath.Join(distDir, "index.html")
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		cleanedPath := filepath.Clean(r.URL.Path)
+		relativePath := strings.TrimPrefix(cleanedPath, "/")
+		target := filepath.Join(distDir, relativePath)
+
+		if info, err := os.Stat(target); err == nil && !info.IsDir() {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		http.ServeFile(w, r, indexFile)
 	}
 }
 
