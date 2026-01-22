@@ -19,20 +19,25 @@ var KoolnaGVR = schema.GroupVersionResource{
 }
 
 // NewClient builds a dynamic client using in-cluster config with a kubeconfig fallback.
-func NewClient() (dynamic.Interface, error) {
+func NewClient() (dynamic.Interface, *rest.Config, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		kubeconfig := kubeconfigPath()
 		if kubeconfig == "" {
-			return nil, fmt.Errorf("in-cluster config unavailable and kubeconfig path not set: %w", err)
+			return nil, nil, fmt.Errorf("in-cluster config unavailable and kubeconfig path not set: %w", err)
 		}
 		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			return nil, fmt.Errorf("failed to build kubeconfig from %s: %w", kubeconfig, err)
+			return nil, nil, fmt.Errorf("failed to build kubeconfig from %s: %w", kubeconfig, err)
 		}
 	}
 
-	return dynamic.NewForConfig(cfg)
+	client, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return client, cfg, nil
 }
 
 func kubeconfigPath() string {
