@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: koolna-webui
+  namespace: koolna
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: koolna.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: koolna-webui
+                port:
+                  number: 80
