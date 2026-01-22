@@ -18,9 +18,11 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,11 +60,11 @@ type KoolnaReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.4/pkg/reconcile
-func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	log := logf.FromContext(ctx)
 
 	var koolna koolnav1alpha1.Koolna
-	if err := r.Get(ctx, req.NamespacedName, &koolna); err != nil {
+	if err = r.Get(ctx, req.NamespacedName, &koolna); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -70,15 +72,21 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
+	svcName := koolna.Name
+	var (
+		pvcName string
+		pod     *corev1.Pod
+	)
+
 	// Handle deletion
 	if !koolna.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(&koolna, finalizerName) {
-			if err := r.handleDeletion(ctx, &koolna); err != nil {
+			if err = r.handleDeletion(ctx, &koolna); err != nil {
 				log.Error(err, "unable to handle deletion", "name", req.NamespacedName)
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(&koolna, finalizerName)
-			if err := r.Update(ctx, &koolna); err != nil {
+			if err = r.Update(ctx, &koolna); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -88,10 +96,19 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Add finalizer if missing
 	if !controllerutil.ContainsFinalizer(&koolna, finalizerName) {
 		controllerutil.AddFinalizer(&koolna, finalizerName)
-		if err := r.Update(ctx, &koolna); err != nil {
+		if err = r.Update(ctx, &koolna); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
+
+	defer func() {
+		if statusErr := r.updateStatus(ctx, &koolna, pod, pvcName, svcName, err); statusErr != nil {
+			log.Error(statusErr, "unable to update Koolna status")
+			if err == nil {
+				err = statusErr
+			}
+		}
+	}()
 
 	pvc, err := r.reconcilePVC(ctx, &koolna)
 	if err != nil {
@@ -99,59 +116,96 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	pvcName := ""
 	if pvc != nil {
 		pvcName = pvc.Name
 	}
 
-	statusChanged := false
-	if pvc != nil && koolna.Status.PVCName != pvc.Name {
-		koolna.Status.PVCName = pvc.Name
-		statusChanged = true
-	}
-
-	pod, err := r.reconcilePod(ctx, &koolna, pvcName)
+	pod, err = r.reconcilePod(ctx, &koolna, pvcName)
 	if err != nil {
 		log.Error(err, "unable to reconcile pod", "name", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
 
-	_, err = r.reconcileService(ctx, &koolna)
-	if err != nil {
+	if _, err = r.reconcileService(ctx, &koolna); err != nil {
 		log.Error(err, "unable to reconcile service", "name", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
 
-	desiredPhase := koolnav1alpha1.KoolnaPhasePending
+	result = ctrl.Result{RequeueAfter: 60 * time.Second}
+	return result, nil
+}
+
+func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alpha1.Koolna, pod *corev1.Pod, pvcName, svcName string, reconcileErr error) error {
+	koolna.Status.PVCName = pvcName
+	koolna.Status.ServiceName = svcName
+	koolna.Status.LastReconciled = metav1.Now()
+
+	condition := metav1.Condition{
+		Type:               "Ready",
+		ObservedGeneration: koolna.Generation,
+	}
+
+	if reconcileErr != nil {
+		koolna.Status.LastError = reconcileErr.Error()
+		koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseFailed
+		koolna.Status.PodName = ""
+		koolna.Status.IP = ""
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "ReconcileFailed"
+		condition.Message = reconcileErr.Error()
+		meta.SetStatusCondition(&koolna.Status.Conditions, condition)
+		return r.Status().Update(ctx, koolna)
+	}
+
+	koolna.Status.LastError = ""
 	if koolna.Spec.Suspended {
-		desiredPhase = koolnav1alpha1.KoolnaPhaseSuspended
+		koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseSuspended
+		koolna.Status.PodName = ""
+		koolna.Status.IP = ""
 	} else if pod != nil {
-		desiredPhase = koolnav1alpha1.KoolnaPhaseRunning
-	}
-
-	podName := ""
-	if pod != nil {
-		podName = pod.Name
-	}
-
-	if koolna.Status.PodName != podName {
-		koolna.Status.PodName = podName
-		statusChanged = true
-	}
-
-	if koolna.Status.Phase != desiredPhase {
-		koolna.Status.Phase = desiredPhase
-		statusChanged = true
-	}
-
-	if statusChanged {
-		if err := r.Status().Update(ctx, &koolna); err != nil {
-			log.Error(err, "unable to update Koolna status")
-			return ctrl.Result{}, err
+		koolna.Status.PodName = pod.Name
+		koolna.Status.IP = pod.Status.PodIP
+		switch pod.Status.Phase {
+		case corev1.PodRunning:
+			koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseRunning
+		case corev1.PodPending:
+			koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
+		case corev1.PodFailed:
+			koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseFailed
+		default:
+			koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
 		}
+	} else {
+		koolna.Status.PodName = ""
+		koolna.Status.IP = ""
+		koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
 	}
 
-	return ctrl.Result{}, nil
+	switch koolna.Status.Phase {
+	case koolnav1alpha1.KoolnaPhaseRunning:
+		condition.Status = metav1.ConditionTrue
+		condition.Reason = "Running"
+		condition.Message = "Koolna pod is running"
+	case koolnav1alpha1.KoolnaPhasePending:
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "Pending"
+		condition.Message = "Koolna pod is pending"
+	case koolnav1alpha1.KoolnaPhaseSuspended:
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "Suspended"
+		condition.Message = "Koolna is suspended"
+	case koolnav1alpha1.KoolnaPhaseFailed:
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "Failed"
+		condition.Message = "Koolna pod failed"
+	default:
+		condition.Status = metav1.ConditionUnknown
+		condition.Reason = "Unknown"
+		condition.Message = "Koolna state is unknown"
+	}
+
+	meta.SetStatusCondition(&koolna.Status.Conditions, condition)
+	return r.Status().Update(ctx, koolna)
 }
 
 func (r *KoolnaReconciler) handleDeletion(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
