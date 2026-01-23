@@ -205,7 +205,6 @@
                                             <th class="p-2 text-slate-400">Name</th>
                                             <th class="p-2 text-slate-400">Status</th>
                                             <th class="p-2 text-slate-400">Last Run</th>
-                                            <th class="p-2 text-slate-400">Next Run</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -218,7 +217,6 @@
                                                     </span>
                                                 </td>
                                                 <td class="p-2 text-sm text-slate-400">{task.last_run || '-'}</td>
-                                                <td class="p-2 text-sm text-slate-400">{task.next_run || '-'}</td>
                                             </tr>
                                         {/each}
                                     </tbody>
