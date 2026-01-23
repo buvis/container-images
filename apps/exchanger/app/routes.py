@@ -22,6 +22,7 @@ from app.models import (
     BackupResponse,
     BackupInfo,
     RestoreResponse,
+    ProviderStatusResponse,
 )
 from app.services.backfill import BackfillService
 from app.services.symbols import SymbolsService
@@ -47,6 +48,21 @@ def create_router(
     def list_providers() -> list[str]:
         logger.debug("list_providers called")
         return registry.ids()
+
+    @router.get("/providers/status", response_model=list[ProviderStatusResponse])
+    def providers_status() -> list[ProviderStatusResponse]:
+        logger.debug("providers_status requested")
+        statuses: list[ProviderStatusResponse] = []
+        for provider_id in registry.ids():
+            symbol_count = db.count_symbols(provider_id)
+            statuses.append(
+                ProviderStatusResponse(
+                    name=provider_id,
+                    healthy=symbol_count > 0,
+                    symbol_count=symbol_count,
+                )
+            )
+        return statuses
 
     @router.get("/rates", response_model=RateResponse | RatesResponse)
     def get_rate(
