@@ -1,6 +1,7 @@
 <script lang="ts">
     export let year: number = new Date().getFullYear();
     export let coverage: Record<string, number> = {};
+    export let favoritesCount: number = 0;
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -41,10 +42,12 @@
         if (!inYear) return 'bg-transparent';
         if (val === 0) return 'bg-slate-700';
         
-        // Simple threshold: < 50% of max is partial (yellow), else green
-        // Or if max is 1 (binary): 0=gray, 1=green.
-        // If max > 1, allow partials.
-        
+        if (favoritesCount > 0) {
+            if (val >= favoritesCount) return 'bg-green-500';
+            return 'bg-yellow-500';
+        }
+
+        // Fallback for when favoritesCount is 0 or not provided
         if (maxValue === 1) return 'bg-green-500';
         
         const ratio = val / maxValue;
