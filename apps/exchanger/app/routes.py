@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
@@ -14,6 +14,7 @@ from app.models import (
     HealthResponse,
     RateResponse,
     RatesResponse,
+    RateHistoryItem,
     ScheduledResponse,
     SymbolResponse,
     ForexCryptoSymbolResponse,
@@ -85,6 +86,36 @@ def create_router(
 
         logger.debug("returning rate=%s", rate)
         return RateResponse(rate=rate)
+
+    @router.get("/rates/history", response_model=list[RateHistoryItem])
+    def rates_history(
+        symbol: str = Query(..., description="Symbol to query, e.g. EURCZK"),
+        from_date: date | None = Query(None, description="Start date (YYYY-MM-DD)"),
+        to_date: date | None = Query(None, description="End date (YYYY-MM-DD)"),
+        provider: str | None = Query(None, description="Provider: fcs, cnb, or all"),
+    ) -> list[RateHistoryItem]:
+        logger.debug(
+            "rates_history: symbol=%s from=%s to=%s provider=%s",
+            symbol,
+            from_date,
+            to_date,
+            provider,
+        )
+
+        end_date = to_date or date.today()
+        start_date = from_date or (end_date - timedelta(days=30))
+        if start_date > end_date:
+            raise HTTPException(400, "from_date must be on or before to_date")
+
+        provider_filter: str | None = None
+        if provider and provider != "all":
+            if not registry.get(provider):
+                raise HTTPException(400, f"Unknown provider: {provider}")
+            provider_filter = provider
+
+        history = db.get_rates_range(symbol, start_date, end_date, provider_filter)
+        logger.debug("returning %d rate entries", len(history))
+        return history
 
     def _fetch_rate_on_demand(dt: date, symbol: str, provider: str) -> float | None:
         source = registry.get(provider)
