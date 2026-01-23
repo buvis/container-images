@@ -110,6 +110,12 @@ class TaskStateResponse(BaseModel):
     symbols_added: int | None = None
 
 
+class ProviderStatusResponse(BaseModel):
+    name: str
+    healthy: bool
+    symbol_count: int
+
+
 class BackupResponse(BaseModel):
     filename: str
     timestamp: str
