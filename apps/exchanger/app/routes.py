@@ -117,6 +117,26 @@ def create_router(
         logger.debug("returning %d rate entries", len(history))
         return history
 
+    @router.get("/rates/coverage", response_model=dict[str, int])
+    def rates_coverage(
+        year: int = Query(..., description="Year to analyze"),
+        provider: str | None = Query(None, description="Optional provider filter: fcs, cnb, or all"),
+    ) -> dict[str, int]:
+        logger.debug("rates_coverage: year=%d provider=%s", year, provider)
+
+        provider_filter: str | None = None
+        if provider:
+            if provider == "all":
+                provider_filter = None
+            else:
+                if not registry.get(provider):
+                    raise HTTPException(400, f"Unknown provider: {provider}")
+                provider_filter = provider
+
+        coverage = db.get_coverage(year, provider_filter)
+        logger.debug("rates_coverage returning %d entries", len(coverage))
+        return coverage
+
     def _fetch_rate_on_demand(dt: date, symbol: str, provider: str) -> float | None:
         source = registry.get(provider)
         if not source:
