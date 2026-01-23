@@ -23,8 +23,7 @@ export interface ProviderStatus {
 
 export interface BackupInfo {
     filename: string;
-    size: number;
-    created: string;
+    timestamp: string;
 }
 
 const API_BASE = '/api';
@@ -53,11 +52,11 @@ export async function getRates(date: string, provider?: string): Promise<Rate[]>
 
 export async function getRatesHistory(
     symbol: string,
-    from: string,
-    to: string,
+    fromDate: string,
+    toDate: string,
     provider?: string
 ): Promise<{ date: string; rate: number | null }[]> {
-    const params = new URLSearchParams({ symbol, from, to });
+    const params = new URLSearchParams({ symbol, from_date: fromDate, to_date: toDate });
     if (provider) params.append('provider', provider);
     return fetchJson(`${API_BASE}/rates/history?${params.toString()}`);
 }
