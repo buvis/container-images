@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class RatesRepository(Protocol):
     def get_rate(self, date: str, symbol: str, provider: str) -> float | None: ...
+    def get_rates_for_date(self, date: str, provider: str | None = None) -> list[dict]: ...
     def upsert_rate(self, date: str, symbol: str, provider: str, rate: float) -> None: ...
     def get_symbol(self, symbol: str, provider: str) -> Symbol | None: ...
     def list_symbols(self, provider: str | None = None, sym_type: SymbolType | None = None, query: str | None = None) -> list[Symbol]: ...
@@ -154,6 +155,32 @@ class SQLiteDatabase:
             rate = row[0] if row else None
             logger.debug("get_rate: date=%s symbol=%s provider=%s -> %s", date, symbol, provider, rate)
             return rate
+
+    def get_rates_for_date(self, date: str, provider: str | None = None) -> list[dict]:
+        query = """
+            SELECT s.symbol, r.rate, s.provider, s.type
+            FROM rates r
+            JOIN symbols s ON r.symbol_id = s.id
+            WHERE r.date = ?
+        """
+        params: list[str] = [date]
+
+        if provider:
+            query += " AND s.provider = ?"
+            params.append(provider)
+
+        query += " ORDER BY s.symbol ASC, s.provider ASC"
+
+        with self._lock:
+            if self._closed:
+                return []
+            cur = self._conn.execute(query, params)
+            rows = cur.fetchall()
+
+        return [
+            {"symbol": row[0], "rate": row[1], "provider": row[2], "type": row[3]}
+            for row in rows
+        ]
 
     def get_rates_range(
         self,
