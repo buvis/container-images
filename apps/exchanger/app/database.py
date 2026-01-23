@@ -184,6 +184,32 @@ class SQLiteDatabase:
 
         return result
 
+    def get_coverage(self, year: int, provider: str | None = None) -> dict[str, int]:
+        """Return how many rates exist for each date in a year (used by the heatmap)."""
+        start = date(year, 1, 1)
+        end = date(year, 12, 31)
+        query = """
+            SELECT r.date, COUNT(*) as cnt
+            FROM rates r
+            JOIN symbols s ON r.symbol_id = s.id
+            WHERE r.date BETWEEN ? AND ?
+        """
+        params: list[str] = [start.isoformat(), end.isoformat()]
+
+        if provider:
+            query += " AND s.provider = ?"
+            params.append(provider)
+
+        query += " GROUP BY r.date ORDER BY r.date"
+
+        with self._lock:
+            if self._closed:
+                return {}
+            cur = self._conn.execute(query, params)
+            rows = cur.fetchall()
+
+        return {row[0]: int(row[1]) for row in rows}
+
     def upsert_rate(self, date: str, symbol: str, provider: str, rate: float) -> bool:
         """Upsert rate. Returns True if inserted, False if symbol not found."""
         with self._lock:
