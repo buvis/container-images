@@ -3,7 +3,7 @@ import logging
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -315,6 +315,25 @@ def create_router(
         symbols = db.list_symbols(sym_type="crypto", query=q)
         logger.debug("returning %d crypto symbols", len(symbols))
         return [ForexCryptoSymbolResponse(provider=s.provider, symbol=s.symbol, name=s.name) for s in symbols]
+
+    @router.get("/favorites", response_model=list[str])
+    def favorites_list() -> list[str]:
+        logger.debug("favorites_list requested")
+        return db.list_favorites()
+
+    @router.post("/favorites")
+    def add_favorite(symbol: str = Body(..., embed=True, description="Symbol to add to favorites")) -> dict[str, str]:
+        logger.debug("add_favorite requested: symbol=%s", symbol)
+        db.add_favorite(symbol)
+        db.commit()
+        return {"symbol": symbol}
+
+    @router.delete("/favorites/{symbol}")
+    def delete_favorite(symbol: str) -> dict[str, str]:
+        logger.debug("remove_favorite requested: symbol=%s", symbol)
+        db.remove_favorite(symbol)
+        db.commit()
+        return {"symbol": symbol}
 
     def _get_backup_dir() -> Path:
         backup_dir = Path(settings.backup_dir)
