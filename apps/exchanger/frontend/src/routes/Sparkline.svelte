@@ -1,30 +1,12 @@
 <script lang="ts">
-  import { Line } from 'svelte-chartjs';
-  import {
-    Chart as ChartJS,
-    Title,
-    Tooltip,
-    Legend,
-    LineElement,
-    LinearScale,
-    PointElement,
-    CategoryScale,
-    Filler
-  } from 'chart.js';
-
-  ChartJS.register(
-    Title,
-    Tooltip,
-    Legend,
-    LineElement,
-    LinearScale,
-    PointElement,
-    CategoryScale,
-    Filler
-  );
+  import Chart from 'chart.js/auto';
+  import { onMount, onDestroy } from 'svelte';
 
   export let data: { date: string; rate: number | null }[] = [];
   export let color = '#3b82f6'; // blue-500 default
+
+  let canvas: HTMLCanvasElement;
+  let chart: Chart;
 
   $: chartData = {
     labels: data.map(d => d.date),
@@ -41,7 +23,7 @@
     ]
   };
 
-  const options = {
+  const options: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -62,8 +44,29 @@
       intersect: false
     }
   };
+
+  onMount(() => {
+    if (canvas) {
+      chart = new Chart(canvas, {
+        type: 'line',
+        data: chartData,
+        options: options
+      });
+    }
+  });
+
+  onDestroy(() => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
+
+  $: if (chart && chartData) {
+    chart.data = chartData;
+    chart.update('none');
+  }
 </script>
 
 <div class="h-16 w-32">
-  <Line data={chartData} {options} />
+  <canvas bind:this={canvas}></canvas>
 </div>
