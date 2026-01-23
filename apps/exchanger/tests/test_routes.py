@@ -69,6 +69,24 @@ class TestProvidersEndpoint:
         assert "cnb" in providers
 
 
+class TestProvidersStatusEndpoint:
+    def test_providers_status(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.commit()
+        db.close()
+
+        response = client.get("/providers/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        status_by_name = {item["name"]: item for item in data}
+        assert status_by_name["fcs"]["symbol_count"] == 1
+        assert status_by_name["fcs"]["healthy"] is True
+        assert status_by_name["cnb"]["symbol_count"] == 0
+        assert status_by_name["cnb"]["healthy"] is False
+
+
 class TestRatesEndpoint:
     def test_get_rate_not_found(self, client: TestClient) -> None:
         response = client.get("/rates", params={"date": "2024-01-01", "symbol": "EURUSD", "provider": "fcs"})
