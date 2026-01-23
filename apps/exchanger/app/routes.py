@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -35,6 +36,16 @@ def _sanitize_error(e: Exception) -> str:
     error_type = type(e).__name__
     # Only expose error type, not the full message which may contain paths or internal info
     return f"Task failed ({error_type})"
+
+
+# Strict pattern: YYYYMMDD_HHMMSS
+_TIMESTAMP_PATTERN = re.compile(r"^\d{8}_\d{6}$")
+
+
+def _validate_timestamp(timestamp: str) -> None:
+    """Validate timestamp format to prevent path traversal."""
+    if not _TIMESTAMP_PATTERN.match(timestamp):
+        raise HTTPException(status_code=400, detail="Invalid timestamp format (expected YYYYMMDD_HHMMSS)")
 
 
 def create_router(
@@ -418,6 +429,7 @@ def create_router(
     ) -> RestoreResponse:
         """Restore database from backup file."""
         logger.debug("restore requested: timestamp=%s", timestamp)
+        _validate_timestamp(timestamp)
         _check_no_task_running()
 
         backup_dir = _get_backup_dir()
