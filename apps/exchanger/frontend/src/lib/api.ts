@@ -1,8 +1,12 @@
 export interface TaskState {
     name: string;
-    last_run: string | null;
     status: string;
+    message: string;
+    last_run: string | null;
     error: string | null;
+    per_symbol: Record<string, number> | null;
+    rows_written: number | null;
+    symbols_added: number | null;
 }
 
 export interface Rate {
