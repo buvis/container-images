@@ -1,7 +1,5 @@
 export interface TaskState {
     name: string;
-    schedule: string;
-    next_run: string | null;
     last_run: string | null;
     status: string;
     error: string | null;
@@ -53,7 +51,11 @@ export async function getHealth(): Promise<{ status: string }> {
 }
 
 export async function getTaskStatus(): Promise<TaskState[]> {
-    return fetchJson(`${API_BASE}/task_status`);
+    const data = await fetchJson<Record<string, Omit<TaskState, 'name'>>>(`${API_BASE}/task_status`);
+    return Object.entries(data).map(([name, state]) => ({
+        name,
+        ...state
+    }));
 }
 
 export async function getRates(
