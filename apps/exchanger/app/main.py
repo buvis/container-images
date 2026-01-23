@@ -209,7 +209,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         symbols_service=application.symbols_service,
         registry=application.registry,
     )
-    fastapi_app.include_router(router)
+    fastapi_app.include_router(router, prefix="/api")
 
     return fastapi_app
 
