@@ -287,3 +287,132 @@ class TestBackupRestoreEndpoints:
         time.sleep(0.5)
         response = client.post("/api/restore", params={"timestamp": "nonexistent"})
         assert response.status_code == 404
+
+
+class TestRatesHistoryEndpoint:
+    def test_rates_history_empty(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.commit()
+        db.close()
+
+        response = client.get("/api/rates/history", params={
+            "symbol": "EURUSD",
+            "from_date": "2024-01-01",
+            "to_date": "2024-01-05"
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 5
+        assert all(item["rate"] is None for item in data)
+
+    def test_rates_history_with_data(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.commit()
+        db.upsert_rate("2024-01-02", "EURUSD", "fcs", 1.0850)
+        db.upsert_rate("2024-01-03", "EURUSD", "fcs", 1.0860)
+        db.commit()
+        db.close()
+
+        response = client.get("/api/rates/history", params={
+            "symbol": "EURUSD",
+            "from_date": "2024-01-01",
+            "to_date": "2024-01-05"
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 5
+        rates_by_date = {item["date"]: item["rate"] for item in data}
+        assert rates_by_date["2024-01-01"] is None
+        assert rates_by_date["2024-01-02"] == 1.0850
+        assert rates_by_date["2024-01-03"] == 1.0860
+
+    def test_rates_history_invalid_date_range(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.commit()
+        db.close()
+
+        response = client.get("/api/rates/history", params={
+            "symbol": "EURUSD",
+            "from_date": "2024-01-10",
+            "to_date": "2024-01-01"
+        })
+        assert response.status_code == 400
+
+
+class TestRatesCoverageEndpoint:
+    def test_coverage_empty(self, client: TestClient) -> None:
+        response = client.get("/api/rates/coverage", params={"year": 2024})
+        assert response.status_code == 200
+        assert response.json() == {}
+
+    def test_coverage_with_data(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.commit()
+        db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
+        db.upsert_rate("2024-01-16", "EURUSD", "fcs", 1.0860)
+        db.upsert_rate("2024-02-01", "EURUSD", "fcs", 1.0870)
+        db.commit()
+        db.close()
+
+        response = client.get("/api/rates/coverage", params={"year": 2024})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["2024-01-15"] == 1
+        assert data["2024-01-16"] == 1
+        assert data["2024-02-01"] == 1
+
+    def test_coverage_with_provider_filter(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("cnb", [Symbol(provider="cnb", symbol="EURCZK", type="forex", name="Euro CZK")])
+        db.commit()
+        db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
+        db.upsert_rate("2024-01-15", "EURCZK", "cnb", 25.5)
+        db.commit()
+        db.close()
+
+        response = client.get("/api/rates/coverage", params={"year": 2024, "provider": "cnb"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["2024-01-15"] == 1
+        assert "2024-01-16" not in data
+
+
+class TestFavoritesEndpoints:
+    def test_favorites_empty(self, client: TestClient) -> None:
+        response = client.get("/api/favorites")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_add_and_list_favorite(self, client: TestClient) -> None:
+        response = client.post("/api/favorites", json={"symbol": "EURUSD"})
+        assert response.status_code == 200
+        assert response.json() == {"symbol": "EURUSD"}
+
+        response = client.get("/api/favorites")
+        assert response.status_code == 200
+        assert "EURUSD" in response.json()
+
+    def test_delete_favorite(self, client: TestClient) -> None:
+        client.post("/api/favorites", json={"symbol": "GBPUSD"})
+
+        response = client.delete("/api/favorites/GBPUSD")
+        assert response.status_code == 200
+        assert response.json() == {"symbol": "GBPUSD"}
+
+        response = client.get("/api/favorites")
+        assert response.status_code == 200
+        assert "GBPUSD" not in response.json()
+
+    def test_add_duplicate_favorite(self, client: TestClient) -> None:
+        client.post("/api/favorites", json={"symbol": "JPYUSD"})
+        response = client.post("/api/favorites", json={"symbol": "JPYUSD"})
+        assert response.status_code == 200
+
+        response = client.get("/api/favorites")
+        favorites = response.json()
+        assert favorites.count("JPYUSD") == 1
