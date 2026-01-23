@@ -42,7 +42,7 @@ export async function getHealth(): Promise<{ status: string }> {
 }
 
 export async function getTaskStatus(): Promise<TaskState[]> {
-    return fetchJson(`${API_BASE}/tasks`);
+    return fetchJson(`${API_BASE}/task_status`);
 }
 
 export async function getRates(date: string, provider?: string): Promise<Rate[]> {
@@ -65,7 +65,7 @@ export async function getRatesHistory(
 export async function getCoverage(year: number, provider?: string): Promise<Record<string, number>> {
     const params = new URLSearchParams({ year: year.toString() });
     if (provider) params.append('provider', provider);
-    return fetchJson(`${API_BASE}/coverage?${params.toString()}`);
+    return fetchJson(`${API_BASE}/rates/coverage?${params.toString()}`);
 }
 
 export async function getFavorites(): Promise<string[]> {
@@ -87,7 +87,7 @@ export async function removeFavorite(symbol: string): Promise<void> {
 }
 
 export async function getProvidersStatus(): Promise<ProviderStatus[]> {
-    return fetchJson(`${API_BASE}/providers`);
+    return fetchJson(`${API_BASE}/providers/status`);
 }
 
 export async function triggerBackfill(provider: string, length: number, symbols?: string[]): Promise<void> {
@@ -99,10 +99,8 @@ export async function triggerBackfill(provider: string, length: number, symbols?
 }
 
 export async function populateSymbols(provider: string): Promise<void> {
-    await fetchJson(`${API_BASE}/populate-symbols`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider })
+    await fetchJson(`${API_BASE}/populate_symbols?provider=${encodeURIComponent(provider)}`, {
+        method: 'POST'
     });
 }
 
@@ -111,13 +109,13 @@ export async function getBackups(): Promise<string[]> {
 }
 
 export async function createBackup(): Promise<{ filename: string }> {
-    return fetchJson(`${API_BASE}/backups`, {
+    return fetchJson(`${API_BASE}/backup`, {
         method: 'POST'
     });
 }
 
 export async function restoreBackup(timestamp: string): Promise<void> {
-    await fetchJson(`${API_BASE}/backups/${timestamp}/restore`, {
+    await fetchJson(`${API_BASE}/restore?timestamp=${encodeURIComponent(timestamp)}`, {
         method: 'POST'
     });
 }
