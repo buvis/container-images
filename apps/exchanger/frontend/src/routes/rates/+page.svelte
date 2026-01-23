@@ -139,7 +139,7 @@
             <h1 class="text-3xl font-bold text-white">Rates Explorer</h1>
             <a href="/" class="text-blue-400 hover:text-blue-300 text-sm font-medium">Back to Dashboard</a>
         </div>
-        <CalendarHeatmap {year} {coverage} />
+        <CalendarHeatmap {year} {coverage} favoritesCount={favorites.length} />
     </header>
 
     <div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
