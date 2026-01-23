@@ -77,6 +77,11 @@ class RatesResponse(BaseModel):
     rates: dict[str, float | None]
 
 
+class RateHistoryItem(BaseModel):
+    date: str
+    rate: float | None
+
+
 class ScheduledResponse(BaseModel):
     scheduled: bool
     message: str
