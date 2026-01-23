@@ -110,6 +110,22 @@ class TestRatesEndpoint:
         assert response.status_code == 422
 
 
+class TestRatesListEndpoint:
+    def test_list_rates_for_date(self, client: TestClient, test_settings: Settings) -> None:
+        db = SQLiteDatabase(test_settings.db_path)
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.commit()
+        db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
+        db.commit()
+        db.close()
+
+        response = client.get("/api/rates/list", params={"date": "2024-01-15", "provider": "fcs"})
+        assert response.status_code == 200
+        assert response.json() == [
+            {"symbol": "EURUSD", "rate": 1.0850, "provider": "fcs", "type": "forex"}
+        ]
+
+
 class TestBackfillEndpoint:
     def test_backfill_starts(self, client: TestClient) -> None:
         response = client.post("/api/backfill", params={"provider": "fcs", "length": 5})

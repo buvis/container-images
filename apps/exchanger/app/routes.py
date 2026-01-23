@@ -15,6 +15,7 @@ from app.models import (
     HealthResponse,
     RateResponse,
     RatesResponse,
+    RateListItem,
     RateHistoryItem,
     ScheduledResponse,
     SymbolResponse,
@@ -120,6 +121,28 @@ def create_router(
 
         logger.debug("returning rate=%s", rate)
         return RateResponse(rate=rate)
+
+    @router.get("/rates/list", response_model=list[RateListItem])
+    def rates_list(
+        date_str: str = Query(..., alias="date", description="YYYY-MM-DD"),
+        provider: str = Query(..., description="Provider: fcs, cnb, or all"),
+    ) -> list[RateListItem]:
+        logger.debug("rates_list: date=%s provider=%s", date_str, provider)
+
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(400, f"Invalid date format: {date_str}, expected YYYY-MM-DD")
+
+        provider_filter: str | None = None
+        if provider != "all":
+            if not registry.get(provider):
+                raise HTTPException(400, f"Unknown provider: {provider}")
+            provider_filter = provider
+
+        rates = db.get_rates_for_date(date_str, provider_filter)
+        logger.debug("returning %d rates", len(rates))
+        return rates
 
     @router.get("/rates/history", response_model=list[RateHistoryItem])
     def rates_history(

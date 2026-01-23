@@ -28,7 +28,7 @@
     let loadingHistory = false;
     
     // Derived provider
-    $: provider = activeType === 'crypto' ? 'coingecko' : 'ecb';
+    $: provider = activeType === 'crypto' ? 'fcs' : 'cnb';
     $: year = parseInt(selectedDate.split('-')[0]);
 
     onMount(async () => {
@@ -57,7 +57,7 @@
     async function loadRates() {
         loadingRates = true;
         try {
-            rates = await getRates(selectedDate, provider);
+            rates = await getRates(selectedDate, provider, activeType);
         } catch (e) {
             console.error('Failed to load rates', e);
             rates = [];
