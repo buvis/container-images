@@ -30,6 +30,13 @@ from app.sources.registry import SourceRegistry
 from app.task_manager import TaskManager
 
 
+def _sanitize_error(e: Exception) -> str:
+    """Return a safe error message without internal details."""
+    error_type = type(e).__name__
+    # Only expose error type, not the full message which may contain paths or internal info
+    return f"Task failed ({error_type})"
+
+
 def create_router(
     settings: Settings,
     db: SQLiteDatabase,
@@ -222,7 +229,7 @@ def create_router(
                         logger.info(f"Manual backfill completed for {prov}: {total} rows")
                     except Exception as e:
                         logger.error(f"Manual backfill failed for {prov}: {e}")
-                        task_manager.set_status(key, {"status": "error", "message": str(e)})
+                        task_manager.set_status(key, {"status": "error", "message": _sanitize_error(e)})
                 return run
 
             if task_manager.start_if_idle(task_key, make_run(p, task_key)):
@@ -278,7 +285,7 @@ def create_router(
                         logger.info(f"Populate symbols completed for {prov}: {results}")
                     except Exception as e:
                         logger.error(f"Populate symbols failed for {prov}: {e}")
-                        task_manager.set_status(key, {"status": "error", "message": str(e)})
+                        task_manager.set_status(key, {"status": "error", "message": _sanitize_error(e)})
                 return run
 
             if task_manager.start_if_idle(task_key, make_run(p, task_key)):
