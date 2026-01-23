@@ -47,16 +47,16 @@ Tests use in-memory SQLite, mock HTTP for CNB.
 mise run dev
 
 # rate lookup
-curl "http://localhost:8000/rates?date=2025-01-15&symbol=EURCZK&provider=cnb"
+curl "http://localhost:8000/api/rates?date=2025-01-15&symbol=EURCZK&provider=cnb"
 
 # populate symbols then backfill
-curl -X POST "http://localhost:8000/populate_symbols?provider=cnb"
-curl -X POST "http://localhost:8000/backfill?provider=cnb&length=30"
+curl -X POST "http://localhost:8000/api/populate_symbols?provider=cnb"
+curl -X POST "http://localhost:8000/api/backfill?provider=cnb&length=30"
 
 # backup/restore
-curl -X POST "http://localhost:8000/backup"  # creates backup_<timestamp>.json
-curl "http://localhost:8000/backups"          # list available backups
-curl -X POST "http://localhost:8000/restore?timestamp=20250122_163000"
+curl -X POST "http://localhost:8000/api/backup"  # creates backup_<timestamp>.json
+curl "http://localhost:8000/api/backups"          # list available backups
+curl -X POST "http://localhost:8000/api/restore?timestamp=20250122_163000"
 ```
 
 ## Env vars
