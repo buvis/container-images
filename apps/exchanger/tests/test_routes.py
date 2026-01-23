@@ -285,8 +285,18 @@ class TestBackupRestoreEndpoints:
 
     def test_restore_not_found(self, client: TestClient) -> None:
         time.sleep(0.5)
-        response = client.post("/api/restore", params={"timestamp": "nonexistent"})
+        response = client.post("/api/restore", params={"timestamp": "19700101_000000"})
         assert response.status_code == 404
+
+    def test_restore_invalid_timestamp(self, client: TestClient) -> None:
+        time.sleep(0.5)
+        response = client.post("/api/restore", params={"timestamp": "invalid"})
+        assert response.status_code == 400
+
+    def test_restore_path_traversal_attempt(self, client: TestClient) -> None:
+        time.sleep(0.5)
+        response = client.post("/api/restore", params={"timestamp": "../../../etc/passwd"})
+        assert response.status_code == 400
 
 
 class TestRatesHistoryEndpoint:
