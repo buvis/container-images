@@ -1,3 +1,12 @@
+FROM node:22-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.12-slim
 
 RUN groupadd -g 1001 buvis && useradd -u 1001 -g buvis -m -d /app buvis
@@ -9,6 +18,7 @@ RUN pip install --no-cache-dir uv==0.5.14
 
 COPY --chown=buvis:buvis pyproject.toml uv.lock ./
 COPY --chown=buvis:buvis app/ app/
+COPY --chown=buvis:buvis --from=frontend-builder /frontend/build app/static/
 
 USER buvis
 RUN uv sync --frozen
