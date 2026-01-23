@@ -13,6 +13,7 @@ export interface Rate {
     date: string;
     rate: number;
     provider: string;
+    type: 'forex' | 'crypto';
 }
 
 export interface ProviderStatus {
@@ -27,6 +28,17 @@ export interface BackupInfo {
 }
 
 const API_BASE = '/api';
+
+function deriveBase(symbol: string): string {
+    const slashIndex = symbol.indexOf('/');
+    if (slashIndex !== -1 && slashIndex < symbol.length - 1) {
+        return symbol.slice(slashIndex + 1);
+    }
+    if (symbol.length > 3) {
+        return symbol.slice(-3);
+    }
+    return symbol;
+}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     const response = await fetch(url, options);
@@ -44,10 +56,24 @@ export async function getTaskStatus(): Promise<TaskState[]> {
     return fetchJson(`${API_BASE}/task_status`);
 }
 
-export async function getRates(date: string, provider?: string): Promise<Rate[]> {
-    const params = new URLSearchParams({ date });
-    if (provider) params.append('provider', provider);
-    return fetchJson(`${API_BASE}/rates?${params.toString()}`);
+export async function getRates(
+    date: string,
+    provider?: string,
+    type?: 'forex' | 'crypto'
+): Promise<Rate[]> {
+    const params = new URLSearchParams({ date, provider: provider ?? 'all' });
+    const items = await fetchJson<Array<{ symbol: string; rate: number; provider: string; type: 'forex' | 'crypto' }>>(
+        `${API_BASE}/rates/list?${params.toString()}`
+    );
+    const filtered = type ? items.filter((item) => item.type === type) : items;
+    return filtered.map((item) => ({
+        symbol: item.symbol,
+        base: deriveBase(item.symbol),
+        date,
+        rate: item.rate,
+        provider: item.provider,
+        type: item.type
+    }));
 }
 
 export async function getRatesHistory(

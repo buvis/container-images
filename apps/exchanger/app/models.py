@@ -77,6 +77,13 @@ class RatesResponse(BaseModel):
     rates: dict[str, float | None]
 
 
+class RateListItem(BaseModel):
+    symbol: str
+    rate: float
+    provider: str
+    type: SymbolType
+
+
 class RateHistoryItem(BaseModel):
     date: str
     rate: float | None
