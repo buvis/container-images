@@ -28,7 +28,10 @@ class TestTaskManager:
         tm = TaskManager()
         tm.update_status("new_task", status="pending")
 
-        assert tm.get_status("new_task") == {"status": "pending"}
+        status = tm.get_status("new_task")
+        assert status["status"] == "pending"
+        assert "last_run" in status
+        assert "error" in status
 
     def test_is_running(self) -> None:
         tm = TaskManager()

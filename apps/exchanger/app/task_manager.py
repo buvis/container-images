@@ -1,4 +1,5 @@
 import threading
+from datetime import datetime, timezone
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable
 
@@ -25,12 +26,16 @@ class TaskManager:
 
     def set_status(self, task: str, status: dict[str, Any]) -> None:
         with self._lock:
-            self._status[task] = status
+            self._status[task] = self._normalize_status(status)
 
     def update_status(self, task: str, **updates: Any) -> None:
         with self._lock:
             if task not in self._status:
                 self._status[task] = {}
+            if "status" in updates:
+                updates = self._normalize_status(updates)
+                if updates.get("status") != "error":
+                    self._status[task].pop("error", None)
             self._status[task].update(updates)
 
     def is_running(self, task: str) -> bool:
@@ -49,7 +54,7 @@ class TaskManager:
         with self._lock:
             if self._status.get(task, {}).get("status") == "running":
                 return False
-            self._status[task] = {"status": "running", "message": "Starting..."}
+            self._status[task] = self._normalize_status({"status": "running", "message": "Starting..."})
             future = self._executor.submit(fn)
             self._futures[task] = future
             return True
@@ -62,3 +67,14 @@ class TaskManager:
             future.cancel()
         # Don't wait - let threads check shutdown_requested flag
         self._executor.shutdown(wait=False, cancel_futures=True)
+
+    @staticmethod
+    def _normalize_status(status: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(status)
+        if "status" in normalized:
+            normalized.setdefault("last_run", datetime.now(timezone.utc).isoformat())
+            if normalized.get("status") == "error":
+                normalized.setdefault("error", normalized.get("message"))
+            else:
+                normalized["error"] = None
+        return normalized
