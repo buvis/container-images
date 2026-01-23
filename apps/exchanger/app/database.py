@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 import threading
+from datetime import date, timedelta
 from typing import Protocol
 
 from app.models import Rate, Symbol, SymbolType
@@ -134,6 +135,54 @@ class SQLiteDatabase:
             rate = row[0] if row else None
             logger.debug("get_rate: date=%s symbol=%s provider=%s -> %s", date, symbol, provider, rate)
             return rate
+
+    def get_rates_range(
+        self,
+        symbol: str,
+        from_date: date,
+        to_date: date,
+        provider: str | None = None,
+    ) -> list[dict]:
+        """Return daily rates for a symbol between two dates (inclusive)."""
+        if from_date > to_date:
+            return []
+
+        start = from_date.isoformat()
+        end = to_date.isoformat()
+
+        query = """
+            SELECT r.date, r.rate
+            FROM rates r
+            JOIN symbols s ON r.symbol_id = s.id
+            WHERE s.symbol = ?
+              AND r.date BETWEEN ? AND ?
+        """
+        params: list[str] = [symbol, start, end]
+
+        if provider:
+            query += " AND s.provider = ?"
+            params.append(provider)
+
+        query += " ORDER BY r.date ASC, s.provider ASC"
+
+        with self._lock:
+            if self._closed:
+                return []
+            cur = self._conn.execute(query, params)
+            rows = cur.fetchall()
+
+        rates_by_date: dict[str, float] = {}
+        for date_str, rate in rows:
+            rates_by_date.setdefault(date_str, rate)
+
+        days = (to_date - from_date).days
+        result: list[dict[str, float | None]] = []
+        for i in range(days + 1):
+            day = from_date + timedelta(days=i)
+            day_str = day.isoformat()
+            result.append({"date": day_str, "rate": rates_by_date.get(day_str)})
+
+        return result
 
     def upsert_rate(self, date: str, symbol: str, provider: str, rate: float) -> bool:
         """Upsert rate. Returns True if inserted, False if symbol not found."""
