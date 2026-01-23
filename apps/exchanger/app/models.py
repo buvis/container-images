@@ -112,6 +112,8 @@ class ForexCryptoSymbolResponse(BaseModel):
 class TaskStateResponse(BaseModel):
     status: TaskStatus
     message: str
+    last_run: str | None = None
+    error: str | None = None
     per_symbol: dict[str, int] | None = None
     rows_written: int | None = None
     symbols_added: int | None = None
