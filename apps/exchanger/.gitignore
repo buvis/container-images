@@ -1,0 +1,131 @@
+# ============================================
+# Rust
+# ============================================
+/debug
+/target
+**/*.rs.bk
+*.pdb
+**/mutants.out*/
+# Note: Cargo.lock should be committed for binaries
+# but ignored for libraries. This is a binary project.
+
+# ============================================
+# Environment & Secrets
+# ============================================
+.env
+.env.local
+.envrc
+*.key
+*.pem
+
+# ============================================
+# AI Tooling
+# ============================================
+# Local settings (user-specific permissions, preferences)
+.claude/settings.local.json
+# Claude cache and temporary files
+.claude/cache/
+.claude/tmp/
+.claude/hooks/notify.log
+.devcontainer/.claude/
+.devcontainer/.codex/
+
+# ============================================
+# MCP Servers (Model Context Protocol)
+# ============================================
+# Serena MCP - local memories and cache
+.serena/
+# MCP config with API keys (if you create one, use .mcp.json.example instead)
+.mcp.json
+
+# ============================================
+# Task Master AI
+# ============================================
+# Local state and session data
+.taskmaster/state.json
+# Generated reports
+.taskmaster/reports/
+# Local work in progress
+.taskmaster/docs/
+.taskmaster/tasks/
+# Note: Keep .taskmaster/config.json - it's just model names, no secrets
+# Note: Keep .taskmaster/CLAUDE.md - it's documentation
+
+# ============================================
+# Test Data & Examples
+# ============================================
+/examples
+/testing_repo
+backup.json
+rates.db
+
+# ============================================
+# Backups
+# ============================================
+backups/
+
+# ============================================
+# Logs
+# ============================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+.venv/
+venv/
+env/
+
+# ============================================
+# IDE & Editor
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ============================================
+# Generated content
+# ============================================
+docs/book/
+
+# ============================================
+# OS Specific
+# ============================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ============================================
+# Temporary & Cache
+# ============================================
+*.tmp
+*.temp
+.cache/
+.rumdl-cache/
+
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.pyc
+*.pyo
+
+# ============================================
+# SQLite
+# ============================================
+*.db
+*.db-shm
+*.db-wal

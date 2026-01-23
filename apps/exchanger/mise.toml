@@ -1,0 +1,6 @@
+[env]
+_.file = '.env'
+
+[tasks.dev]
+run = "DB_PATH=./exchanger.db LOG_LEVEL=DEBUG uv run python -m uvicorn app.main:get_app --factory --reload --log-level debug"
+description = "Run dev server with DEBUG logging"
