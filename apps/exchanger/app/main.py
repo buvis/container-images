@@ -1,10 +1,13 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import Settings, configure_logging, load_settings
 from app.database import SQLiteDatabase
@@ -17,6 +20,7 @@ from app.sources.fcs import FcsSource
 from app.sources.cnb import CnbSource
 from app.task_manager import TaskManager
 from app.utils.retry import set_shutdown
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +214,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         registry=application.registry,
     )
     fastapi_app.include_router(router, prefix="/api")
+    static_directory = Path(__file__).resolve().parent / "static"
+    fastapi_app.mount("/", StaticFiles(directory=static_directory, html=True), name="static")
+
+    @fastapi_app.exception_handler(StarletteHTTPException)
+    async def spa_fallback(request: Request, exc: StarletteHTTPException) -> FileResponse:
+        if exc.status_code == 404 and not request.url.path.startswith("/api"):
+            return FileResponse(static_directory / "index.html")
+        raise exc
 
     return fastapi_app
 
