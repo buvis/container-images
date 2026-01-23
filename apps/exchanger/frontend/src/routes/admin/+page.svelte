@@ -8,7 +8,7 @@
         restoreBackup,
         getTaskStatus
     } from '$lib/api';
-    import type { TaskState } from '$lib/api';
+    import type { TaskState, BackupInfo } from '$lib/api';
 
     let activeTab: 'backfill' | 'symbols' | 'backups' = 'backfill';
     
@@ -26,8 +26,8 @@
     let symbolsError = '';
 
     // Backups state
-    let backups: string[] = [];
-    let selectedBackup = '';
+    let backups: BackupInfo[] = [];
+    let selectedBackup: BackupInfo | null = null;
     let backupMessage = '';
     let backupError = '';
 
@@ -42,10 +42,17 @@
 
     async function loadBackups() {
         try {
-            backups = await getBackups();
-            if (backups.length > 0 && !selectedBackup) {
-                selectedBackup = backups[0];
+            const newBackups = await getBackups();
+            // Preserve selection by finding matching filename
+            if (selectedBackup) {
+                const found = newBackups.find(b => b.filename === selectedBackup?.filename);
+                selectedBackup = found || (newBackups.length > 0 ? newBackups[0] : null);
+            } else if (newBackups.length > 0) {
+                selectedBackup = newBackups[0];
+            } else {
+                selectedBackup = null;
             }
+            backups = newBackups;
         } catch (e) {
             console.error(e);
             backupError = 'Failed to load backups';
@@ -97,8 +104,8 @@
         backupMessage = '';
         backupError = '';
         try {
-            await restoreBackup(selectedBackup);
-            backupMessage = `Restore triggered for ${selectedBackup}`;
+            await restoreBackup(selectedBackup.timestamp);
+            backupMessage = `Restore triggered for ${selectedBackup.filename}`;
         } catch (e: any) {
             backupError = e.message || 'Failed to restore backup';
         }
@@ -271,10 +278,10 @@
                         <div class="flex gap-4">
                             <select bind:value={selectedBackup} class="flex-1 bg-[#1E293B] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                 {#if backups.length === 0}
-                                    <option value="" disabled>No backups available</option>
+                                    <option value={null} disabled>No backups available</option>
                                 {:else}
                                     {#each backups as backup}
-                                        <option value={backup}>{backup}</option>
+                                        <option value={backup}>{backup.filename}</option>
                                     {/each}
                                 {/if}
                             </select>
@@ -299,7 +306,7 @@
                         <h3 class="text-sm font-medium text-slate-400 mb-2">Available Backups</h3>
                         <ul class="space-y-1 text-sm text-slate-300">
                             {#each backups as backup}
-                                <li class="p-2 hover:bg-[#0F172A] rounded">{backup}</li>
+                                <li class="p-2 hover:bg-[#0F172A] rounded">{backup.filename}</li>
                             {/each}
                         </ul>
                     </div>

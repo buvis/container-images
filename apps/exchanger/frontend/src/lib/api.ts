@@ -131,7 +131,7 @@ export async function populateSymbols(provider: string): Promise<void> {
     });
 }
 
-export async function getBackups(): Promise<string[]> {
+export async function getBackups(): Promise<BackupInfo[]> {
     return fetchJson(`${API_BASE}/backups`);
 }
 
