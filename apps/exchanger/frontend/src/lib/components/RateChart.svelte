@@ -1,28 +1,6 @@
 <script lang="ts">
-    import { Line } from 'svelte-chartjs';
-    import {
-        Chart as ChartJS,
-        Title,
-        Tooltip,
-        Legend,
-        LineElement,
-        LinearScale,
-        PointElement,
-        CategoryScale,
-        Filler
-    } from 'chart.js';
-    import { createEventDispatcher } from 'svelte';
-
-    ChartJS.register(
-        Title,
-        Tooltip,
-        Legend,
-        LineElement,
-        LinearScale,
-        PointElement,
-        CategoryScale,
-        Filler
-    );
+    import Chart from 'chart.js/auto';
+    import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 
     export let symbol: string | null = null;
     export let history: { date: string; rate: number | null }[] = [];
@@ -30,6 +8,9 @@
 
     const dispatch = createEventDispatcher();
     let activeRange = '30d';
+
+    let canvas: HTMLCanvasElement;
+    let chart: Chart;
 
     const ranges = [
         { label: '7D', value: '7d', days: 7 },
@@ -67,7 +48,7 @@
         ],
     };
 
-    const options = {
+    const options: any = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
@@ -98,6 +79,27 @@
             intersect: false
         }
     };
+
+    onMount(() => {
+        if (canvas) {
+            chart = new Chart(canvas, {
+                type: 'line',
+                data: data,
+                options: options
+            });
+        }
+    });
+
+    onDestroy(() => {
+        if (chart) {
+            chart.destroy();
+        }
+    });
+
+    $: if (chart && data) {
+        chart.data = data;
+        chart.update('none');
+    }
 </script>
 
 <div class="bg-slate-800 rounded-lg shadow-lg p-4 h-full flex flex-col border border-slate-700">
@@ -125,14 +127,16 @@
             </div>
         {/if}
         
-        {#if symbol && history.length > 0}
-            <Line {data} {options} />
-        {:else if !symbol}
-            <div class="flex items-center justify-center h-full text-slate-500">
+        <div class="w-full h-full" style:display={symbol && history.length > 0 ? 'block' : 'none'}>
+             <canvas bind:this={canvas}></canvas>
+        </div>
+
+        {#if !symbol}
+            <div class="absolute inset-0 flex items-center justify-center text-slate-500">
                 Select a symbol to view history
             </div>
-        {:else}
-             <div class="flex items-center justify-center h-full text-slate-500">
+        {:else if history.length === 0 && !isLoading}
+             <div class="absolute inset-0 flex items-center justify-center text-slate-500">
                 No data available
             </div>
         {/if}
