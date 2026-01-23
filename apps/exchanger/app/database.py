@@ -28,7 +28,7 @@ class SymbolsRepository(Protocol):
     def commit(self) -> None: ...
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class SQLiteDatabase:
@@ -52,17 +52,21 @@ class SQLiteDatabase:
         logger.debug("current schema version: %d, target: %d", version, SCHEMA_VERSION)
 
         if version == 0:
-            self._migrate_v0_to_v3()
-            version = 3
+            self._migrate_v0_to_v4()
+            version = 4
         elif version == 2:
             self._migrate_v2_to_v3()
             version = 3
 
+        if version == 3:
+            self._migrate_v3_to_v4()
+            version = 4
+
         self._set_schema_version(version)
 
-    def _migrate_v0_to_v3(self) -> None:
-        """Fresh install - create v3 schema."""
-        logger.debug("creating v3 schema")
+    def _migrate_v0_to_v4(self) -> None:
+        """Fresh install - create v4 schema."""
+        logger.debug("creating v4 schema")
         self._create_v2_schema()
         self._create_metadata_table()
 
@@ -71,11 +75,25 @@ class SQLiteDatabase:
         logger.debug("migrating v2 to v3: adding metadata table")
         self._create_metadata_table()
 
+    def _migrate_v3_to_v4(self) -> None:
+        """Add favorites table."""
+        logger.debug("migrating v3 to v4: adding favorites table")
+        self._create_favorites_table()
+
     def _create_metadata_table(self) -> None:
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS metadata (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            )
+        """)
+
+    def _create_favorites_table(self) -> None:
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -118,6 +136,7 @@ class SQLiteDatabase:
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_provider ON symbols(provider)")
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_symbols_type ON symbols(type)")
         self._conn.execute("CREATE INDEX IF NOT EXISTS idx_rates_date ON rates(date)")
+        self._create_favorites_table()
 
     def get_rate(self, date: str, symbol: str, provider: str) -> float | None:
         with self._lock:
@@ -469,6 +488,36 @@ class SQLiteDatabase:
                 "SELECT key, value FROM metadata WHERE key != 'schema_version'"
             )
             return [{"key": row[0], "value": row[1]} for row in cur.fetchall()]
+
+    def list_favorites(self) -> list[str]:
+        """Return favorite symbols ordered by newest addition."""
+        with self._lock:
+            if self._closed:
+                return []
+            cur = self._conn.execute(
+                "SELECT symbol FROM favorites ORDER BY created_at DESC"
+            )
+            return [row[0] for row in cur.fetchall()]
+
+    def add_favorite(self, symbol: str) -> None:
+        """Add a symbol to favorites (no-op if already present)."""
+        with self._lock:
+            if self._closed:
+                return
+            self._conn.execute(
+                "INSERT OR IGNORE INTO favorites (symbol) VALUES (?)",
+                (symbol,),
+            )
+
+    def remove_favorite(self, symbol: str) -> None:
+        """Remove a symbol from favorites."""
+        with self._lock:
+            if self._closed:
+                return
+            self._conn.execute(
+                "DELETE FROM favorites WHERE symbol = ?",
+                (symbol,),
+            )
 
     def import_rates(self, rows: list[dict]) -> int:
         with self._lock:
