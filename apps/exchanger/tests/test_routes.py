@@ -49,20 +49,20 @@ def client(test_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> Generato
     monkeypatch.setattr("app.sources.fcs.FcsApi", MockFcsApi)
 
     app = create_app(test_settings)
-    with TestClient(app) as c:
+    with TestClient(app, raise_server_exceptions=False) as c:
         yield c
 
 
 class TestHealthEndpoint:
     def test_health(self, client: TestClient) -> None:
-        response = client.get("/health")
+        response = client.get("/api/health")
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
 
 class TestProvidersEndpoint:
     def test_list_providers(self, client: TestClient) -> None:
-        response = client.get("/providers")
+        response = client.get("/api/providers")
         assert response.status_code == 200
         providers = response.json()
         assert "fcs" in providers
@@ -76,7 +76,7 @@ class TestProvidersStatusEndpoint:
         db.commit()
         db.close()
 
-        response = client.get("/providers/status")
+        response = client.get("/api/providers/status")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -89,7 +89,7 @@ class TestProvidersStatusEndpoint:
 
 class TestRatesEndpoint:
     def test_get_rate_not_found(self, client: TestClient) -> None:
-        response = client.get("/rates", params={"date": "2024-01-01", "symbol": "EURUSD", "provider": "fcs"})
+        response = client.get("/api/rates", params={"date": "2024-01-01", "symbol": "EURUSD", "provider": "fcs"})
         assert response.status_code == 200
         assert response.json() == {"rate": None}
 
@@ -101,70 +101,70 @@ class TestRatesEndpoint:
         db.commit()
         db.close()
 
-        response = client.get("/rates", params={"date": "2024-01-15", "symbol": "EURUSD", "provider": "fcs"})
+        response = client.get("/api/rates", params={"date": "2024-01-15", "symbol": "EURUSD", "provider": "fcs"})
         assert response.status_code == 200
         assert response.json() == {"rate": 1.0850}
 
     def test_get_rate_missing_provider(self, client: TestClient) -> None:
-        response = client.get("/rates", params={"date": "2024-01-01", "symbol": "EURUSD"})
+        response = client.get("/api/rates", params={"date": "2024-01-01", "symbol": "EURUSD"})
         assert response.status_code == 422
 
 
 class TestBackfillEndpoint:
     def test_backfill_starts(self, client: TestClient) -> None:
-        response = client.post("/backfill", params={"provider": "fcs", "length": 5})
+        response = client.post("/api/backfill", params={"provider": "fcs", "length": 5})
         assert response.status_code == 200
         data = response.json()
         assert data["scheduled"] is True
 
     def test_backfill_custom_symbols(self, client: TestClient) -> None:
-        response = client.post("/backfill", params={"provider": "fcs", "length": 5, "symbols": "GBPUSD,JPYUSD"})
+        response = client.post("/api/backfill", params={"provider": "fcs", "length": 5, "symbols": "GBPUSD,JPYUSD"})
         assert response.status_code == 200
         assert response.json()["scheduled"] is True
 
     def test_backfill_all_providers(self, client: TestClient) -> None:
-        response = client.post("/backfill", params={"provider": "all", "length": 5})
+        response = client.post("/api/backfill", params={"provider": "all", "length": 5})
         assert response.status_code == 200
         assert response.json()["scheduled"] is True
 
     def test_backfill_missing_provider(self, client: TestClient) -> None:
-        response = client.post("/backfill", params={"length": 5})
+        response = client.post("/api/backfill", params={"length": 5})
         assert response.status_code == 422
 
 
 class TestPopulateSymbolsEndpoint:
     def test_populate_starts(self, client: TestClient) -> None:
-        response = client.post("/populate_symbols", params={"provider": "fcs"})
+        response = client.post("/api/populate_symbols", params={"provider": "fcs"})
         assert response.status_code == 200
         data = response.json()
         assert data["scheduled"] is True
 
     def test_populate_all_providers(self, client: TestClient) -> None:
-        response = client.post("/populate_symbols", params={"provider": "all"})
+        response = client.post("/api/populate_symbols", params={"provider": "all"})
         assert response.status_code == 200
         assert response.json()["scheduled"] is True
 
     def test_populate_missing_provider(self, client: TestClient) -> None:
-        response = client.post("/populate_symbols")
+        response = client.post("/api/populate_symbols")
         assert response.status_code == 422
 
 
 class TestTaskStatusEndpoint:
     def test_task_status_empty(self, client: TestClient) -> None:
         time.sleep(0.5)
-        response = client.get("/task_status")
+        response = client.get("/api/task_status")
         assert response.status_code == 200
         assert isinstance(response.json(), dict)
 
 
 class TestSymbolListEndpoints:
     def test_forex_list_empty(self, client: TestClient) -> None:
-        response = client.get("/forex/list")
+        response = client.get("/api/forex/list")
         assert response.status_code == 200
         assert response.json() == []
 
     def test_crypto_list_empty(self, client: TestClient) -> None:
-        response = client.get("/crypto/list")
+        response = client.get("/api/crypto/list")
         assert response.status_code == 200
         assert response.json() == []
 
@@ -174,7 +174,7 @@ class TestSymbolListEndpoints:
         db.commit()
         db.close()
 
-        response = client.get("/forex/list")
+        response = client.get("/api/forex/list")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -190,7 +190,7 @@ class TestSymbolListEndpoints:
         db.commit()
         db.close()
 
-        response = client.get("/forex/list", params={"q": "EUR"})
+        response = client.get("/api/forex/list", params={"q": "EUR"})
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -203,7 +203,7 @@ class TestSymbolListEndpoints:
         db.commit()
         db.close()
 
-        response = client.get("/symbols/list", params={"provider": "cnb"})
+        response = client.get("/api/symbols/list", params={"provider": "cnb"})
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -213,7 +213,7 @@ class TestSymbolListEndpoints:
 class TestBackupRestoreEndpoints:
     def test_backup_creates_file(self, client: TestClient, test_settings: Settings) -> None:
         time.sleep(0.5)
-        response = client.post("/backup")
+        response = client.post("/api/backup")
         assert response.status_code == 200
         data = response.json()
         assert "filename" in data
@@ -235,7 +235,7 @@ class TestBackupRestoreEndpoints:
         db.close()
 
         time.sleep(0.5)
-        response = client.post("/backup")
+        response = client.post("/api/backup")
         assert response.status_code == 200
         data = response.json()
         assert data["rates_count"] == 1
@@ -253,9 +253,9 @@ class TestBackupRestoreEndpoints:
     def test_list_backups(self, client: TestClient) -> None:
         time.sleep(0.5)
         # Create a backup first
-        client.post("/backup")
+        client.post("/api/backup")
 
-        response = client.get("/backups")
+        response = client.get("/api/backups")
         assert response.status_code == 200
         backups = response.json()
         assert len(backups) >= 1
@@ -272,11 +272,11 @@ class TestBackupRestoreEndpoints:
         db.close()
 
         time.sleep(0.5)
-        backup_response = client.post("/backup")
+        backup_response = client.post("/api/backup")
         timestamp = backup_response.json()["timestamp"]
 
         # Clear and restore
-        response = client.post("/restore", params={"timestamp": timestamp})
+        response = client.post("/api/restore", params={"timestamp": timestamp})
         assert response.status_code == 200
         data = response.json()
         assert data["timestamp"] == timestamp
@@ -285,5 +285,5 @@ class TestBackupRestoreEndpoints:
 
     def test_restore_not_found(self, client: TestClient) -> None:
         time.sleep(0.5)
-        response = client.post("/restore", params={"timestamp": "nonexistent"})
+        response = client.post("/api/restore", params={"timestamp": "nonexistent"})
         assert response.status_code == 404

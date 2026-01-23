@@ -6,7 +6,7 @@ from typing import AsyncIterator
 
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import Settings, configure_logging, load_settings
@@ -218,10 +218,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     fastapi_app.mount("/", StaticFiles(directory=static_directory, html=True), name="static")
 
     @fastapi_app.exception_handler(StarletteHTTPException)
-    async def spa_fallback(request: Request, exc: StarletteHTTPException) -> FileResponse:
+    async def spa_fallback(request: Request, exc: StarletteHTTPException) -> FileResponse | JSONResponse:
         if exc.status_code == 404 and not request.url.path.startswith("/api"):
             return FileResponse(static_directory / "index.html")
-        raise exc
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     return fastapi_app
 
