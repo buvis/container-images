@@ -5,14 +5,14 @@ test.describe('Exchanger E2E Tests', () => {
     // Mock API responses
     await page.route('**/api/health', async route => route.fulfill({ json: { status: 'ok' } }));
     await page.route('**/api/favorites', async route => route.fulfill({ json: ['EUR', 'USD'] }));
-    await page.route('**/api/providers', async route => route.fulfill({ json: [
+    await page.route('**/api/providers/status', async route => route.fulfill({ json: [
       { name: 'CNB', healthy: true, symbol_count: 10 },
       { name: 'FCS', healthy: false, symbol_count: 0 }
     ]}));
-    await page.route('**/api/tasks', async route => route.fulfill({ json: [] }));
+    await page.route('**/api/task_status', async route => route.fulfill({ json: {} }));
     await page.route('**/api/backups', async route => route.fulfill({ json: [] }));
     await page.route('**/api/rates*', async route => route.fulfill({ json: [] }));
-    await page.route('**/api/coverage*', async route => route.fulfill({ json: {} }));
+    await page.route('**/api/rates/coverage*', async route => route.fulfill({ json: {} }));
     await page.route('**/api/rates/history*', async route => route.fulfill({ json: [] }));
   });
 
