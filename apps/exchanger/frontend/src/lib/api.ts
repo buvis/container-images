@@ -91,10 +91,10 @@ export async function getProvidersStatus(): Promise<ProviderStatus[]> {
 }
 
 export async function triggerBackfill(provider: string, length: number, symbols?: string[]): Promise<void> {
-    await fetchJson(`${API_BASE}/backfill`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, length, symbols })
+    const params = new URLSearchParams({ provider, length: length.toString() });
+    if (symbols?.length) params.append('symbols', symbols.join(','));
+    await fetchJson(`${API_BASE}/backfill?${params.toString()}`, {
+        method: 'POST'
     });
 }
 
