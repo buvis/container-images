@@ -73,6 +73,7 @@ class HealthResponse(BaseModel):
 
 class RateResponse(BaseModel):
     rate: float | None
+    provider: str | None = None
 
 
 class RatesResponse(BaseModel):
