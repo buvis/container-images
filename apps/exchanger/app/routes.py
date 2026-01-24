@@ -178,8 +178,9 @@ def create_router(
     def rates_coverage(
         year: int = Query(..., description="Year to analyze"),
         provider: str | None = Query(None, description="Optional provider filter: fcs, cnb, or all"),
+        symbols: str | None = Query(None, description="Optional comma-separated symbol list"),
     ) -> dict[str, int]:
-        logger.debug("rates_coverage: year=%d provider=%s", year, provider)
+        logger.debug("rates_coverage: year=%d provider=%s symbols=%s", year, provider, symbols)
 
         provider_filter: str | None = None
         if provider:
@@ -190,7 +191,8 @@ def create_router(
                     raise HTTPException(400, f"Unknown provider: {provider}")
                 provider_filter = provider
 
-        coverage = db.get_coverage(year, provider_filter)
+        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()] if symbols else None
+        coverage = db.get_coverage(year, provider_filter, symbol_list)
         logger.debug("rates_coverage returning %d entries", len(coverage))
         return coverage
 
