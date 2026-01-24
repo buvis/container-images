@@ -11,9 +11,11 @@ test.describe('Exchanger E2E Tests', () => {
     ]}));
     await page.route('**/api/task_status', async route => route.fulfill({ json: {} }));
     await page.route('**/api/backups', async route => route.fulfill({ json: [] }));
-    await page.route('**/api/rates*', async route => route.fulfill({ json: [] }));
+    // Register specific routes before wildcard to avoid masking
     await page.route('**/api/rates/coverage*', async route => route.fulfill({ json: {} }));
     await page.route('**/api/rates/history*', async route => route.fulfill({ json: [] }));
+    await page.route('**/api/rates/list*', async route => route.fulfill({ json: [] }));
+    await page.route('**/api/rates*', async route => route.fulfill({ json: [] }));
   });
 
   test('Dashboard loads and health indicator is visible', async ({ page }) => {
