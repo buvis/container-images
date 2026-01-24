@@ -93,9 +93,10 @@ export async function getRatesHistory(
     return fetchJson(`${API_BASE}/rates/history?${params.toString()}`);
 }
 
-export async function getCoverage(year: number, provider?: string): Promise<Record<string, number>> {
+export async function getCoverage(year: number, provider?: string, symbols?: string[]): Promise<Record<string, number>> {
     const params = new URLSearchParams({ year: year.toString() });
     if (provider) params.append('provider', provider);
+    if (symbols?.length) params.append('symbols', symbols.join(','));
     return fetchJson(`${API_BASE}/rates/coverage?${params.toString()}`);
 }
 

@@ -47,7 +47,7 @@
 
     async function loadCoverage() {
         try {
-            coverage = await getCoverage(year, provider);
+            coverage = await getCoverage(year, provider, favorites.length ? favorites : undefined);
         } catch (e) {
             console.error('Failed to load coverage', e);
             coverage = {};
