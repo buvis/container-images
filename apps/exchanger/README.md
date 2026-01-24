@@ -30,13 +30,21 @@ Interactive API docs available at:
 |--------|----------|-------------|
 | GET | `/health` | Health check |
 | GET | `/providers` | List registered providers |
-| GET | `/rates?date=YYYY-MM-DD&symbol=EURCZK&provider=cnb` | Get cached rate |
-| POST | `/backfill?provider=cnb&length=30&symbols=EURCZK` | Start backfill |
-| POST | `/populate_symbols?provider=cnb` | Fetch symbols from provider |
-| GET | `/symbols/list?provider=cnb&type=forex&q=CZK` | List symbols |
-| GET | `/task_status` | Check background task status |
-| GET | `/backup` | Export all tables as JSON |
-| POST | `/restore` | Import JSON, replaces existing data |
+| GET | `/providers/status` | Provider health and symbol counts |
+| GET | `/rates?date=&symbol=&provider=` | Get single rate |
+| GET | `/rates/list?date=&provider=` | List all rates for date |
+| GET | `/rates/history?symbol=&from_date=&to_date=&provider=` | Rate history for charting |
+| GET | `/rates/coverage?year=&provider=&symbols=` | Coverage counts per date |
+| POST | `/backfill?provider=&length=&symbols=` | Start backfill task |
+| POST | `/populate_symbols?provider=` | Fetch symbols from provider |
+| GET | `/symbols/list?provider=&type=&q=` | List symbols with filter |
+| GET | `/task_status` | Background task status |
+| GET | `/favorites` | User's favorite symbols |
+| POST | `/favorites` | Add favorite (body: `{symbol}`) |
+| DELETE | `/favorites/{symbol}` | Remove favorite |
+| GET | `/backups` | List available backups |
+| POST | `/backup` | Create backup |
+| POST | `/restore?timestamp=` | Restore from backup |
 
 ## Local testing
 
