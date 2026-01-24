@@ -22,7 +22,6 @@ class TestSettings:
         assert s.provider_api_keys == {}
         assert s.db_path == DEFAULT_DB_PATH
         assert s.symbols == {}
-        assert s.global_symbols == []
         assert s.auto_backfill_time == DEFAULT_AUTO_BACKFILL_TIME
         assert s.auto_backfill_days == DEFAULT_AUTO_BACKFILL_DAYS
         assert s.scheduler_tick_seconds == DEFAULT_SCHEDULER_TICK_SECONDS
@@ -56,25 +55,14 @@ class TestLoadSettings:
 
         settings = load_settings()
         assert settings.symbols == {}
-        assert settings.global_symbols == []
 
-    def test_load_settings_global_symbols(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Global symbols (without provider prefix) backfill from all providers."""
+    def test_load_settings_ignores_unprefixed_symbols(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Symbols without provider prefix are ignored."""
         monkeypatch.delenv("PROVIDER_FCS_API_KEY", raising=False)
         monkeypatch.setenv("SYMBOLS", "EURCZK,USDCZK,fcs:BTCEUR")
 
         settings = load_settings()
         assert settings.symbols == {"fcs": ["BTCEUR"]}
-        assert settings.global_symbols == ["EURCZK", "USDCZK"]
-
-    def test_load_settings_mixed_symbols(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Mix of global and provider-specific symbols."""
-        monkeypatch.delenv("PROVIDER_FCS_API_KEY", raising=False)
-        monkeypatch.setenv("SYMBOLS", "EURCZK,fcs:BTCEUR,cnb:USDCZK,GBPCZK")
-
-        settings = load_settings()
-        assert settings.symbols == {"fcs": ["BTCEUR"], "cnb": ["USDCZK"]}
-        assert set(settings.global_symbols) == {"EURCZK", "GBPCZK"}
 
     def test_load_multiple_provider_keys(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PROVIDER_FCS_API_KEY", "fcs-key")

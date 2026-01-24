@@ -72,7 +72,7 @@ class TestProvidersEndpoint:
 class TestProvidersStatusEndpoint:
     def test_providers_status(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.close()
 
@@ -95,7 +95,7 @@ class TestRatesEndpoint:
 
     def test_get_rate_found(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
         db.commit()
@@ -113,7 +113,7 @@ class TestRatesEndpoint:
 class TestRatesListEndpoint:
     def test_list_rates_for_date(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
         db.commit()
@@ -122,7 +122,7 @@ class TestRatesListEndpoint:
         response = client.get("/api/rates/list", params={"date": "2024-01-15", "provider": "fcs"})
         assert response.status_code == 200
         assert response.json() == [
-            {"symbol": "EURUSD", "rate": 1.0850, "provider": "fcs", "type": "forex"}
+            {"symbol": "EURUSD", "rate": 1.0850, "provider": "fcs", "type": "forex", "provider_symbol": "EURUSD"}
         ]
 
 
@@ -186,7 +186,7 @@ class TestSymbolListEndpoints:
 
     def test_forex_list_with_data(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.close()
 
@@ -200,8 +200,8 @@ class TestSymbolListEndpoints:
     def test_forex_list_with_query(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
         db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro"),
-            Symbol(provider="fcs", symbol="GBPUSD", type="forex", name="Pound"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro"),
+            Symbol(provider="fcs", symbol="GBPUSD", provider_symbol="GBPUSD", type="forex", name="Pound"),
         ])
         db.commit()
         db.close()
@@ -214,8 +214,8 @@ class TestSymbolListEndpoints:
 
     def test_symbols_list_by_provider(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="FCS Euro")])
-        db.populate_symbols("cnb", [Symbol(provider="cnb", symbol="EURCZK", type="forex", name="CNB Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="FCS Euro")])
+        db.populate_symbols("cnb", [Symbol(provider="cnb", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="CNB Euro")])
         db.commit()
         db.close()
 
@@ -244,7 +244,7 @@ class TestBackupRestoreEndpoints:
 
     def test_backup_with_data(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
         db.commit()
@@ -281,7 +281,7 @@ class TestBackupRestoreEndpoints:
     def test_restore(self, client: TestClient, test_settings: Settings) -> None:
         # Add data and create backup
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
         db.commit()
@@ -318,7 +318,7 @@ class TestBackupRestoreEndpoints:
 class TestRatesHistoryEndpoint:
     def test_rates_history_empty(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.close()
 
@@ -334,7 +334,7 @@ class TestRatesHistoryEndpoint:
 
     def test_rates_history_with_data(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.upsert_rate("2024-01-02", "EURUSD", "fcs", 1.0850)
         db.upsert_rate("2024-01-03", "EURUSD", "fcs", 1.0860)
@@ -356,7 +356,7 @@ class TestRatesHistoryEndpoint:
 
     def test_rates_history_invalid_date_range(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.close()
 
@@ -376,7 +376,7 @@ class TestRatesCoverageEndpoint:
 
     def test_coverage_with_data(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         db.commit()
         db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
         db.upsert_rate("2024-01-16", "EURUSD", "fcs", 1.0860)
@@ -393,8 +393,8 @@ class TestRatesCoverageEndpoint:
 
     def test_coverage_with_provider_filter(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
-        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
-        db.populate_symbols("cnb", [Symbol(provider="cnb", symbol="EURCZK", type="forex", name="Euro CZK")])
+        db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
+        db.populate_symbols("cnb", [Symbol(provider="cnb", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="Euro CZK")])
         db.commit()
         db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
         db.upsert_rate("2024-01-15", "EURCZK", "cnb", 25.5)
@@ -409,36 +409,57 @@ class TestRatesCoverageEndpoint:
 
 
 class TestFavoritesEndpoints:
+    @pytest.fixture(autouse=True)
+    def setup_symbols(self, test_settings: Settings) -> None:
+        """Create test symbols needed for favorites tests."""
+        db = SQLiteDatabase(test_settings.db_path)
+        db.upsert_symbols("cnb", [
+            Symbol(provider="cnb", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro/USD"),
+            Symbol(provider="cnb", symbol="JPYUSD", provider_symbol="JPYUSD", type="forex", name="Yen/USD"),
+        ])
+        db.upsert_symbols("fcs", [
+            Symbol(provider="fcs", symbol="GBPUSD", provider_symbol="GBPUSD", type="forex", name="Pound/USD"),
+        ])
+        db.commit()
+        db.close()
+
     def test_favorites_empty(self, client: TestClient) -> None:
         response = client.get("/api/favorites")
         assert response.status_code == 200
         assert response.json() == []
 
     def test_add_and_list_favorite(self, client: TestClient) -> None:
-        response = client.post("/api/favorites", json={"symbol": "EURUSD"})
+        response = client.post("/api/favorites", json={"provider": "cnb", "provider_symbol": "EURUSD"})
         assert response.status_code == 200
-        assert response.json() == {"symbol": "EURUSD"}
+        assert response.json() == {"provider": "cnb", "provider_symbol": "EURUSD"}
 
         response = client.get("/api/favorites")
         assert response.status_code == 200
-        assert "EURUSD" in response.json()
+        favorites = response.json()
+        assert any(f["provider"] == "cnb" and f["provider_symbol"] == "EURUSD" for f in favorites)
+
+    def test_add_favorite_symbol_not_found(self, client: TestClient) -> None:
+        response = client.post("/api/favorites", json={"provider": "cnb", "provider_symbol": "NOTEXIST"})
+        assert response.status_code == 404
 
     def test_delete_favorite(self, client: TestClient) -> None:
-        client.post("/api/favorites", json={"symbol": "GBPUSD"})
+        client.post("/api/favorites", json={"provider": "fcs", "provider_symbol": "GBPUSD"})
 
-        response = client.delete("/api/favorites/GBPUSD")
+        response = client.delete("/api/favorites/fcs/GBPUSD")
         assert response.status_code == 200
-        assert response.json() == {"symbol": "GBPUSD"}
+        assert response.json() == {"provider": "fcs", "provider_symbol": "GBPUSD"}
 
         response = client.get("/api/favorites")
         assert response.status_code == 200
-        assert "GBPUSD" not in response.json()
+        favorites = response.json()
+        assert not any(f["provider"] == "fcs" and f["provider_symbol"] == "GBPUSD" for f in favorites)
 
     def test_add_duplicate_favorite(self, client: TestClient) -> None:
-        client.post("/api/favorites", json={"symbol": "JPYUSD"})
-        response = client.post("/api/favorites", json={"symbol": "JPYUSD"})
+        client.post("/api/favorites", json={"provider": "cnb", "provider_symbol": "JPYUSD"})
+        response = client.post("/api/favorites", json={"provider": "cnb", "provider_symbol": "JPYUSD"})
         assert response.status_code == 200
 
         response = client.get("/api/favorites")
         favorites = response.json()
-        assert favorites.count("JPYUSD") == 1
+        matches = [f for f in favorites if f["provider"] == "cnb" and f["provider_symbol"] == "JPYUSD"]
+        assert len(matches) == 1

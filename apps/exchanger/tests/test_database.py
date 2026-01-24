@@ -10,7 +10,7 @@ class TestSQLiteDatabase:
 
     def test_upsert_and_get_rate(self, temp_db: SQLiteDatabase) -> None:
         # First create a symbol
-        temp_db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        temp_db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         temp_db.commit()
 
         temp_db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
@@ -20,7 +20,7 @@ class TestSQLiteDatabase:
         assert result == 1.0850
 
     def test_upsert_rate_replaces(self, temp_db: SQLiteDatabase) -> None:
-        temp_db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")])
+        temp_db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         temp_db.commit()
 
         temp_db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
@@ -37,8 +37,8 @@ class TestSQLiteDatabase:
 
     def test_populate_symbols_workflow(self, temp_db: SQLiteDatabase) -> None:
         symbols = [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro / US Dollar"),
-            Symbol(provider="fcs", symbol="BTCUSD", type="crypto", name="Bitcoin / US Dollar"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro / US Dollar"),
+            Symbol(provider="fcs", symbol="BTCUSD", provider_symbol="BTCUSD", type="crypto", name="Bitcoin / US Dollar"),
         ]
         temp_db.populate_symbols("fcs", symbols)
         temp_db.commit()
@@ -55,8 +55,8 @@ class TestSQLiteDatabase:
         assert temp_db.get_symbol_type("BTCUSD", "fcs") == "crypto"
 
     def test_list_symbols_by_provider(self, temp_db: SQLiteDatabase) -> None:
-        fcs_symbols = [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")]
-        cnb_symbols = [Symbol(provider="cnb", symbol="EURCZK", type="forex", name="Euro CZK")]
+        fcs_symbols = [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")]
+        cnb_symbols = [Symbol(provider="cnb", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="Euro CZK")]
         temp_db.populate_symbols("fcs", fcs_symbols)
         temp_db.populate_symbols("cnb", cnb_symbols)
         temp_db.commit()
@@ -71,8 +71,8 @@ class TestSQLiteDatabase:
 
     def test_list_symbols_with_query(self, temp_db: SQLiteDatabase) -> None:
         symbols = [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro / US Dollar"),
-            Symbol(provider="fcs", symbol="GBPUSD", type="forex", name="British Pound / US Dollar"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro / US Dollar"),
+            Symbol(provider="fcs", symbol="GBPUSD", provider_symbol="GBPUSD", type="forex", name="British Pound / US Dollar"),
         ]
         temp_db.populate_symbols("fcs", symbols)
         temp_db.commit()
@@ -82,7 +82,7 @@ class TestSQLiteDatabase:
         assert results[0].symbol == "EURUSD"
 
     def test_export_import_rates(self, temp_db: SQLiteDatabase) -> None:
-        symbols = [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")]
+        symbols = [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")]
         temp_db.populate_symbols("fcs", symbols)
         temp_db.commit()
 
@@ -92,9 +92,9 @@ class TestSQLiteDatabase:
 
         exported = temp_db.export_rates()
         assert len(exported) == 2
-        # Verify export includes provider and symbol
+        # Verify export includes provider and provider_symbol
         assert exported[0]["provider"] == "fcs"
-        assert exported[0]["symbol"] == "EURUSD"
+        assert exported[0]["provider_symbol"] == "EURUSD"
 
         temp_db.import_rates([])
         temp_db.commit()
@@ -105,7 +105,7 @@ class TestSQLiteDatabase:
         assert len(temp_db.export_rates()) == 2
 
     def test_export_import_symbols(self, temp_db: SQLiteDatabase) -> None:
-        symbols = [Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro")]
+        symbols = [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")]
         temp_db.populate_symbols("fcs", symbols)
         temp_db.commit()
 
@@ -126,14 +126,14 @@ class TestSQLiteDatabase:
         """Symbols removed from provider should be deleted."""
         # Initial populate
         temp_db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro"),
-            Symbol(provider="fcs", symbol="GBPUSD", type="forex", name="Pound"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro"),
+            Symbol(provider="fcs", symbol="GBPUSD", provider_symbol="GBPUSD", type="forex", name="Pound"),
         ])
         temp_db.commit()
 
         # Second populate removes GBPUSD
         temp_db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Euro"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro"),
         ])
         temp_db.commit()
 
@@ -144,12 +144,12 @@ class TestSQLiteDatabase:
     def test_populate_symbols_updates_existing(self, temp_db: SQLiteDatabase) -> None:
         """Existing symbols should be updated."""
         temp_db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="Old Name"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Old Name"),
         ])
         temp_db.commit()
 
         temp_db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURUSD", type="forex", name="New Name"),
+            Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="New Name"),
         ])
         temp_db.commit()
 
@@ -160,10 +160,10 @@ class TestSQLiteDatabase:
     def test_different_providers_same_symbol(self, temp_db: SQLiteDatabase) -> None:
         """Same symbol can exist for different providers."""
         temp_db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURCZK", type="forex", name="FCS Euro"),
+            Symbol(provider="fcs", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="FCS Euro"),
         ])
         temp_db.populate_symbols("cnb", [
-            Symbol(provider="cnb", symbol="EURCZK", type="forex", name="CNB Euro"),
+            Symbol(provider="cnb", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="CNB Euro"),
         ])
         temp_db.commit()
 
@@ -178,11 +178,11 @@ class TestSQLiteDatabase:
     def test_get_providers_for_symbol(self, temp_db: SQLiteDatabase) -> None:
         """Get all providers that have a given symbol."""
         temp_db.populate_symbols("fcs", [
-            Symbol(provider="fcs", symbol="EURCZK", type="forex", name="FCS Euro"),
-            Symbol(provider="fcs", symbol="BTCUSD", type="crypto", name="Bitcoin"),
+            Symbol(provider="fcs", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="FCS Euro"),
+            Symbol(provider="fcs", symbol="BTCUSD", provider_symbol="BTCUSD", type="crypto", name="Bitcoin"),
         ])
         temp_db.populate_symbols("cnb", [
-            Symbol(provider="cnb", symbol="EURCZK", type="forex", name="CNB Euro"),
+            Symbol(provider="cnb", symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="CNB Euro"),
         ])
         temp_db.commit()
 
