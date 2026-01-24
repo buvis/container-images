@@ -8,6 +8,8 @@
   let ws: WebSocket | null = null;
   let reconnectDelay = 1000;
   let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
+  let connected = false;
+  let pingInterval: ReturnType<typeof setInterval> | null = null;
 
   function getRateLimitCountdown(until: string | null): string | null {
     if (!until) return null;
@@ -24,12 +26,30 @@
     ws.onopen = () => {
       reconnectDelay = 1000;
       loading = false;
+      connected = true;
       if (loadingTimeout) clearTimeout(loadingTimeout);
+      // Start ping interval
+      if (pingInterval) clearInterval(pingInterval);
+      pingInterval = setInterval(() => {
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send('ping');
+        }
+      }, 25000);
     };
 
     ws.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      tasks = Object.entries(data).map(([name, state]) => ({
+      const data = e.data;
+      // Handle ping/pong
+      if (data === 'ping') {
+        ws?.send('pong');
+        return;
+      }
+      if (data === 'pong') {
+        return;
+      }
+      // Task state update
+      const parsed = JSON.parse(data);
+      tasks = Object.entries(parsed).map(([name, state]) => ({
         name,
         ...(state as Omit<TaskState, 'name'>)
       }));
@@ -37,9 +57,15 @@
 
     ws.onerror = () => {
       loading = false;
+      connected = false;
     };
 
     ws.onclose = () => {
+      connected = false;
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
       setTimeout(connect, reconnectDelay);
       reconnectDelay = Math.min(reconnectDelay * 2, 30000);
     };
@@ -54,11 +80,18 @@
   onDestroy(() => {
     ws?.close();
     if (loadingTimeout) clearTimeout(loadingTimeout);
+    if (pingInterval) clearInterval(pingInterval);
   });
 </script>
 
 <div class="bg-slate-800 p-4 rounded-lg shadow-lg border border-slate-700">
-  <h2 class="text-xl font-bold mb-4 text-white">Tasks</h2>
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xl font-bold text-white">Tasks</h2>
+    <span class="flex items-center gap-1.5 text-xs">
+      <span class="w-2 h-2 rounded-full {connected ? 'bg-green-500' : 'bg-red-500'}"></span>
+      <span class="text-slate-400">{connected ? 'Live' : 'Reconnecting'}</span>
+    </span>
+  </div>
 
   {#if loading && tasks.length === 0}
     <div class="animate-pulse space-y-4">
