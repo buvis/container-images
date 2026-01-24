@@ -1,5 +1,5 @@
+import asyncio
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
@@ -46,10 +46,12 @@ class Application:
         self.backfill_service = BackfillService(
             db=self.db,
             registry=self.registry,
+            auto_backfill_time=settings.auto_backfill_time,
         )
         self.symbols_service = SymbolsService(
             db=self.db,
             registry=self.registry,
+            max_age_days=settings.symbols_max_age_days,
         )
         logger.debug("app initialized, providers=%s", self.registry.ids())
 
@@ -66,16 +68,19 @@ class Application:
 
         # CNB source (no auth needed)
         logger.debug("registering cnb source")
-        cnb_source = CnbSource()
+        cnb_source = CnbSource(fetch_delay=settings.provider_cnb_fetch_delay)
         self.registry.register(cnb_source)
 
     def start_backfill_if_idle(self, provider: str, symbols: list[str], length: int) -> bool:
         task_key = f"backfill:{provider}"
 
-        def on_progress(msg: str) -> None:
+        def on_progress(data: str | dict) -> None:
             if self.task_manager.shutdown_requested:
                 raise ShutdownRequested()
-            self.task_manager.update_status(task_key, message=msg)
+            if isinstance(data, dict):
+                self.task_manager.update_status(task_key, **data)
+            else:
+                self.task_manager.update_status(task_key, message=data)
 
         def run() -> None:
             logger.info(f"Backfill started: provider={provider}, symbols={symbols}, days={length}")
@@ -88,6 +93,7 @@ class Application:
                     on_progress=on_progress,
                 )
                 total = sum(results.values())
+                self.backfill_service.mark_done(provider)
                 self.task_manager.set_status(task_key, {
                     "status": "done",
                     "message": f"Completed: {total} rows",
@@ -107,36 +113,76 @@ class Application:
     def _build_backfill_map(self) -> dict[str, list[str]]:
         """Build map of provider → symbols for backfill.
 
-        Combines explicit provider:symbol entries with global symbols
-        (expanded to all providers that support them).
+        Combines explicit provider:symbol entries and favorites.
         """
         result: dict[str, list[str]] = {}
 
         # Add explicit provider:symbol entries
         for provider, symbols in self.settings.symbols.items():
-            result.setdefault(provider, []).extend(symbols)
+            for sym in symbols:
+                if sym not in result.get(provider, []):
+                    result.setdefault(provider, []).append(sym)
 
-        # Expand global symbols to all providers that have them
-        for symbol in self.settings.global_symbols:
-            providers = self.db.get_providers_for_symbol(symbol)
-            for provider in providers:
-                if symbol not in result.get(provider, []):
-                    result.setdefault(provider, []).append(symbol)
+        # Add favorites (provider-specific)
+        for fav in self.db.list_favorites():
+            provider = fav["provider"]
+            sym = fav["provider_symbol"]
+            if sym not in result.get(provider, []):
+                result.setdefault(provider, []).append(sym)
 
         return result
 
+    def _start_populate_then_backfill(self, provider: str) -> bool:
+        """Start symbol population in background, then trigger backfill when done."""
+        task_key = f"populate_symbols:{provider}"
+
+        def on_progress(msg: str) -> None:
+            if self.task_manager.shutdown_requested:
+                raise ShutdownRequested()
+            self.task_manager.update_status(task_key, message=msg)
+
+        def run() -> None:
+            logger.info(f"Populate symbols started: provider={provider}")
+            try:
+                results = self.symbols_service.populate(provider, on_progress=on_progress)
+                total = sum(results.values())
+                self.task_manager.set_status(task_key, {
+                    "status": "done",
+                    "message": f"Completed: {total} symbols",
+                })
+                logger.info(f"Populate symbols completed: {total} symbols")
+                # Chain backfill after population
+                actual_symbols: list[str] = []
+                # Get explicit symbols for this provider
+                for sym in self.settings.symbols.get(provider, []):
+                    if sym not in actual_symbols:
+                        actual_symbols.append(sym)
+                # Include favorites for this provider
+                for fav in self.db.list_favorites():
+                    if fav["provider"] == provider and fav["provider_symbol"] not in actual_symbols:
+                        actual_symbols.append(fav["provider_symbol"])
+                if actual_symbols:
+                    self.start_backfill_if_idle(provider, actual_symbols, self.settings.auto_backfill_days)
+            except ShutdownRequested:
+                logger.info(f"Populate symbols {provider} interrupted by shutdown")
+                self.task_manager.set_status(task_key, {"status": "cancelled", "message": "Shutdown requested"})
+            except Exception as e:
+                logger.error(f"Populate symbols {provider} failed: {e}")
+                self.task_manager.set_status(task_key, {"status": "error", "message": str(e)})
+
+        return self.task_manager.start_if_idle(task_key, run)
+
     def startup(self) -> None:
         logger.debug(
-            "startup: symbols=%s, global_symbols=%s, backfill_time=%s",
+            "startup: symbols=%s, backfill_time=%s",
             self.settings.symbols,
-            self.settings.global_symbols,
             self.settings.auto_backfill_time,
         )
 
         # Populate symbols first (required before backfill) - only if stale/missing
-        # Include all providers that have explicit symbols OR could serve global symbols
+        # Include all providers that have explicit symbols OR favorites
         providers_to_check = set(self.settings.symbols.keys())
-        if self.settings.global_symbols:
+        if self.db.list_favorites():
             providers_to_check.update(self.registry.ids())
 
         providers_needing_population = [
@@ -145,32 +191,34 @@ class Application:
         ]
 
         if providers_needing_population:
-            def populate_provider(provider: str) -> None:
-                logger.debug("populating symbols for %s", provider)
-                self.symbols_service.populate(provider)
-
-            with ThreadPoolExecutor(max_workers=len(providers_needing_population)) as executor:
-                executor.map(populate_provider, providers_needing_population)
+            for provider in providers_needing_population:
+                self._start_populate_then_backfill(provider)
         else:
             logger.debug("symbols up to date, skipping population")
-
-        # Build combined backfill map: provider → symbols
-        backfill_map = self._build_backfill_map()
-
-        # Auto-backfill configured symbols per provider
-        for provider, symbols in backfill_map.items():
-            if self.registry.get(provider):
-                self.start_backfill_if_idle(provider, symbols, self.settings.auto_backfill_days)
-            else:
-                logger.warning("provider %s not registered, skipping symbols: %s", provider, symbols)
-
-        def scheduled_backfill() -> None:
-            logger.debug("scheduled backfill triggered")
-            for provider, symbols in self._build_backfill_map().items():
-                if self.registry.get(provider):
+            # Build combined backfill map: provider → symbols
+            backfill_map = self._build_backfill_map()
+            # Auto-backfill configured symbols per provider (only if needed)
+            for provider, symbols in backfill_map.items():
+                if not self.registry.get(provider):
+                    logger.warning("provider %s not registered, skipping symbols: %s", provider, symbols)
+                elif not self.backfill_service.needs_backfill(provider):
+                    logger.debug("backfill for %s already done today, skipping", provider)
+                else:
                     self.start_backfill_if_idle(provider, symbols, self.settings.auto_backfill_days)
 
-        self.scheduler.schedule_daily(self.settings.auto_backfill_time, scheduled_backfill)
+        def scheduled_task() -> None:
+            logger.debug("scheduled task triggered")
+            backfill_map = self._build_backfill_map()
+            for provider in self.registry.ids():
+                if self.symbols_service.needs_population(provider):
+                    # Population chains backfill when done
+                    self._start_populate_then_backfill(provider)
+                elif provider in backfill_map and self.backfill_service.needs_backfill(provider):
+                    self.start_backfill_if_idle(
+                        provider, backfill_map[provider], self.settings.auto_backfill_days
+                    )
+
+        self.scheduler.schedule_daily(self.settings.auto_backfill_time, scheduled_task)
         self.scheduler.start()
         logger.info("app started, scheduler running")
 
@@ -194,6 +242,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        application.task_manager.set_event_loop(asyncio.get_running_loop())
         application.startup()
         yield
         application.shutdown()
@@ -222,6 +271,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if exc.status_code == 404 and not request.url.path.startswith("/api"):
             return FileResponse(static_directory / "index.html")
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    @fastapi_app.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {exc}"})
 
     return fastapi_app
 
