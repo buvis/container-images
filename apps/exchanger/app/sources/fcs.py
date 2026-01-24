@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import date, datetime, timezone
 from typing import Callable
 
@@ -21,6 +22,9 @@ class FcsSource:
     def source_id(self) -> str:
         return "fcs"
 
+    def estimate_work_units(self, symbol_count: int, days: int) -> int:
+        return symbol_count * math.ceil(days / 300)
+
     def available_symbols(
         self, on_progress: Callable[[str], None] | None = None
     ) -> list[str]:
@@ -29,7 +33,7 @@ class FcsSource:
 
     def set_symbol_cache(self, symbols: list[SymbolInfo]) -> None:
         """Set symbol cache from external source (e.g., after DB populate)."""
-        self._symbol_cache = {s.symbol: s for s in symbols}
+        self._symbol_cache = {s.provider_symbol: s for s in symbols}
 
     def _ensure_symbols_loaded(
         self, on_progress: Callable[[str], None] | None = None
@@ -47,7 +51,7 @@ class FcsSource:
         symbols = self.list_symbols(on_progress)
         if not symbols:
             raise RuntimeError("Failed to load FCS symbols (possibly rate-limited)")
-        self._symbol_cache = {s.symbol: s for s in symbols}
+        self._symbol_cache = {s.provider_symbol: s for s in symbols}
         logger.debug("loaded %d symbols into cache", len(self._symbol_cache))
 
     def fetch_history(
@@ -135,6 +139,10 @@ class FcsSource:
                 day = self._unix_to_ymd(candle["t"])
                 rate = float(candle["c"])
                 rates[day] = rate
+
+            # Signal work unit complete
+            if on_progress:
+                on_progress({"work_unit_done": True, "message": f"Fetched {symbol} page {page}"})
 
             if len(candles) < page_length:
                 break
@@ -234,7 +242,8 @@ class FcsSource:
                 if not sym:
                     continue
 
-                symbols.append(SymbolInfo(symbol=sym, type=sym_type, name=name))
+                normalized = self._normalize_symbol(sym)
+                symbols.append(SymbolInfo(symbol=normalized, provider_symbol=sym, type=sym_type, name=name))
 
             pagination = response.get("info", {}).get("pagination", {})
             if not pagination.get("has_next"):
@@ -247,3 +256,15 @@ class FcsSource:
     @staticmethod
     def _unix_to_ymd(ts) -> str:
         return datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d")
+
+    @staticmethod
+    def _normalize_symbol(symbol: str) -> str:
+        """Normalize FCS symbol by stripping provider suffixes.
+
+        FCS has multiple data sources with suffixes like .ONE, .PRO.OTMS.
+        For example: EURCZK, EURCZK.ONE, EURCZK.PRO.OTMS all normalize to EURCZK.
+        """
+        if "." in symbol:
+            return symbol.split(".")[0]
+        return symbol
+

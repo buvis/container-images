@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from typing import Callable
 
 from app.models import SymbolInfo, SymbolType
+from app.utils.retry import is_shutting_down
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +59,18 @@ CNB_CURRENCY_NAMES: dict[str, str] = {
 
 
 class CnbSource:
-    def __init__(self, http_get: Callable[[str], str] | None = None):
+    def __init__(self, http_get: Callable[[str], str] | None = None, fetch_delay: float = 2.0):
         self._http_get = http_get or _default_http_get
+        self._fetch_delay = fetch_delay
         self._symbol_names: dict[str, str] | None = None
 
     @property
     def source_id(self) -> str:
         return "cnb"
+
+    def estimate_work_units(self, symbol_count: int, days: int) -> int:
+        # Backfill service calls fetch_history once per symbol, each doing `days` API calls
+        return symbol_count * days
 
     def available_symbols(
         self, on_progress: Callable[[str], None] | None = None
@@ -83,10 +89,10 @@ class CnbSource:
         today = date.today()
 
         for day_offset in range(days):
-            dt = today - timedelta(days=day_offset)
-            if on_progress:
-                on_progress(f"Fetching CNB rates for {dt}...")
+            if is_shutting_down():
+                break
 
+            dt = today - timedelta(days=day_offset)
             rates = self._fetch_rates_for_date(dt)
             date_str = dt.strftime("%Y-%m-%d")
             logger.debug("fetched %d rates for %s", len(rates), date_str)
@@ -94,6 +100,14 @@ class CnbSource:
             for symbol in symbols:
                 if symbol in rates:
                     results[symbol][date_str] = rates[symbol]
+
+            # Signal work unit complete
+            if on_progress:
+                on_progress({"work_unit_done": True, "message": f"Fetched CNB {date_str}"})
+
+            # Polite delay (except after last)
+            if day_offset < days - 1 and not is_shutting_down() and self._fetch_delay > 0:
+                time.sleep(self._fetch_delay)
 
         return results
 
@@ -108,18 +122,19 @@ class CnbSource:
         return [
             SymbolInfo(
                 symbol=f"{code}CZK",
+                provider_symbol=f"{code}CZK",
                 type="forex",
-                name=names.get(code, f"{CNB_CURRENCY_NAMES.get(code, code)} / Czech koruna"),
+                name=names.get(code, f"{CNB_CURRENCY_NAMES.get(code, code)} / Česká koruna"),
             )
             for code in CNB_CURRENCIES
         ]
 
-    def get_symbol_info(self, symbol: str) -> SymbolInfo | None:
+    def get_symbol_info(self, provider_symbol: str) -> SymbolInfo | None:
         # CNB symbols are all forex, format: {CODE}CZK
-        if symbol.endswith("CZK") and symbol[:-3] in CNB_CURRENCIES:
-            code = symbol[:-3]
+        if provider_symbol.endswith("CZK") and provider_symbol[:-3] in CNB_CURRENCIES:
+            code = provider_symbol[:-3]
             names = self._get_symbol_names()
-            return SymbolInfo(symbol=symbol, type="forex", name=names.get(code, f"{code}/CZK"))
+            return SymbolInfo(symbol=provider_symbol, provider_symbol=provider_symbol, type="forex", name=names.get(code, f"{code}/CZK"))
         return None
 
     def _get_symbol_names(self) -> dict[str, str]:
@@ -200,7 +215,7 @@ def _parse_response(text: str) -> dict[str, float]:
 def _parse_symbol_names(text: str) -> dict[str, str]:
     """Parse CNB response to extract symbol names.
 
-    Format: "Country Currency / Czech koruna" (e.g., "Australia dollar / Czech koruna")
+    Format: "Country Currency / Česká koruna" (e.g., "Australia dollar / Česká koruna")
     """
     names: dict[str, str] = {}
     lines = text.strip().split("\n")
@@ -214,7 +229,7 @@ def _parse_symbol_names(text: str) -> dict[str, str]:
             country = parts[0].strip()
             currency = parts[1].strip()
             code = parts[3].strip()
-            names[code] = f"{country} {currency} / Czech koruna"
+            names[code] = f"{country} {currency} / Česká koruna"
         except IndexError:
             continue
 

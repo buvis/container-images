@@ -8,7 +8,8 @@ TaskStatus = Literal["running", "done", "error"]
 @dataclass
 class Symbol:
     provider: str
-    symbol: str
+    symbol: str  # normalized symbol (e.g., EURCZK)
+    provider_symbol: str  # provider-specific (e.g., EURCZK.ONE)
     type: SymbolType
     name: str | None = None
     id: int | None = None
@@ -24,7 +25,8 @@ class Rate:
 @dataclass
 class SymbolInfo:
     """Symbol info returned by rate sources (without provider/id)."""
-    symbol: str
+    symbol: str  # normalized symbol (e.g., EURCZK)
+    provider_symbol: str  # provider-specific (e.g., EURCZK.ONE)
     type: SymbolType
     name: str | None = None
 
@@ -78,7 +80,8 @@ class RatesResponse(BaseModel):
 
 
 class RateListItem(BaseModel):
-    symbol: str
+    symbol: str  # normalized symbol
+    provider_symbol: str  # provider-specific
     rate: float
     provider: str
     type: SymbolType
@@ -98,7 +101,8 @@ class ScheduledResponse(BaseModel):
 
 class SymbolResponse(BaseModel):
     provider: str
-    symbol: str
+    symbol: str  # normalized symbol
+    provider_symbol: str  # provider-specific
     name: str | None
     type: SymbolType
 
@@ -117,12 +121,16 @@ class TaskStateResponse(BaseModel):
     per_symbol: dict[str, int] | None = None
     rows_written: int | None = None
     symbols_added: int | None = None
+    progress: int | None = None  # 0-100 percentage
+    progress_detail: str | None = None  # e.g., "2/5 symbols, page 3/4"
+    rate_limit_until: str | None = None  # ISO timestamp when rate limit ends
 
 
 class ProviderStatusResponse(BaseModel):
     name: str
     healthy: bool
     symbol_count: int
+    symbol_counts_by_type: dict[str, int] = {}
 
 
 class BackupResponse(BaseModel):
@@ -131,6 +139,7 @@ class BackupResponse(BaseModel):
     rates_count: int
     symbols_count: int
     metadata_count: int
+    favorites_count: int
 
 
 class BackupInfo(BaseModel):
@@ -143,3 +152,26 @@ class RestoreResponse(BaseModel):
     rates: int | None = None
     symbols: int | None = None
     metadata: int | None = None
+    favorites: int | None = None
+
+
+class FrontendConfigResponse(BaseModel):
+    dashboard_history_days: int
+
+
+class FavoriteResponse(BaseModel):
+    provider: str
+    provider_symbol: str
+
+
+class ChainRateResponse(BaseModel):
+    from_rate: float | None
+    from_provider: str
+    from_symbol: str  # actual symbol used (may be inverted)
+    from_inverted: bool  # True if we used inverted symbol (e.g., used BTCEUR for EUR→BTC)
+    to_rate: float | None
+    to_provider: str
+    to_symbol: str  # actual symbol used (may be inverted)
+    to_inverted: bool
+    combined_rate: float | None
+    intermediate: str  # the currency in the middle (e.g., EUR)
