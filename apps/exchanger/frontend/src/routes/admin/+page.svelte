@@ -152,30 +152,32 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-slate-300">Provider</label>
-                            <select bind:value={backfillProvider} class="w-full bg-[#0F172A] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <label for="backfill-provider" class="block text-sm font-medium text-slate-300">Provider</label>
+                            <select id="backfill-provider" bind:value={backfillProvider} class="w-full bg-[#0F172A] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                                 <option value="cnb">CNB</option>
                                 <option value="fcs">FCS</option>
                             </select>
                         </div>
 
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-slate-300">Length (days)</label>
-                            <input 
-                                type="number" 
-                                min="1" 
-                                max="365" 
-                                bind:value={backfillLength} 
+                            <label for="backfill-length" class="block text-sm font-medium text-slate-300">Length (days)</label>
+                            <input
+                                id="backfill-length"
+                                type="number"
+                                min="1"
+                                max="365"
+                                bind:value={backfillLength}
                                 class="w-full bg-[#0F172A] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             />
                         </div>
 
                         <div class="col-span-1 md:col-span-2 space-y-2">
-                            <label class="block text-sm font-medium text-slate-300">Symbols (comma separated, optional)</label>
-                            <input 
-                                type="text" 
+                            <label for="backfill-symbols" class="block text-sm font-medium text-slate-300">Symbols (comma separated, optional)</label>
+                            <input
+                                id="backfill-symbols"
+                                type="text"
                                 placeholder="EUR, USD, GBP"
-                                bind:value={backfillSymbols} 
+                                bind:value={backfillSymbols}
                                 class="w-full bg-[#0F172A] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             />
                         </div>
@@ -233,8 +235,8 @@
                     <h2 class="text-xl font-semibold text-white">Populate Symbols</h2>
                     
                     <div class="space-y-2 max-w-md">
-                        <label class="block text-sm font-medium text-slate-300">Provider</label>
-                        <select bind:value={symbolsProvider} class="w-full bg-[#0F172A] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label for="symbols-provider" class="block text-sm font-medium text-slate-300">Provider</label>
+                        <select id="symbols-provider" bind:value={symbolsProvider} class="w-full bg-[#0F172A] border border-slate-600 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                             <option value="cnb">CNB</option>
                             <option value="fcs">FCS</option>
                         </select>
