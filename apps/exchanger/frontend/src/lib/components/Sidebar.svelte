@@ -2,23 +2,43 @@
     import { page } from '$app/stores';
     
     let { isOpen = $bindable(false) } = $props();
-    
+
+    function isActive(href: string): boolean {
+        const [path, query] = href.split('?');
+        if ($page.url.pathname !== path) return false;
+        if (!query) return true;
+        const params = new URLSearchParams(query);
+        for (const [key, value] of params) {
+            if ($page.url.searchParams.get(key) !== value) return false;
+        }
+        return true;
+    }
+
     const navItems = [
         {
             section: 'Overview',
-            items: [{ label: 'Dashboard', href: '/' }]
+            items: [
+                { label: 'Status', href: '/' },
+                { label: 'Market', href: '/market' }
+            ]
         },
         {
-            section: 'Market Data',
-            items: [{ label: 'Rates Explorer', href: '/rates' }]
+            section: 'Tools',
+            items: [
+                { label: 'Symbols', href: '/symbols' },
+                { label: 'Rates', href: '/rates' },
+                { label: 'Converter', href: '/converter' },
+                { label: 'Chain Converter', href: '/converter/multi' },
+                { label: 'Compare', href: '/compare' }
+            ]
         },
         {
-            section: 'Operations',
-            items: [{ label: 'Admin Panel', href: '/admin' }]
-        },
-        {
-            section: 'System',
-            items: [{ label: 'Providers', href: '/providers' }]
+            section: 'Administration',
+            items: [
+                { label: 'Backfill', href: '/admin?tab=backfill' },
+                { label: 'Symbols', href: '/admin?tab=symbols' },
+                { label: 'Backups', href: '/admin?tab=backups' }
+            ]
         }
     ];
 </script>
@@ -46,10 +66,10 @@
                 <ul class="space-y-1">
                     {#each group.items as item}
                         <li>
-                            <a 
+                            <a
                                 href={item.href}
-                                class="block rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-slate-700/50 hover:text-white {$page.url.pathname === item.href ? 'bg-slate-700 text-white' : 'text-slate-300'}"
-                                onclick={() => isOpen = false} 
+                                class="block rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-slate-700/50 hover:text-white {isActive(item.href) ? 'bg-slate-700 text-white' : 'text-slate-300'}"
+                                onclick={() => isOpen = false}
                             >
                                 {item.label}
                             </a>

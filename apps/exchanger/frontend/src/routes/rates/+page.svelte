@@ -3,26 +3,24 @@
     import { 
         getRates, 
         getRatesHistory, 
-        getCoverage, 
         getFavorites, 
         addFavorite, 
         removeFavorite,
-        type Rate
+        type Rate,
+        type Favorite
     } from '$lib/api';
     
     import CalendarPicker from '$lib/components/CalendarPicker.svelte';
     import SymbolList from '$lib/components/SymbolList.svelte';
     import RateChart from '$lib/components/RateChart.svelte';
-    import CalendarHeatmap from '$lib/components/CalendarHeatmap.svelte';
 
     let selectedDate = new Date().toISOString().split('T')[0];
     let selectedSymbol: string | null = null;
     let activeType: 'forex' | 'crypto' = 'forex';
     
     let rates: Rate[] = [];
-    let favorites: string[] = [];
+    let favorites: Favorite[] = [];
     let history: { date: string; rate: number | null }[] = [];
-    let coverage: Record<string, number> = {};
     
     let loadingRates = false;
     let loadingHistory = false;
@@ -33,7 +31,6 @@
 
     onMount(async () => {
         await loadFavorites();
-        await loadCoverage();
         await loadRates();
     });
 
@@ -42,15 +39,6 @@
             favorites = await getFavorites();
         } catch (e) {
             console.error('Failed to load favorites', e);
-        }
-    }
-
-    async function loadCoverage() {
-        try {
-            coverage = await getCoverage(year, provider, favorites.length ? favorites : undefined);
-        } catch (e) {
-            console.error('Failed to load coverage', e);
-            coverage = {};
         }
     }
 
@@ -91,10 +79,6 @@
         const oldYear = year;
         selectedDate = newDate;
         
-        const newYear = parseInt(selectedDate.split('-')[0]);
-        if (newYear !== oldYear) {
-            loadCoverage();
-        }
         loadRates();
     }
 
@@ -104,7 +88,6 @@
         history = [];
         setTimeout(() => {
             loadRates();
-            loadCoverage();
         }, 0);
     }
 
@@ -113,15 +96,16 @@
         loadHistory();
     }
 
-    async function handleToggleFavorite(e: CustomEvent<string>) {
-        const symbol = e.detail;
+    async function handleToggleFavorite(e: CustomEvent<{ provider: string; provider_symbol: string }>) {
+        const { provider, provider_symbol } = e.detail;
         try {
-            if (favorites.includes(symbol)) {
-                await removeFavorite(symbol);
-                favorites = favorites.filter(f => f !== symbol);
+            const existing = favorites.find(f => f.provider === provider && f.provider_symbol === provider_symbol);
+            if (existing) {
+                await removeFavorite(provider, provider_symbol);
+                favorites = favorites.filter(f => !(f.provider === provider && f.provider_symbol === provider_symbol));
             } else {
-                await addFavorite(symbol);
-                favorites = [...favorites, symbol];
+                await addFavorite(provider, provider_symbol);
+                favorites = [...favorites, { provider, provider_symbol }];
             }
         } catch (error) {
             console.error('Failed to toggle favorite', error);
@@ -133,13 +117,9 @@
     }
 </script>
 
-<div class="min-h-screen bg-slate-950 text-slate-200 p-6 flex flex-col gap-6">
-    <header>
-        <div class="flex items-center justify-between mb-4">
-            <h1 class="text-3xl font-bold text-white">Rates Explorer</h1>
-            <a href="/" class="text-blue-400 hover:text-blue-300 text-sm font-medium">Back to Dashboard</a>
-        </div>
-        <CalendarHeatmap {year} {coverage} favoritesCount={favorites.length} />
+<div class="bg-slate-950 text-slate-200 p-6 flex flex-col gap-6">
+    <header class="mb-4">
+        <h1 class="text-3xl font-bold text-white">Rates</h1>
     </header>
 
     <div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">

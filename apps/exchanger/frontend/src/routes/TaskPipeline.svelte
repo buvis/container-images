@@ -1,97 +1,120 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { getTaskStatus, type TaskState } from '$lib/api';
+  import { type TaskState } from '$lib/api';
+  import { formatDateTime } from '$lib/formatters';
 
   let tasks: TaskState[] = [];
-  let interval: any;
   let loading = true;
+  let ws: WebSocket | null = null;
+  let reconnectDelay = 1000;
+  let loadingTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  const stages = ['Queued', 'Fetching', 'Processing', 'Done'];
-
-  function getStageIndex(status: string): number {
-    const s = status.toLowerCase();
-    if (s.includes('queue')) return 0;
-    if (s.includes('fetch')) return 1;
-    if (s.includes('process')) return 2;
-    if (s === 'success' || s === 'done' || s === 'completed') return 3;
-    return -1;
+  function getRateLimitCountdown(until: string | null): string | null {
+    if (!until) return null;
+    const end = new Date(until).getTime();
+    const now = Date.now();
+    const remaining = Math.max(0, Math.ceil((end - now) / 1000));
+    return remaining > 0 ? `${remaining}s` : null;
   }
 
-  async function fetchTasks() {
-    try {
-      tasks = await getTaskStatus();
-    } catch (e) {
-      console.error(e);
-    } finally {
+  function connect() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${protocol}//${location.host}/api/ws/tasks`);
+
+    ws.onopen = () => {
+      reconnectDelay = 1000;
       loading = false;
-    }
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+    };
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      tasks = Object.entries(data).map(([name, state]) => ({
+        name,
+        ...(state as Omit<TaskState, 'name'>)
+      }));
+    };
+
+    ws.onerror = () => {
+      loading = false;
+    };
+
+    ws.onclose = () => {
+      setTimeout(connect, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+    };
   }
 
   onMount(() => {
-    fetchTasks();
-    interval = setInterval(fetchTasks, 5000);
+    connect();
+    // Stop showing loading after 3s even if WS fails
+    loadingTimeout = setTimeout(() => { loading = false; }, 3000);
   });
 
   onDestroy(() => {
-    if (interval) clearInterval(interval);
+    ws?.close();
+    if (loadingTimeout) clearTimeout(loadingTimeout);
   });
 </script>
 
 <div class="bg-slate-800 p-4 rounded-lg shadow-lg border border-slate-700">
-  <h2 class="text-xl font-bold mb-4 text-white">Task Pipeline</h2>
-  
+  <h2 class="text-xl font-bold mb-4 text-white">Tasks</h2>
+
   {#if loading && tasks.length === 0}
     <div class="animate-pulse space-y-4">
       {#each Array(3) as _}
         <div class="h-12 bg-slate-700 rounded"></div>
       {/each}
     </div>
+  {:else if tasks.length === 0}
+    <div class="flex items-center justify-center py-8 text-slate-500">
+      <span class="text-sm">No active tasks</span>
+    </div>
   {:else}
-    <div class="space-y-6">
+    <div class="space-y-4">
       {#each tasks as task}
+        {@const countdown = getRateLimitCountdown(task.rate_limit_until)}
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
           <div class="flex justify-between items-center mb-2">
             <span class="font-semibold text-white">{task.name}</span>
-            <span class="text-xs text-slate-400">Last: {task.last_run || 'Never'}</span>
+            <span class="text-xs text-slate-400">Last: {formatDateTime(task.last_run) || 'Never'}</span>
           </div>
-          
-          <div class="relative pt-4">
-            <div class="flex justify-between mb-2">
-              {#each stages as stage, i}
-                <div class="flex flex-col items-center flex-1 relative z-10">
-                  <div class={`w-4 h-4 rounded-full border-2 flex items-center justify-center
-                    ${getStageIndex(task.status) >= i 
-                      ? 'bg-blue-500 border-blue-500' 
-                      : 'bg-slate-800 border-slate-600'}`}>
-                    {#if getStageIndex(task.status) >= i}
-                      <div class="w-2 h-2 bg-white rounded-full"></div>
-                    {/if}
-                  </div>
-                  <span class={`text-xs mt-1 ${getStageIndex(task.status) >= i ? 'text-blue-400' : 'text-slate-500'}`}>
-                    {stage}
-                  </span>
-                </div>
-              {/each}
-              
-              <!-- Progress Bar Background -->
-              <div class="absolute top-6 left-0 w-full h-0.5 bg-slate-700 -z-0 transform -translate-y-1/2 mx-8" style="width: calc(100% - 4rem);"></div>
-              
-              <!-- Active Progress -->
-              <div class="absolute top-6 left-0 h-0.5 bg-blue-500 -z-0 transform -translate-y-1/2 mx-8 transition-all duration-500"
-                   style="width: calc({(Math.max(0, getStageIndex(task.status)) / (stages.length - 1)) * 100}% - 4rem);">
+
+          {#if task.status === 'running'}
+            <!-- Progress bar -->
+            <div class="mb-2">
+              <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  class="h-full bg-blue-500 transition-all duration-300"
+                  class:animate-pulse={countdown}
+                  style="width: {task.progress ?? 0}%"
+                ></div>
               </div>
             </div>
-            
-            <div class="text-right mt-2">
+
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">
+                {#if countdown}
+                  <span class="text-amber-400">Rate limited: {countdown}</span>
+                {:else}
+                  {task.message}
+                {/if}
+              </span>
+              <span class="text-blue-400 font-mono">{task.progress ?? 0}%</span>
+            </div>
+          {:else}
+            <!-- Status badge -->
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-slate-400 truncate max-w-[70%]">{task.message}</span>
               <span class={`text-xs px-2 py-1 rounded ${
-                task.status === 'error' ? 'bg-red-900 text-red-200' : 
-                task.status === 'running' ? 'bg-blue-900 text-blue-200' : 
+                task.status === 'error' ? 'bg-red-900 text-red-200' :
+                task.status === 'done' ? 'bg-green-900 text-green-200' :
                 'bg-slate-800 text-slate-400'
               }`}>
                 {task.status}
               </span>
             </div>
-          </div>
+          {/if}
         </div>
       {/each}
     </div>
