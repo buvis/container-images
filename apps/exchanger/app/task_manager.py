@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import threading
 from datetime import datetime, timezone
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable
 
 from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
 
 
 class TaskManager:
@@ -27,6 +30,7 @@ class TaskManager:
 
     def disconnect(self, ws: WebSocket) -> None:
         self._clients.discard(ws)
+        logger.debug("ws client disconnected, %d remaining", len(self._clients))
 
     def _broadcast(self) -> None:
         """Schedule broadcast from sync context (background threads)."""
