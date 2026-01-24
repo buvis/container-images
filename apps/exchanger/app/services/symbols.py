@@ -8,7 +8,7 @@ from app.sources.registry import SourceRegistry
 
 logger = logging.getLogger(__name__)
 
-SYMBOLS_MAX_AGE_DAYS = 30
+DEFAULT_SYMBOLS_MAX_AGE_DAYS = 30
 
 
 class SymbolsDatabase(Protocol):
@@ -20,9 +20,15 @@ class SymbolsDatabase(Protocol):
 
 
 class SymbolsService:
-    def __init__(self, db: SymbolsDatabase, registry: SourceRegistry):
+    def __init__(
+        self,
+        db: SymbolsDatabase,
+        registry: SourceRegistry,
+        max_age_days: int = DEFAULT_SYMBOLS_MAX_AGE_DAYS,
+    ):
         self._db = db
         self._registry = registry
+        self._max_age_days = max_age_days
 
     def needs_population(self, provider: str) -> bool:
         """Check if provider needs symbol population (no symbols or stale)."""
@@ -34,7 +40,7 @@ class SymbolsService:
         try:
             last_dt = datetime.fromisoformat(last_populated)
             age_days = (datetime.now(timezone.utc) - last_dt).days
-            return age_days >= SYMBOLS_MAX_AGE_DAYS
+            return age_days >= self._max_age_days
         except ValueError:
             return True
 
@@ -87,7 +93,7 @@ class SymbolsService:
 
         # Convert SymbolInfo to Symbol with provider
         symbols = [
-            Symbol(provider=provider, symbol=si.symbol, type=si.type, name=si.name)
+            Symbol(provider=provider, symbol=si.symbol, provider_symbol=si.provider_symbol, type=si.type, name=si.name)
             for si in symbol_infos
         ]
 
@@ -102,8 +108,8 @@ class SymbolsService:
         # Update source's internal cache (needed for FCS backfill to know types)
         if hasattr(source, "set_symbol_cache"):
             from app.models import SymbolInfo
-            symbol_infos = [SymbolInfo(symbol=s.symbol, type=s.type, name=s.name) for s in symbols]
-            source.set_symbol_cache(symbol_infos)
-            logger.debug("set %d symbols in %s source cache", len(symbol_infos), provider)
+            symbol_infos_for_cache = [SymbolInfo(symbol=s.symbol, provider_symbol=s.provider_symbol, type=s.type, name=s.name) for s in symbols]
+            source.set_symbol_cache(symbol_infos_for_cache)
+            logger.debug("set %d symbols in %s source cache", len(symbol_infos_for_cache), provider)
 
         return len(symbols)
