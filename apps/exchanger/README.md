@@ -58,13 +58,13 @@ Test endpoints:
 
 ```bash
 # rate lookup (CNB, no API key needed)
-curl "http://localhost:8000/rates?date=2025-01-15&symbol=EURCZK&provider=cnb"
+curl "http://localhost:8000/api/rates?date=2025-01-15&symbol=EURCZK&provider=cnb"
 
 # list symbols
-curl "http://localhost:8000/symbols/list?provider=cnb&q=CZK"
+curl "http://localhost:8000/api/symbols/list?provider=cnb&q=CZK"
 
 # manual backfill
-curl -X POST "http://localhost:8000/backfill?provider=cnb&length=30&symbols=EURCZK"
+curl -X POST "http://localhost:8000/api/backfill?provider=cnb&length=30&symbols=EURCZK"
 ```
 
 ## Docker
