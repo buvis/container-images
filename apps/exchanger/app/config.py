@@ -6,8 +6,11 @@ DEFAULT_DB_PATH = "/data/exchanger.db"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_AUTO_BACKFILL_TIME = "16:30"
 DEFAULT_AUTO_BACKFILL_DAYS = 31
+DEFAULT_SYMBOLS_MAX_AGE_DAYS = 30
 DEFAULT_SCHEDULER_TICK_SECONDS = 5.0
 DEFAULT_RATE_LIMIT_WAIT = 65
+DEFAULT_PROVIDER_CNB_FETCH_DELAY = 2.0
+DEFAULT_DASHBOARD_HISTORY_DAYS = 7
 
 
 @dataclass(frozen=True)
@@ -16,11 +19,13 @@ class Settings:
     db_path: str = DEFAULT_DB_PATH
     backup_dir: str = ""  # defaults to 'backups' subdir next to db_path
     symbols: dict[str, list[str]] = field(default_factory=dict)  # provider → symbols
-    global_symbols: list[str] = field(default_factory=list)  # symbols to backfill from all providers
     auto_backfill_time: str = DEFAULT_AUTO_BACKFILL_TIME
     auto_backfill_days: int = DEFAULT_AUTO_BACKFILL_DAYS
+    symbols_max_age_days: int = DEFAULT_SYMBOLS_MAX_AGE_DAYS
     scheduler_tick_seconds: float = DEFAULT_SCHEDULER_TICK_SECONDS
     rate_limit_wait: int = DEFAULT_RATE_LIMIT_WAIT
+    provider_cnb_fetch_delay: float = DEFAULT_PROVIDER_CNB_FETCH_DELAY
+    dashboard_history_days: int = DEFAULT_DASHBOARD_HISTORY_DAYS
     log_level: str = DEFAULT_LOG_LEVEL
 
 
@@ -28,7 +33,7 @@ def load_settings() -> Settings:
     from pathlib import Path
 
     provider_api_keys = _load_provider_api_keys()
-    symbols, global_symbols = _parse_symbols(os.getenv("SYMBOLS", ""))
+    symbols = _parse_symbols(os.getenv("SYMBOLS", ""))
 
     db_path = os.getenv("DB_PATH", DEFAULT_DB_PATH)
     # Default backup_dir to 'backups' subdir next to DB file
@@ -40,13 +45,15 @@ def load_settings() -> Settings:
         db_path=db_path,
         backup_dir=backup_dir,
         symbols=symbols,
-        global_symbols=global_symbols,
         auto_backfill_time=os.getenv("AUTO_BACKFILL_TIME", DEFAULT_AUTO_BACKFILL_TIME),
         auto_backfill_days=_parse_int("AUTO_BACKFILL_DAYS", DEFAULT_AUTO_BACKFILL_DAYS),
+        symbols_max_age_days=_parse_int("SYMBOLS_MAX_AGE_DAYS", DEFAULT_SYMBOLS_MAX_AGE_DAYS),
         scheduler_tick_seconds=_parse_float(
             "SCHEDULER_TICK_SECONDS", DEFAULT_SCHEDULER_TICK_SECONDS
         ),
         rate_limit_wait=_parse_int("RATE_LIMIT_WAIT", DEFAULT_RATE_LIMIT_WAIT),
+        provider_cnb_fetch_delay=_parse_float("PROVIDER_CNB_FETCH_DELAY", DEFAULT_PROVIDER_CNB_FETCH_DELAY),
+        dashboard_history_days=_parse_int("DASHBOARD_HISTORY_DAYS", DEFAULT_DASHBOARD_HISTORY_DAYS),
         log_level=os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL).upper(),
     )
 
@@ -79,33 +86,26 @@ def _parse_float(env_var: str, default: float) -> float:
         return default
 
 
-def _parse_symbols(raw: str) -> tuple[dict[str, list[str]], list[str]]:
+def _parse_symbols(raw: str) -> dict[str, list[str]]:
     """Parse SYMBOLS env var.
 
-    Format: 'fcs:EURCZK,USDCZK,cnb:EURCZK'
+    Format: 'fcs:EURCZK,cnb:USDCZK'
     - 'provider:symbol' → backfill from specific provider
-    - 'symbol' (no colon) → backfill from all providers that support it
-
-    Returns:
-        Tuple of (provider_symbols, global_symbols)
+    - Symbols without provider prefix are ignored
     """
     provider_symbols: dict[str, list[str]] = {}
-    global_symbols: list[str] = []
 
     for item in raw.split(","):
         item = item.strip()
-        if not item:
+        if not item or ":" not in item:
             continue
-        if ":" in item:
-            provider, symbol = item.split(":", 1)
-            provider = provider.strip().lower()
-            symbol = symbol.strip()
-            if provider and symbol:
-                provider_symbols.setdefault(provider, []).append(symbol)
-        else:
-            global_symbols.append(item)
+        provider, symbol = item.split(":", 1)
+        provider = provider.strip().lower()
+        symbol = symbol.strip()
+        if provider and symbol:
+            provider_symbols.setdefault(provider, []).append(symbol)
 
-    return provider_symbols, global_symbols
+    return provider_symbols
 
 
 class UvicornFormatter(logging.Formatter):
