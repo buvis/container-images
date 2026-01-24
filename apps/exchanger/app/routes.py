@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,9 @@ from app.models import (
     BackupInfo,
     RestoreResponse,
     ProviderStatusResponse,
+    FrontendConfigResponse,
+    FavoriteResponse,
+    ChainRateResponse,
 )
 from app.services.backfill import BackfillService
 from app.services.symbols import SymbolsService
@@ -42,11 +45,24 @@ def _sanitize_error(e: Exception) -> str:
 # Strict pattern: YYYYMMDD_HHMMSS
 _TIMESTAMP_PATTERN = re.compile(r"^\d{8}_\d{6}$")
 
+# Providers requiring API keys
+_PROVIDERS_REQUIRING_API_KEY = {"fcs": "PROVIDER_FCS_API_KEY"}
+
 
 def _validate_timestamp(timestamp: str) -> None:
     """Validate timestamp format to prevent path traversal."""
     if not _TIMESTAMP_PATTERN.match(timestamp):
         raise HTTPException(status_code=400, detail="Invalid timestamp format (expected YYYYMMDD_HHMMSS)")
+
+
+def _require_provider(registry: "SourceRegistry", provider: str) -> None:
+    """Raise HTTPException if provider not available, with helpful message."""
+    if registry.get(provider):
+        return
+    if provider in _PROVIDERS_REQUIRING_API_KEY:
+        env_var = _PROVIDERS_REQUIRING_API_KEY[provider]
+        raise HTTPException(400, f"Provider '{provider}' requires {env_var} to be set")
+    raise HTTPException(400, f"Unknown provider: {provider}")
 
 
 def create_router(
@@ -63,6 +79,10 @@ def create_router(
     def health() -> HealthResponse:
         return HealthResponse(status="ok")
 
+    @router.get("/config", response_model=FrontendConfigResponse)
+    def get_config() -> FrontendConfigResponse:
+        return FrontendConfigResponse(dashboard_history_days=settings.dashboard_history_days)
+
     @router.get("/providers")
     def list_providers() -> list[str]:
         logger.debug("list_providers called")
@@ -74,11 +94,13 @@ def create_router(
         statuses: list[ProviderStatusResponse] = []
         for provider_id in registry.ids():
             symbol_count = db.count_symbols(provider_id)
+            counts_by_type = db.count_symbols_by_type(provider_id)
             statuses.append(
                 ProviderStatusResponse(
                     name=provider_id,
                     healthy=symbol_count > 0,
                     symbol_count=symbol_count,
+                    symbol_counts_by_type=counts_by_type,
                 )
             )
         return statuses
@@ -109,8 +131,7 @@ def create_router(
             return RatesResponse(rates=rates)
 
         # Validate provider
-        if not registry.get(provider):
-            raise HTTPException(400, f"Unknown provider: {provider}")
+        _require_provider(registry, provider)
 
         rate = db.get_rate(date_str, symbol, provider)
 
@@ -136,8 +157,7 @@ def create_router(
 
         provider_filter: str | None = None
         if provider != "all":
-            if not registry.get(provider):
-                raise HTTPException(400, f"Unknown provider: {provider}")
+            _require_provider(registry, provider)
             provider_filter = provider
 
         rates = db.get_rates_for_date(date_str, provider_filter)
@@ -146,14 +166,16 @@ def create_router(
 
     @router.get("/rates/history", response_model=list[RateHistoryItem])
     def rates_history(
-        symbol: str = Query(..., description="Symbol to query, e.g. EURCZK"),
+        symbol: str = Query(..., description="Normalized symbol, e.g. EURCZK"),
         from_date: date | None = Query(None, description="Start date (YYYY-MM-DD)"),
         to_date: date | None = Query(None, description="End date (YYYY-MM-DD)"),
         provider: str | None = Query(None, description="Provider: fcs, cnb, or all"),
+        provider_symbol: str | None = Query(None, description="Provider-specific symbol (e.g. EURCZK.ONE). If provided, queries exact match."),
     ) -> list[RateHistoryItem]:
         logger.debug(
-            "rates_history: symbol=%s from=%s to=%s provider=%s",
+            "rates_history: symbol=%s provider_symbol=%s from=%s to=%s provider=%s",
             symbol,
+            provider_symbol,
             from_date,
             to_date,
             provider,
@@ -166,11 +188,10 @@ def create_router(
 
         provider_filter: str | None = None
         if provider and provider != "all":
-            if not registry.get(provider):
-                raise HTTPException(400, f"Unknown provider: {provider}")
+            _require_provider(registry, provider)
             provider_filter = provider
 
-        history = db.get_rates_range(symbol, start_date, end_date, provider_filter)
+        history = db.get_rates_range(symbol, start_date, end_date, provider_filter, provider_symbol)
         logger.debug("returning %d rate entries", len(history))
         return history
 
@@ -187,14 +208,35 @@ def create_router(
             if provider == "all":
                 provider_filter = None
             else:
-                if not registry.get(provider):
-                    raise HTTPException(400, f"Unknown provider: {provider}")
+                _require_provider(registry, provider)
                 provider_filter = provider
 
         symbol_list = [s.strip() for s in symbols.split(",") if s.strip()] if symbols else None
         coverage = db.get_coverage(year, provider_filter, symbol_list)
         logger.debug("rates_coverage returning %d entries", len(coverage))
         return coverage
+
+    @router.get("/rates/missing", response_model=dict[str, list[str]])
+    def rates_missing(
+        year: int = Query(..., description="Year to analyze"),
+        symbols: str = Query(..., description="Comma-separated symbol list"),
+        provider: str | None = Query(None, description="Optional provider filter"),
+    ) -> dict[str, list[str]]:
+        """Return missing symbols for each date in a year."""
+        logger.debug("rates_missing: year=%d symbols=%s provider=%s", year, symbols, provider)
+
+        symbol_list = [s.strip() for s in symbols.split(",") if s.strip()]
+        if not symbol_list:
+            return {}
+
+        provider_filter: str | None = None
+        if provider and provider != "all":
+            _require_provider(registry, provider)
+            provider_filter = provider
+
+        missing = db.get_missing_symbols(year, symbol_list, provider_filter)
+        logger.debug("rates_missing returning %d entries", len(missing))
+        return missing
 
     def _fetch_rate_on_demand(dt: date, symbol: str, provider: str) -> float | None:
         source = registry.get(provider)
@@ -217,6 +259,92 @@ def create_router(
         db.commit()
         return rate
 
+    @router.get("/rates/chain", response_model=ChainRateResponse)
+    def get_chain_rate(
+        date_str: str = Query(..., alias="date", description="YYYY-MM-DD"),
+        from_currency: str = Query(..., description="Source currency (e.g., BTC)"),
+        intermediate: str = Query(..., description="Intermediate currency (e.g., EUR)"),
+        to_currency: str = Query(..., description="Target currency (e.g., CZK)"),
+        from_provider: str = Query(..., description="Provider for first leg"),
+        to_provider: str = Query(..., description="Provider for second leg"),
+    ) -> ChainRateResponse:
+        """Get chained rate through an intermediate currency.
+
+        Automatically handles symbol inversion - if EURBTC not found, uses 1/BTCEUR.
+        """
+        logger.debug(
+            "get_chain_rate: date=%s %s->%s->%s providers=%s/%s",
+            date_str, from_currency, intermediate, to_currency, from_provider, to_provider
+        )
+
+        # Validate date
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, f"Invalid date format: {date_str}, expected YYYY-MM-DD")
+
+        # Validate providers
+        _require_provider(registry, from_provider)
+        _require_provider(registry, to_provider)
+
+        def fetch_rate_with_inversion(
+            base: str, quote: str, provider: str, dt: date, date_str: str
+        ) -> tuple[float | None, str, bool]:
+            """Try direct symbol, then inverted. Returns (rate, symbol_used, inverted)."""
+            direct = f"{base}{quote}"
+            inverted = f"{quote}{base}"
+
+            # Try direct symbol first
+            rate = db.get_rate(date_str, direct, provider)
+            if rate is None:
+                rate = _fetch_rate_on_demand(dt, direct, provider)
+            if rate is not None:
+                return rate, direct, False
+
+            # Try inverted symbol
+            rate = db.get_rate(date_str, inverted, provider)
+            if rate is None:
+                rate = _fetch_rate_on_demand(dt, inverted, provider)
+            if rate is not None:
+                return 1.0 / rate, inverted, True
+
+            return None, direct, False
+
+        # Fetch first leg: from_currency -> intermediate
+        from_rate, from_symbol, from_inverted = fetch_rate_with_inversion(
+            from_currency, intermediate, from_provider, dt, date_str
+        )
+
+        # Fetch second leg: intermediate -> to_currency
+        to_rate, to_symbol, to_inverted = fetch_rate_with_inversion(
+            intermediate, to_currency, to_provider, dt, date_str
+        )
+
+        # Calculate combined rate
+        combined_rate = None
+        if from_rate is not None and to_rate is not None:
+            combined_rate = from_rate * to_rate
+
+        logger.debug(
+            "chain rate: %s(%s)=%s * %s(%s)=%s -> %s",
+            from_symbol, "inv" if from_inverted else "dir", from_rate,
+            to_symbol, "inv" if to_inverted else "dir", to_rate,
+            combined_rate
+        )
+
+        return ChainRateResponse(
+            from_rate=from_rate,
+            from_provider=from_provider,
+            from_symbol=from_symbol,
+            from_inverted=from_inverted,
+            to_rate=to_rate,
+            to_provider=to_provider,
+            to_symbol=to_symbol,
+            to_inverted=to_inverted,
+            combined_rate=combined_rate,
+            intermediate=intermediate,
+        )
+
     @router.post("/backfill", response_model=ScheduledResponse)
     def manual_backfill(
         provider: str = Query(..., description="Provider: fcs, cnb, or all"),
@@ -234,8 +362,7 @@ def create_router(
         if provider == "all":
             providers = registry.ids()
         else:
-            if not registry.get(provider):
-                raise HTTPException(400, f"Unknown provider: {provider}")
+            _require_provider(registry, provider)
             providers = [provider]
 
         started = []
@@ -244,16 +371,16 @@ def create_router(
         for p in providers:
             task_key = f"backfill:{p}"
 
-            def make_run(prov: str, key: str):
+            def make_run(prov: str, key: str, days: int, syms: list[str]):
                 def run() -> None:
-                    logger.info(f"Manual backfill started: provider={prov}, symbols={selected or 'all'}, days={length}")
+                    logger.info(f"Manual backfill started: provider={prov}, symbols={syms or 'all'}, days={days}")
                     task_manager.update_status(key, per_symbol={})
                     try:
                         results = backfill_service.backfill(
                             prov,
-                            selected,
-                            length,
-                            on_progress=lambda msg: task_manager.update_status(key, message=msg),
+                            syms,
+                            days,
+                            on_progress=lambda u: task_manager.update_status(key, **(u if isinstance(u, dict) else {"message": u})),
                         )
                         total = sum(results.values())
                         task_manager.set_status(key, {
@@ -268,7 +395,7 @@ def create_router(
                         task_manager.set_status(key, {"status": "error", "message": _sanitize_error(e)})
                 return run
 
-            if task_manager.start_if_idle(task_key, make_run(p, task_key)):
+            if task_manager.start_if_idle(task_key, make_run(p, task_key, length, selected)):
                 started.append(p)
             else:
                 already_running.append(p)
@@ -294,8 +421,7 @@ def create_router(
         if provider == "all":
             providers = registry.ids()
         else:
-            if not registry.get(provider):
-                raise HTTPException(400, f"Unknown provider: {provider}")
+            _require_provider(registry, provider)
             providers = [provider]
 
         started = []
@@ -310,7 +436,7 @@ def create_router(
                     try:
                         results = symbols_service.populate(
                             prov,
-                            on_progress=lambda msg: task_manager.update_status(key, message=msg),
+                            on_progress=lambda u: task_manager.update_status(key, **(u if isinstance(u, dict) else {"message": u})),
                         )
                         total = sum(results.values())
                         task_manager.set_status(key, {
@@ -346,6 +472,15 @@ def create_router(
     def task_status() -> dict[str, TaskStateResponse]:
         return task_manager.get_all_status()
 
+    @router.websocket("/ws/tasks")
+    async def tasks_ws(websocket: WebSocket) -> None:
+        await task_manager.connect(websocket)
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            task_manager.disconnect(websocket)
+
     @router.get("/symbols/list", response_model=list[SymbolResponse])
     def symbols_list(
         provider: str | None = Query(None, description="Filter by provider: fcs, cnb"),
@@ -355,7 +490,23 @@ def create_router(
         logger.debug("symbols_list: provider=%s type=%s q=%s", provider, type, q)
         symbols = db.list_symbols(provider=provider, sym_type=type, query=q)
         logger.debug("returning %d symbols", len(symbols))
-        return [SymbolResponse(provider=s.provider, symbol=s.symbol, name=s.name, type=s.type) for s in symbols]
+        return [SymbolResponse(provider=s.provider, symbol=s.symbol, provider_symbol=s.provider_symbol, name=s.name, type=s.type) for s in symbols]
+
+    @router.get("/symbols/multi-provider", response_model=list[dict])
+    def symbols_multi_provider() -> list[dict]:
+        """Get normalized symbols available from multiple providers."""
+        logger.debug("symbols_multi_provider requested")
+        result = db.list_multi_provider_symbols()
+        logger.debug("returning %d multi-provider symbols", len(result))
+        return result
+
+    @router.get("/symbols/by-normalized/{normalized_symbol}", response_model=list[SymbolResponse])
+    def symbols_by_normalized(normalized_symbol: str) -> list[SymbolResponse]:
+        """Get all symbol variants for a normalized symbol."""
+        logger.debug("symbols_by_normalized: %s", normalized_symbol)
+        symbols = db.get_symbol_variants(normalized_symbol)
+        logger.debug("returning %d symbols", len(symbols))
+        return [SymbolResponse(provider=s.provider, symbol=s.symbol, provider_symbol=s.provider_symbol, name=s.name, type=s.type) for s in symbols]
 
     @router.get("/forex/list", response_model=list[ForexCryptoSymbolResponse])
     def forex_list(
@@ -375,24 +526,29 @@ def create_router(
         logger.debug("returning %d crypto symbols", len(symbols))
         return [ForexCryptoSymbolResponse(provider=s.provider, symbol=s.symbol, name=s.name) for s in symbols]
 
-    @router.get("/favorites", response_model=list[str])
-    def favorites_list() -> list[str]:
+    @router.get("/favorites", response_model=list[FavoriteResponse])
+    def favorites_list() -> list[FavoriteResponse]:
         logger.debug("favorites_list requested")
-        return db.list_favorites()
+        return [FavoriteResponse(**f) for f in db.list_favorites()]
 
-    @router.post("/favorites")
-    def add_favorite(symbol: str = Body(..., embed=True, description="Symbol to add to favorites")) -> dict[str, str]:
-        logger.debug("add_favorite requested: symbol=%s", symbol)
-        db.add_favorite(symbol)
+    @router.post("/favorites", response_model=FavoriteResponse)
+    def add_favorite(
+        provider: str = Body(..., description="Provider ID"),
+        provider_symbol: str = Body(..., description="Provider-specific symbol"),
+    ) -> FavoriteResponse:
+        logger.debug("add_favorite requested: provider=%s provider_symbol=%s", provider, provider_symbol)
+        if not db.add_favorite(provider, provider_symbol):
+            raise HTTPException(status_code=404, detail=f"Symbol not found: {provider}/{provider_symbol}")
         db.commit()
-        return {"symbol": symbol}
+        return FavoriteResponse(provider=provider, provider_symbol=provider_symbol)
 
-    @router.delete("/favorites/{symbol}")
-    def delete_favorite(symbol: str) -> dict[str, str]:
-        logger.debug("remove_favorite requested: symbol=%s", symbol)
-        db.remove_favorite(symbol)
+    @router.delete("/favorites/{provider}/{provider_symbol}")
+    def delete_favorite(provider: str, provider_symbol: str) -> FavoriteResponse:
+        logger.debug("remove_favorite requested: provider=%s provider_symbol=%s", provider, provider_symbol)
+        if not db.remove_favorite(provider, provider_symbol):
+            raise HTTPException(status_code=404, detail=f"Symbol not found: {provider}/{provider_symbol}")
         db.commit()
-        return {"symbol": symbol}
+        return FavoriteResponse(provider=provider, provider_symbol=provider_symbol)
 
     def _get_backup_dir() -> Path:
         backup_dir = Path(settings.backup_dir)
@@ -429,9 +585,10 @@ def create_router(
         rates = db.export_rates()
         symbols = db.export_symbols()
         metadata = db.export_metadata()
+        favorites = db.export_favorites()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        backup_data = {"rates": rates, "symbols": symbols, "metadata": metadata}
+        backup_data = {"rates": rates, "symbols": symbols, "metadata": metadata, "favorites": favorites}
         backup_dir = _get_backup_dir()
         filename = _backup_filename(timestamp)
         backup_path = backup_dir / filename
@@ -439,13 +596,14 @@ def create_router(
         with open(backup_path, "w") as f:
             json.dump(backup_data, f, indent=2)
 
-        logger.info("backup created: %s (%d rates, %d symbols, %d metadata)", filename, len(rates), len(symbols), len(metadata))
+        logger.info("backup created: %s (%d rates, %d symbols, %d metadata, %d favorites)", filename, len(rates), len(symbols), len(metadata), len(favorites))
         return BackupResponse(
             filename=filename,
             timestamp=timestamp,
             rates_count=len(rates),
             symbols_count=len(symbols),
             metadata_count=len(metadata),
+            favorites_count=len(favorites),
         )
 
     @router.post("/restore", response_model=RestoreResponse, response_model_exclude_none=True)
@@ -469,6 +627,7 @@ def create_router(
         symbols_count = None
         rates_count = None
         metadata_count = None
+        favorites_count = None
 
         # Import symbols first (creates IDs)
         if data.get("symbols"):
@@ -480,14 +639,19 @@ def create_router(
             rates_count = db.import_rates(data["rates"])
             logger.debug("restored %d rates", rates_count)
 
-        # Import metadata last
+        # Import metadata
         if data.get("metadata"):
             metadata_count = db.import_metadata(data["metadata"])
             logger.debug("restored %d metadata entries", metadata_count)
 
+        # Import favorites
+        if data.get("favorites"):
+            favorites_count = db.import_favorites(data["favorites"])
+            logger.debug("restored %d favorites", favorites_count)
+
         db.commit()
-        logger.info("restored from %s: %d symbols, %d rates, %d metadata", timestamp, symbols_count or 0, rates_count or 0, metadata_count or 0)
-        return RestoreResponse(timestamp=timestamp, rates=rates_count, symbols=symbols_count, metadata=metadata_count)
+        logger.info("restored from %s: %d symbols, %d rates, %d metadata, %d favorites", timestamp, symbols_count or 0, rates_count or 0, metadata_count or 0, favorites_count or 0)
+        return RestoreResponse(timestamp=timestamp, rates=rates_count, symbols=symbols_count, metadata=metadata_count, favorites=favorites_count)
 
     def _check_no_task_running() -> None:
         # Check for any provider-specific running tasks
@@ -498,6 +662,9 @@ def create_router(
             task_keys.append(f"backfill:{p}")
         running = task_manager.any_running(task_keys)
         if running:
-            raise HTTPException(status_code=409, detail=f"{running} task is running")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Cannot backup/restore while {running} is running. Wait for it to complete.",
+            )
 
     return router
