@@ -91,7 +91,7 @@ class TestRatesEndpoint:
     def test_get_rate_not_found(self, client: TestClient) -> None:
         response = client.get("/api/rates", params={"date": "2024-01-01", "symbol": "EURUSD", "provider": "fcs"})
         assert response.status_code == 200
-        assert response.json() == {"rate": None}
+        assert response.json() == {"rate": None, "provider": None}
 
     def test_get_rate_found(self, client: TestClient, test_settings: Settings) -> None:
         db = SQLiteDatabase(test_settings.db_path)
@@ -103,7 +103,7 @@ class TestRatesEndpoint:
 
         response = client.get("/api/rates", params={"date": "2024-01-15", "symbol": "EURUSD", "provider": "fcs"})
         assert response.status_code == 200
-        assert response.json() == {"rate": 1.0850}
+        assert response.json() == {"rate": 1.0850, "provider": None}
 
     def test_get_rate_missing_provider(self, client: TestClient) -> None:
         response = client.get("/api/rates", params={"date": "2024-01-01", "symbol": "EURUSD"})
