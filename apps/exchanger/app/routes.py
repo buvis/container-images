@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -477,7 +478,12 @@ def create_router(
         await task_manager.connect(websocket)
         try:
             while True:
-                await websocket.receive_text()
+                try:
+                    msg = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                    if msg == "ping":
+                        await websocket.send_text("pong")
+                except asyncio.TimeoutError:
+                    await websocket.send_text("ping")
         except WebSocketDisconnect:
             task_manager.disconnect(websocket)
 
