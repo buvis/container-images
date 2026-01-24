@@ -1,5 +1,6 @@
 import threading
-from typing import Protocol, Callable
+from datetime import datetime, timezone
+from typing import Protocol, Callable, Any
 
 # Global shutdown event - set when app is shutting down
 _shutdown_event = threading.Event()
@@ -29,16 +30,23 @@ def fetch_with_retry(
     endpoint: str,
     params: dict,
     rate_limit_wait: int = 65,
-    on_progress: Callable[[str], None] | None = None,
+    on_progress: Callable[[str | dict[str, Any]], None] | None = None,
 ) -> dict | None:
     response = api.request(endpoint, params)
 
     if is_rate_limited(response):
         if on_progress:
-            on_progress(f"Rate limited, waiting {rate_limit_wait}s...")
+            until = datetime.now(timezone.utc).timestamp() + rate_limit_wait
+            until_iso = datetime.fromtimestamp(until, timezone.utc).isoformat()
+            on_progress({
+                "message": f"Rate limited, waiting {rate_limit_wait}s...",
+                "rate_limit_until": until_iso,
+            })
         # Use event.wait() so shutdown can interrupt
         if _shutdown_event.wait(rate_limit_wait):
             return None  # Shutdown requested
+        if on_progress:
+            on_progress({"rate_limit_until": None})  # Clear rate limit
         response = api.request(endpoint, params)
 
         if is_rate_limited(response):
