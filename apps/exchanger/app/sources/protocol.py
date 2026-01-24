@@ -69,3 +69,12 @@ class RateSource(Protocol):
             SymbolInfo or None if not found
         """
         ...
+
+    def estimate_work_units(self, symbol_count: int, days: int) -> int:
+        """Estimate API calls for progress tracking.
+
+        Different sources have different fetch patterns:
+        - FCS: symbol_count * ceil(days / 300) pages
+        - CNB: days (one call returns all symbols)
+        """
+        ...
