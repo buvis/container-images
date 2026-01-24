@@ -681,6 +681,48 @@ class SQLiteDatabase:
                 (f"backfill_done:{provider}", timestamp),
             )
 
+    def get_backfill_checkpoint(self, provider: str) -> dict | None:
+        """Get backfill checkpoint for provider.
+
+        Returns dict with last_symbol_idx, length, timestamp or None.
+        """
+        import json
+        with self._lock:
+            if self._closed:
+                return None
+            cur = self._conn.execute(
+                "SELECT value FROM metadata WHERE key = ?",
+                (f"backfill_checkpoint:{provider}",),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            try:
+                return json.loads(row[0])
+            except (json.JSONDecodeError, TypeError):
+                return None
+
+    def set_backfill_checkpoint(self, provider: str, checkpoint: dict) -> None:
+        """Save backfill checkpoint for provider."""
+        import json
+        with self._lock:
+            if self._closed:
+                return
+            self._conn.execute(
+                "INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)",
+                (f"backfill_checkpoint:{provider}", json.dumps(checkpoint)),
+            )
+
+    def clear_backfill_checkpoint(self, provider: str) -> None:
+        """Clear backfill checkpoint on completion."""
+        with self._lock:
+            if self._closed:
+                return
+            self._conn.execute(
+                "DELETE FROM metadata WHERE key = ?",
+                (f"backfill_checkpoint:{provider}",),
+            )
+
     def count_symbols(self, provider: str) -> int:
         """Count symbols for a provider."""
         with self._lock:
