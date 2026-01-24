@@ -49,8 +49,8 @@ class MockSource:
 class TestSymbolsService:
     def test_populate_single_provider(self, temp_db: SQLiteDatabase) -> None:
         source = MockSource("fcs", [
-            SymbolInfo("EURUSD", "forex", "Euro / US Dollar"),
-            SymbolInfo("GBPUSD", "forex", "British Pound"),
+            SymbolInfo(symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro / US Dollar"),
+            SymbolInfo(symbol="GBPUSD", provider_symbol="GBPUSD", type="forex", name="British Pound"),
         ])
         registry = SourceRegistry()
         registry.register(source)
@@ -67,8 +67,8 @@ class TestSymbolsService:
         assert "GBPUSD" in symbol_names
 
     def test_populate_all_providers(self, temp_db: SQLiteDatabase) -> None:
-        fcs_source = MockSource("fcs", [SymbolInfo("EURUSD", "forex", "Euro")])
-        cnb_source = MockSource("cnb", [SymbolInfo("EURCZK", "forex", "Euro CZK")])
+        fcs_source = MockSource("fcs", [SymbolInfo(symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
+        cnb_source = MockSource("cnb", [SymbolInfo(symbol="EURCZK", provider_symbol="EURCZK", type="forex", name="Euro CZK")])
 
         registry = SourceRegistry()
         registry.register(fcs_source)
@@ -86,7 +86,7 @@ class TestSymbolsService:
         assert len(cnb_symbols) == 1
 
     def test_populate_with_progress_callback(self, temp_db: SQLiteDatabase) -> None:
-        source = MockSource("fcs", [SymbolInfo("EURUSD", "forex", "Euro")])
+        source = MockSource("fcs", [SymbolInfo(symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
         registry = SourceRegistry()
         registry.register(source)
 
@@ -105,7 +105,7 @@ class TestSymbolsService:
         assert results == {}
 
     def test_populate_replaces_existing_symbols(self, temp_db: SQLiteDatabase) -> None:
-        source1 = MockSource("fcs", [SymbolInfo("EURUSD", "forex", "Old Euro")])
+        source1 = MockSource("fcs", [SymbolInfo(symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Old Euro")])
         registry = SourceRegistry()
         registry.register(source1)
 
@@ -113,7 +113,7 @@ class TestSymbolsService:
         service.populate("fcs")
 
         # Update the source with different symbols
-        registry._sources["fcs"] = MockSource("fcs", [SymbolInfo("GBPUSD", "forex", "Pound")])
+        registry._sources["fcs"] = MockSource("fcs", [SymbolInfo(symbol="GBPUSD", provider_symbol="GBPUSD", type="forex", name="Pound")])
         service.populate("fcs")
 
         symbols = temp_db.list_symbols(provider="fcs")
@@ -122,8 +122,8 @@ class TestSymbolsService:
 
     def test_populate_stores_correct_type(self, temp_db: SQLiteDatabase) -> None:
         source = MockSource("fcs", [
-            SymbolInfo("EURUSD", "forex", "Euro"),
-            SymbolInfo("BTCUSD", "crypto", "Bitcoin"),
+            SymbolInfo(symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro"),
+            SymbolInfo(symbol="BTCUSD", provider_symbol="BTCUSD", type="crypto", name="Bitcoin"),
         ])
         registry = SourceRegistry()
         registry.register(source)
