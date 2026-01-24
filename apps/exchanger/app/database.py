@@ -230,7 +230,12 @@ class SQLiteDatabase:
 
         return result
 
-    def get_coverage(self, year: int, provider: str | None = None) -> dict[str, int]:
+    def get_coverage(
+        self,
+        year: int,
+        provider: str | None = None,
+        symbols: list[str] | None = None,
+    ) -> dict[str, int]:
         """Return how many rates exist for each date in a year (used by the heatmap)."""
         start = date(year, 1, 1)
         end = date(year, 12, 31)
@@ -245,6 +250,11 @@ class SQLiteDatabase:
         if provider:
             query += " AND s.provider = ?"
             params.append(provider)
+
+        if symbols:
+            placeholders = ", ".join(["?"] * len(symbols))
+            query += f" AND s.symbol IN ({placeholders})"
+            params.extend(symbols)
 
         query += " GROUP BY r.date ORDER BY r.date"
 
