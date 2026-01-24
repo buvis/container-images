@@ -15,7 +15,6 @@ from app.models import (
     SymbolType,
     HealthResponse,
     RateResponse,
-    RatesResponse,
     RateListItem,
     RateHistoryItem,
     ScheduledResponse,
@@ -106,12 +105,12 @@ def create_router(
             )
         return statuses
 
-    @router.get("/rates", response_model=RateResponse | RatesResponse)
+    @router.get("/rates", response_model=RateResponse)
     def get_rate(
         date_str: str = Query(..., alias="date", description="YYYY-MM-DD"),
         symbol: str = Query(..., description="e.g. EURCZK"),
         provider: str = Query(..., description="Provider: fcs, cnb, or all"),
-    ) -> RateResponse | RatesResponse:
+    ) -> RateResponse:
         logger.debug("get_rate: date=%s symbol=%s provider=%s", date_str, symbol, provider)
 
         # Validate date format
@@ -120,16 +119,17 @@ def create_router(
         except ValueError:
             raise HTTPException(400, f"Invalid date format: {date_str}, expected YYYY-MM-DD")
 
-        # Handle "all" provider - return rates from all providers
+        # Handle "all" provider - return first successful rate (fallback chain)
         if provider == "all":
-            rates: dict[str, float | None] = {}
             for p in registry.ids():
                 rate = db.get_rate(date_str, symbol, p)
                 if rate is None:
                     rate = _fetch_rate_on_demand(dt, symbol, p)
-                rates[p] = rate
-            logger.debug("returning rates=%s", rates)
-            return RatesResponse(rates=rates)
+                if rate is not None:
+                    logger.debug("returning rate=%s from provider=%s", rate, p)
+                    return RateResponse(rate=rate, provider=p)
+            logger.debug("no rate found from any provider")
+            return RateResponse(rate=None)
 
         # Validate provider
         _require_provider(registry, provider)
