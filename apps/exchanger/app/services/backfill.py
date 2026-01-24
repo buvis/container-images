@@ -15,6 +15,9 @@ class BackfillDatabase(Protocol):
     def upsert_rate(self, date: str, provider_symbol: str, provider: str, rate: float) -> None: ...
     def get_backfill_done_at(self, provider: str) -> str | None: ...
     def set_backfill_done_at(self, provider: str, timestamp: str) -> None: ...
+    def get_backfill_checkpoint(self, provider: str) -> dict | None: ...
+    def set_backfill_checkpoint(self, provider: str, checkpoint: dict) -> None: ...
+    def clear_backfill_checkpoint(self, provider: str) -> None: ...
     def commit(self) -> None: ...
 
 
@@ -138,10 +141,21 @@ class BackfillService:
             logger.debug("no symbols to backfill for provider=%s (populate_symbols first?)", provider)
             return {}
 
-        logger.debug("backfilling %d symbols from %s", len(source_symbols), provider)
+        # Check for resumable checkpoint
+        start_idx = 0
+        checkpoint = self._db.get_backfill_checkpoint(provider)
+        if checkpoint and checkpoint.get("length") == length:
+            resume_idx = checkpoint.get("last_symbol_idx", -1) + 1
+            if 0 < resume_idx < len(source_symbols):
+                start_idx = resume_idx
+                logger.info("resuming backfill from symbol %d/%d", start_idx + 1, len(source_symbols))
+                if on_progress:
+                    on_progress({"message": f"Resuming from symbol {start_idx + 1}/{len(source_symbols)}"})
+
+        logger.debug("backfilling %d symbols from %s (starting at %d)", len(source_symbols), provider, start_idx)
 
         # Get total work units from source
-        total_units = source.estimate_work_units(len(source_symbols), length)
+        total_units = source.estimate_work_units(len(source_symbols) - start_idx, length)
         completed_units = 0
 
         def track_progress(data: str | dict[str, Any]) -> None:
@@ -168,7 +182,7 @@ class BackfillService:
 
         # Fetch and store one symbol at a time
         results: dict[str, int] = {}
-        for i, provider_sym in enumerate(source_symbols, 1):
+        for i, provider_sym in enumerate(source_symbols[start_idx:], start_idx + 1):
             if on_progress:
                 pct = int((completed_units / total_units) * 100) if total_units > 0 else 0
                 on_progress({
@@ -182,10 +196,16 @@ class BackfillService:
                 history = source.fetch_history([provider_sym], length, track_progress, symbol_types=symbol_types)
             except Exception as e:
                 logger.warning("failed to fetch %s from %s: %s", provider_sym, provider, e)
+                # Save checkpoint before continuing
+                self._db.set_backfill_checkpoint(provider, {"last_symbol_idx": i - 1, "length": length})
+                self._db.commit()
                 continue
 
             if not history or provider_sym not in history or not history[provider_sym]:
                 logger.debug("no history returned for %s from %s", provider_sym, provider)
+                # Still save checkpoint
+                self._db.set_backfill_checkpoint(provider, {"last_symbol_idx": i - 1, "length": length})
+                self._db.commit()
                 continue
 
             logger.debug("received history for %s", provider_sym)
@@ -195,8 +215,15 @@ class BackfillService:
             for date_str, rate in rates.items():
                 self._db.upsert_rate(date_str, provider_sym, provider, rate)
                 count += 1
+
+            # Save checkpoint after each symbol
+            self._db.set_backfill_checkpoint(provider, {"last_symbol_idx": i - 1, "length": length})
             self._db.commit()
             results[f"{provider}:{provider_sym}"] = count
             logger.debug("stored %d rates for %s:%s", count, provider, provider_sym)
+
+        # Clear checkpoint on successful completion
+        self._db.clear_backfill_checkpoint(provider)
+        self._db.commit()
 
         return results
