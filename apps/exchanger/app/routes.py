@@ -349,7 +349,7 @@ def create_router(
     @router.post("/backfill", response_model=ScheduledResponse)
     def manual_backfill(
         provider: str = Query(..., description="Provider: fcs, cnb, or all"),
-        length: int = Query(30, ge=1, le=365, description="Number of days to fetch"),
+        length: int = Query(30, ge=1, le=3650, description="Number of days to fetch"),
         symbols: str | None = Query(None, description="Comma-separated list; defaults to all symbols for provider"),
     ) -> ScheduledResponse:
         # Parse symbols if provided
