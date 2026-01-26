@@ -35,12 +35,10 @@
     function getPast365Days(data: Record<string, number>) {
         const d = [];
         const today = new Date();
-        const start = new Date(today);
-        start.setDate(today.getDate() - 365);
 
-        const startDay = start.getDay();
-        const gridStart = new Date(start);
-        gridStart.setDate(start.getDate() - startDay);
+        // Grid has 371 cells (53 weeks × 7 days), last cell is today
+        const gridStart = new Date(today);
+        gridStart.setDate(today.getDate() - 370);
 
         for (let i = 0; i < 371; i++) {
             const current = new Date(gridStart);
