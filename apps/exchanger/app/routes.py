@@ -1,4 +1,5 @@
 import asyncio
+import gzip
 import json
 import logging
 import re
@@ -562,12 +563,12 @@ def create_router(
         return backup_dir
 
     def _backup_filename(timestamp: str) -> str:
-        return f"backup_{timestamp}.json"
+        return f"backup_{timestamp}.json.gz"
 
     def _parse_backup_filename(filename: str) -> str | None:
         """Extract timestamp from backup filename, or None if invalid."""
-        if filename.startswith("backup_") and filename.endswith(".json"):
-            return filename[7:-5]  # Remove "backup_" prefix and ".json" suffix
+        if filename.startswith("backup_") and filename.endswith(".json.gz"):
+            return filename[7:-8]  # Remove "backup_" prefix and ".json.gz" suffix
         return None
 
     @router.get("/backups", response_model=list[BackupInfo])
@@ -576,7 +577,7 @@ def create_router(
         logger.debug("list_backups requested")
         backup_dir = _get_backup_dir()
         backups = []
-        for f in sorted(backup_dir.glob("backup_*.json"), reverse=True):
+        for f in sorted(backup_dir.glob("backup_*.json.gz"), reverse=True):
             ts = _parse_backup_filename(f.name)
             if ts:
                 backups.append(BackupInfo(filename=f.name, timestamp=ts))
@@ -584,39 +585,35 @@ def create_router(
 
     @router.post("/backup", response_model=BackupResponse)
     def backup() -> BackupResponse:
-        """Create backup file with current database contents."""
+        """Create backup file with current database contents (atomic snapshot)."""
         logger.debug("backup requested")
         _check_no_task_running()
 
-        rates = db.export_rates()
-        symbols = db.export_symbols()
-        metadata = db.export_metadata()
-        favorites = db.export_favorites()
+        backup_data = db.export_all()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        backup_data = {"rates": rates, "symbols": symbols, "metadata": metadata, "favorites": favorites}
         backup_dir = _get_backup_dir()
         filename = _backup_filename(timestamp)
         backup_path = backup_dir / filename
 
-        with open(backup_path, "w") as f:
-            json.dump(backup_data, f, indent=2)
+        with gzip.open(backup_path, "wt", encoding="utf-8") as f:
+            json.dump(backup_data, f)
 
-        logger.info("backup created: %s (%d rates, %d symbols, %d metadata, %d favorites)", filename, len(rates), len(symbols), len(metadata), len(favorites))
+        logger.info("backup created: %s (%d rates, %d symbols, %d metadata, %d favorites)", filename, len(backup_data["rates"]), len(backup_data["symbols"]), len(backup_data["metadata"]), len(backup_data["favorites"]))
         return BackupResponse(
             filename=filename,
             timestamp=timestamp,
-            rates_count=len(rates),
-            symbols_count=len(symbols),
-            metadata_count=len(metadata),
-            favorites_count=len(favorites),
+            rates_count=len(backup_data["rates"]),
+            symbols_count=len(backup_data["symbols"]),
+            metadata_count=len(backup_data["metadata"]),
+            favorites_count=len(backup_data["favorites"]),
         )
 
     @router.post("/restore", response_model=RestoreResponse, response_model_exclude_none=True)
     def restore(
         timestamp: str = Query(..., description="Backup timestamp (e.g. 20250122_163000)"),
     ) -> RestoreResponse:
-        """Restore database from backup file."""
+        """Restore database from backup file (atomic transaction)."""
         logger.debug("restore requested: timestamp=%s", timestamp)
         _validate_timestamp(timestamp)
         _check_no_task_running()
@@ -627,7 +624,7 @@ def create_router(
         if not backup_path.exists():
             raise HTTPException(status_code=404, detail=f"Backup not found: {timestamp}")
 
-        with open(backup_path) as f:
+        with gzip.open(backup_path, "rt", encoding="utf-8") as f:
             data = json.load(f)
 
         symbols_count = None
@@ -635,27 +632,34 @@ def create_router(
         metadata_count = None
         favorites_count = None
 
-        # Import symbols first (creates IDs)
-        if data.get("symbols"):
-            symbols_count = db.import_symbols(data["symbols"])
-            logger.debug("restored %d symbols", symbols_count)
+        try:
+            db.begin_transaction()
 
-        # Then import rates (needs symbol IDs)
-        if data.get("rates"):
-            rates_count = db.import_rates(data["rates"])
-            logger.debug("restored %d rates", rates_count)
+            # Import symbols first (creates IDs)
+            if data.get("symbols"):
+                symbols_count = db.import_symbols(data["symbols"])
+                logger.debug("restored %d symbols", symbols_count)
 
-        # Import metadata
-        if data.get("metadata"):
-            metadata_count = db.import_metadata(data["metadata"])
-            logger.debug("restored %d metadata entries", metadata_count)
+            # Then import rates (needs symbol IDs)
+            if data.get("rates"):
+                rates_count = db.import_rates(data["rates"])
+                logger.debug("restored %d rates", rates_count)
 
-        # Import favorites
-        if data.get("favorites"):
-            favorites_count = db.import_favorites(data["favorites"])
-            logger.debug("restored %d favorites", favorites_count)
+            # Import metadata
+            if data.get("metadata"):
+                metadata_count = db.import_metadata(data["metadata"])
+                logger.debug("restored %d metadata entries", metadata_count)
 
-        db.commit()
+            # Import favorites
+            if data.get("favorites"):
+                favorites_count = db.import_favorites(data["favorites"])
+                logger.debug("restored %d favorites", favorites_count)
+
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
         logger.info("restored from %s: %d symbols, %d rates, %d metadata, %d favorites", timestamp, symbols_count or 0, rates_count or 0, metadata_count or 0, favorites_count or 0)
         return RestoreResponse(timestamp=timestamp, rates=rates_count, symbols=symbols_count, metadata=metadata_count, favorites=favorites_count)
 
