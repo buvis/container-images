@@ -512,20 +512,28 @@ class SQLiteDatabase:
             return [row[0] for row in cur.fetchall()]
 
     def list_multi_provider_symbols(self) -> list[dict]:
-        """Get symbols available from multiple providers.
+        """Get symbols with rate data from multiple providers.
 
-        Returns list of dicts with symbol and list of providers.
+        Only returns symbols that have at least one day with rates
+        fetched from more than one provider.
         """
         with self._lock:
             if self._closed:
                 return []
+            # Find symbols with rates from 2+ providers on at least one date
             cur = self._conn.execute("""
-                SELECT symbol, GROUP_CONCAT(DISTINCT provider) as providers, COUNT(DISTINCT provider) as cnt
-                FROM symbols
-                WHERE symbol IS NOT NULL
-                GROUP BY symbol
-                HAVING cnt > 1
-                ORDER BY symbol
+                SELECT s.symbol, GROUP_CONCAT(DISTINCT s.provider) as providers
+                FROM symbols s
+                WHERE s.symbol IN (
+                    SELECT s2.symbol
+                    FROM rates r
+                    JOIN symbols s2 ON r.symbol_id = s2.id
+                    GROUP BY r.date, s2.symbol
+                    HAVING COUNT(DISTINCT s2.provider) > 1
+                )
+                GROUP BY s.symbol
+                HAVING COUNT(DISTINCT s.provider) > 1
+                ORDER BY s.symbol
             """)
             return [
                 {"symbol": row[0], "providers": row[1].split(",")}
