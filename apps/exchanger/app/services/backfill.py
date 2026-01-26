@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, time, timezone
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from app.models import Symbol, SymbolType
 from app.sources.protocol import RateSource
@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class BackfillDatabase(Protocol):
+    def get_rate(self, date: str, provider_symbol: str, provider: str) -> float | None: ...
     def get_symbol(self, provider_symbol: str, provider: str) -> Symbol | None: ...
     def list_symbols(self, provider: str | None = None, sym_type: SymbolType | None = None, query: str | None = None) -> list[Symbol]: ...
     def upsert_rate(self, date: str, provider_symbol: str, provider: str, rate: float) -> None: ...
@@ -30,20 +31,31 @@ class BackfillService:
     def needs_backfill(self, provider: str) -> bool:
         """Check if provider needs backfill.
 
-        Skips if backfill was done today:
-        - Before scheduled time AND we're still before scheduled time
-        - At/after scheduled time (scheduled run completed)
+        Returns True if:
+        - There's an interrupted checkpoint to resume
+        - Backfill was never done
+        - Backfill was done on a different day
+        - Backfill was done before scheduled time and we're now past scheduled time
         """
+        # Always resume interrupted backfills
+        checkpoint = self._db.get_backfill_checkpoint(provider)
+        if checkpoint:
+            logger.debug("found interrupted checkpoint for %s: %s", provider, checkpoint)
+            return True
+
         last_done = self._db.get_backfill_done_at(provider)
         if not last_done:
             return True
 
         try:
             last_dt = datetime.fromisoformat(last_done)
+            # Convert UTC to local (mark_done stores UTC, scheduler uses local)
+            if last_dt.tzinfo is not None:
+                last_dt = last_dt.astimezone()
         except ValueError:
             return True
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
 
         # Not today? Needs backfill
         if last_dt.date() != now.date():
@@ -116,6 +128,7 @@ class BackfillService:
         symbols: list[str],
         length: int,
         on_progress: Any | None,
+        on_rates: Callable[[str, str, float], None] | None = None,
     ) -> dict[str, int]:
         provider = source.source_id
 
@@ -193,7 +206,23 @@ class BackfillService:
 
             try:
                 # Pass symbol types so source knows which endpoint to use
-                history = source.fetch_history([provider_sym], length, track_progress, symbol_types=symbol_types)
+                count = 0
+
+                def handle_rate(sym: str, date_str: str, rate: float) -> None:
+                    nonlocal count
+                    self._db.upsert_rate(date_str, sym, provider, rate)
+                    self._db.commit()
+                    count += 1
+                    if on_rates:
+                        on_rates(sym, date_str, rate)
+
+                history = source.fetch_history(
+                    [provider_sym],
+                    length,
+                    track_progress,
+                    on_rates=handle_rate,
+                    symbol_types=symbol_types,
+                )
             except Exception as e:
                 logger.warning("failed to fetch %s from %s: %s", provider_sym, provider, e)
                 # Save checkpoint before continuing
@@ -209,12 +238,6 @@ class BackfillService:
                 continue
 
             logger.debug("received history for %s", provider_sym)
-
-            rates = history[provider_sym]
-            count = 0
-            for date_str, rate in rates.items():
-                self._db.upsert_rate(date_str, provider_sym, provider, rate)
-                count += 1
 
             # Save checkpoint after each symbol
             self._db.set_backfill_checkpoint(provider, {"last_symbol_idx": i - 1, "length": length})

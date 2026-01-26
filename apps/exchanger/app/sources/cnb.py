@@ -82,6 +82,7 @@ class CnbSource:
         symbols: list[str],
         days: int,
         on_progress: Callable[[str], None] | None = None,
+        on_rates: Callable[[str, str, float], None] | None = None,
         symbol_types: dict[str, SymbolType] | None = None,  # unused, CNB is forex-only
     ) -> dict[str, dict[str, float]]:
         logger.debug("fetch_history: symbols=%s days=%d", symbols, days)
@@ -99,7 +100,10 @@ class CnbSource:
 
             for symbol in symbols:
                 if symbol in rates:
-                    results[symbol][date_str] = rates[symbol]
+                    rate = rates[symbol]
+                    results[symbol][date_str] = rate
+                    if on_rates:
+                        on_rates(symbol, date_str, rate)
 
             # Signal work unit complete
             if on_progress:

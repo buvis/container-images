@@ -204,7 +204,10 @@ class Application:
                 elif not self.backfill_service.needs_backfill(provider):
                     logger.debug("backfill for %s already done today, skipping", provider)
                 else:
-                    self.start_backfill_if_idle(provider, symbols, self.settings.auto_backfill_days)
+                    # Use checkpoint length if resuming, otherwise auto_backfill_days
+                    checkpoint = self.db.get_backfill_checkpoint(provider)
+                    length = checkpoint.get("length", self.settings.auto_backfill_days) if checkpoint else self.settings.auto_backfill_days
+                    self.start_backfill_if_idle(provider, symbols, length)
 
         def scheduled_task() -> None:
             logger.debug("scheduled task triggered")
