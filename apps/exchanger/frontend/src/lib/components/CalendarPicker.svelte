@@ -18,7 +18,7 @@
     const yearRange = Array.from({ length: 11 }, (_, i) => thisYear - 10 + i);
 
     $: daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    $: firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+    $: firstDayOfMonth = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7;
     $: monthName = new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' });
 
     // Reactive: rebuild day data when selectedDate or view changes
@@ -155,7 +155,7 @@
     </div>
 
     <div class="grid grid-cols-7 gap-1 text-center text-sm">
-        {#each ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as dayName}
+        {#each ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] as dayName}
             <div class="text-slate-500 font-medium py-1 text-xs">{dayName}</div>
         {/each}
         {#each Array(firstDayOfMonth) as _}
