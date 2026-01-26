@@ -21,6 +21,7 @@ class RateSource(Protocol):
         symbols: list[str],
         days: int,
         on_progress: Callable[[str], None] | None = None,
+        on_rates: Callable[[str, str, float], None] | None = None,
         symbol_types: dict[str, SymbolType] | None = None,
     ) -> dict[str, dict[str, float]]:
         """Fetch historical rates for symbols.
@@ -29,6 +30,7 @@ class RateSource(Protocol):
             symbols: List of symbol names to fetch
             days: Number of days of history
             on_progress: Optional callback for progress updates
+            on_rates: Optional callback for each parsed rate
             symbol_types: Optional dict mapping symbol -> type. Allows caller
                          to pass types from DB (source of truth for metadata).
 

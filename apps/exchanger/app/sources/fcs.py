@@ -59,6 +59,7 @@ class FcsSource:
         symbols: list[str],
         days: int,
         on_progress: Callable[[str], None] | None = None,
+        on_rates: Callable[[str, str, float], None] | None = None,
         symbol_types: dict[str, SymbolType] | None = None,
     ) -> dict[str, dict[str, float]]:
         """Fetch historical rates for symbols.
@@ -88,7 +89,7 @@ class FcsSource:
                 logger.warning("unknown symbol type for %s, skipping (populate symbols first)", symbol)
                 continue
 
-            rates = self._fetch_symbol_history(symbol, sym_type, days, on_progress)
+            rates = self._fetch_symbol_history(symbol, sym_type, days, on_progress, on_rates)
             if rates:
                 results[symbol] = rates
                 logger.debug("fetched %d rates for %s (type=%s)", len(rates), symbol, sym_type)
@@ -103,6 +104,7 @@ class FcsSource:
         sym_type: SymbolType,
         length: int,
         on_progress: Callable[[str], None] | None,
+        on_rates: Callable[[str, str, float], None] | None,
     ) -> dict[str, float]:
         endpoint = f"{sym_type}/history"
         page = 1
@@ -139,6 +141,8 @@ class FcsSource:
                 day = self._unix_to_ymd(candle["t"])
                 rate = float(candle["c"])
                 rates[day] = rate
+                if on_rates:
+                    on_rates(symbol, day, rate)
 
             # Signal work unit complete
             if on_progress:
@@ -267,4 +271,3 @@ class FcsSource:
         if "." in symbol:
             return symbol.split(".")[0]
         return symbol
-

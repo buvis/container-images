@@ -29,12 +29,16 @@ class MockSource:
         symbols: list[str],
         days: int,
         on_progress: Callable[[str], None] | None = None,
+        on_rates: Callable[[str, str, float], None] | None = None,
         symbol_types: dict[str, SymbolType] | None = None,
     ) -> dict[str, dict[str, float]]:
         result = {}
         for sym in symbols:
             if sym in self._history:
                 result[sym] = self._history[sym]
+                if on_rates:
+                    for date_str, rate in self._history[sym].items():
+                        on_rates(sym, date_str, rate)
         return result
 
     def fetch_rate(self, symbol: str, dt: date) -> float | None:
