@@ -80,7 +80,7 @@
 
     // Handlers
     function selectSymbol(symbol: SymbolItem) {
-        if (!selectedBackfillSymbols.find(s => s.symbol === symbol.symbol)) {
+        if (!selectedBackfillSymbols.find(s => s.provider_symbol === symbol.provider_symbol)) {
             selectedBackfillSymbols = [...selectedBackfillSymbols, symbol];
         }
         symbolSearchTerm = '';
@@ -89,7 +89,7 @@
     }
 
     function removeSymbol(symbol: SymbolItem) {
-        selectedBackfillSymbols = selectedBackfillSymbols.filter(s => s.symbol !== symbol.symbol);
+        selectedBackfillSymbols = selectedBackfillSymbols.filter(s => s.provider_symbol !== symbol.provider_symbol);
     }
 
     async function handleBackfill() {
@@ -97,7 +97,7 @@
         backfillError = '';
         try {
             const symbolsList = selectedBackfillSymbols.length > 0
-                ? selectedBackfillSymbols.map(s => s.symbol)
+                ? selectedBackfillSymbols.map(s => s.provider_symbol)
                 : undefined;
 
             const result = await triggerBackfill(backfillProvider, Number(backfillLength), symbolsList);
@@ -159,8 +159,8 @@
     $: filteredSymbols = currentProviderSymbols
         .filter(s => {
             const term = symbolSearchTerm.toLowerCase();
-            const matchesSearch = s.symbol.toLowerCase().includes(term) || s.name.toLowerCase().includes(term);
-            const notSelected = !selectedBackfillSymbols.find(sel => sel.symbol === s.symbol);
+            const matchesSearch = s.provider_symbol.toLowerCase().includes(term) || s.name.toLowerCase().includes(term);
+            const notSelected = !selectedBackfillSymbols.find(sel => sel.provider_symbol === s.provider_symbol);
             return matchesSearch && notSelected;
         })
         .slice(0, 50);
@@ -200,7 +200,7 @@
                                 id="backfill-length"
                                 type="number"
                                 min="1"
-                                max="365"
+                                max="3650"
                                 bind:value={backfillLength}
                                 class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             />
@@ -214,9 +214,9 @@
                                 <div class="flex flex-wrap gap-2">
                                     {#each selectedBackfillSymbols as symbol}
                                         <span class="bg-blue-900/50 border border-blue-700 text-blue-200 px-2 py-0.5 rounded text-sm flex items-center gap-1">
-                                            {symbol.symbol}
+                                            {symbol.provider_symbol}
                                             <button
-                                                on:click|stopPropagation={() => removeSymbol(symbol)} 
+                                                on:click|stopPropagation={() => removeSymbol(symbol)}
                                                 class="hover:text-white ml-1 text-blue-400 font-bold leading-none"
                                             >
                                                 &times;
@@ -246,7 +246,7 @@
                                                 on:mousedown|preventDefault={() => selectSymbol(symbol)}
                                             >
                                                 <div class="flex justify-between items-center">
-                                                    <span class="font-medium">{symbol.symbol}</span>
+                                                    <span class="font-medium">{symbol.provider_symbol}</span>
                                                     <span class="text-slate-500 text-xs truncate ml-2">{symbol.name}</span>
                                                 </div>
                                             </button>
