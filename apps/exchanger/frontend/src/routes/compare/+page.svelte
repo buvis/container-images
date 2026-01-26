@@ -25,8 +25,11 @@
     const ranges = [
         { label: '7D', days: 7 },
         { label: '30D', days: 30 },
-        { label: '90D', days: 90 },
+        { label: '3M', days: 90 },
         { label: '1Y', days: 365 },
+        { label: '3Y', days: 1095 },
+        { label: '5Y', days: 1825 },
+        { label: '10Y', days: 3650 },
     ];
     let activeRange = 30;
 

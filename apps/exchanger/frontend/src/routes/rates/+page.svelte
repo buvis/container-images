@@ -21,9 +21,11 @@
     let rates: Rate[] = [];
     let favorites: Favorite[] = [];
     let history: { date: string; rate: number | null }[] = [];
-    
+
     let loadingRates = false;
     let loadingHistory = false;
+    let currentRange = '30d';
+    let currentRangeDays = 30;
     
     // Derived provider
     $: provider = activeType === 'crypto' ? 'fcs' : 'cnb';
@@ -53,14 +55,14 @@
         loadingRates = false;
     }
 
-    async function loadHistory(range: string = '30d', from?: string, to?: string) {
+    async function loadHistory(from?: string, to?: string) {
         if (!selectedSymbol) return;
         loadingHistory = true;
-        
+
         if (!from || !to) {
             const t = new Date();
             const f = new Date();
-            f.setDate(t.getDate() - 30);
+            f.setDate(t.getDate() - currentRangeDays);
             to = t.toISOString().split('T')[0];
             from = f.toISOString().split('T')[0];
         }
@@ -112,8 +114,10 @@
         }
     }
 
-    function handleRangeChange(e: CustomEvent<{ from: string, to: string, range: string }>) {
-        loadHistory(e.detail.range, e.detail.from, e.detail.to);
+    function handleRangeChange(e: CustomEvent<{ from: string, to: string, range: string, days: number }>) {
+        currentRange = e.detail.range;
+        currentRangeDays = e.detail.days;
+        loadHistory(e.detail.from, e.detail.to);
     }
 </script>
 
@@ -142,10 +146,11 @@
 
         <!-- Main Chart -->
         <div class="flex-1 min-h-[500px]">
-            <RateChart 
-                symbol={selectedSymbol} 
-                {history} 
+            <RateChart
+                symbol={selectedSymbol}
+                {history}
                 isLoading={loadingHistory}
+                activeRange={currentRange}
                 on:rangeChange={handleRangeChange}
             />
         </div>
