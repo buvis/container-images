@@ -772,42 +772,83 @@ class SQLiteDatabase:
                     (provider, s.symbol, s.provider_symbol, s.type, s.name),
                 )
 
+    def _export_rates_internal(self) -> list[dict]:
+        """Export rates without lock (caller must hold lock)."""
+        cur = self._conn.execute("""
+            SELECT r.date, s.provider, s.provider_symbol, r.rate
+            FROM rates r
+            JOIN symbols s ON r.symbol_id = s.id
+        """)
+        return [
+            {"date": row[0], "provider": row[1], "provider_symbol": row[2], "rate": row[3]}
+            for row in cur.fetchall()
+        ]
+
+    def _export_symbols_internal(self) -> list[dict]:
+        """Export symbols without lock (caller must hold lock)."""
+        cur = self._conn.execute(
+            "SELECT provider, symbol, provider_symbol, type, name FROM symbols"
+        )
+        return [
+            {"provider": row[0], "symbol": row[1], "provider_symbol": row[2], "type": row[3], "name": row[4]}
+            for row in cur.fetchall()
+        ]
+
+    def _export_metadata_internal(self) -> list[dict]:
+        """Export metadata without lock (caller must hold lock)."""
+        cur = self._conn.execute(
+            "SELECT key, value FROM metadata WHERE key != 'schema_version'"
+        )
+        return [{"key": row[0], "value": row[1]} for row in cur.fetchall()]
+
+    def _export_favorites_internal(self) -> list[dict]:
+        """Export favorites without lock (caller must hold lock)."""
+        cur = self._conn.execute("""
+            SELECT s.provider, s.provider_symbol, f.created_at
+            FROM favorites f
+            JOIN symbols s ON f.symbol_id = s.id
+            ORDER BY f.created_at DESC
+        """)
+        return [{"provider": row[0], "provider_symbol": row[1], "created_at": row[2]} for row in cur.fetchall()]
+
+    def export_all(self) -> dict:
+        """Export all data with snapshot isolation."""
+        with self._lock:
+            if self._closed:
+                return {"rates": [], "symbols": [], "metadata": [], "favorites": []}
+            self._conn.execute("BEGIN IMMEDIATE")
+            try:
+                result = {
+                    "rates": self._export_rates_internal(),
+                    "symbols": self._export_symbols_internal(),
+                    "metadata": self._export_metadata_internal(),
+                    "favorites": self._export_favorites_internal(),
+                }
+                self._conn.execute("COMMIT")
+                return result
+            except Exception:
+                self._conn.execute("ROLLBACK")
+                raise
+
     def export_rates(self) -> list[dict]:
         """Export rates denormalized (includes provider_symbol and provider, not symbol_id)."""
         with self._lock:
             if self._closed:
                 return []
-            cur = self._conn.execute("""
-                SELECT r.date, s.provider, s.provider_symbol, r.rate
-                FROM rates r
-                JOIN symbols s ON r.symbol_id = s.id
-            """)
-            return [
-                {"date": row[0], "provider": row[1], "provider_symbol": row[2], "rate": row[3]}
-                for row in cur.fetchall()
-            ]
+            return self._export_rates_internal()
 
     def export_symbols(self) -> list[dict]:
         with self._lock:
             if self._closed:
                 return []
-            cur = self._conn.execute(
-                "SELECT provider, symbol, provider_symbol, type, name FROM symbols"
-            )
-            return [
-                {"provider": row[0], "symbol": row[1], "provider_symbol": row[2], "type": row[3], "name": row[4]}
-                for row in cur.fetchall()
-            ]
+            return self._export_symbols_internal()
 
     def export_metadata(self) -> list[dict]:
         """Export metadata entries (excluding schema_version)."""
         with self._lock:
             if self._closed:
                 return []
-            cur = self._conn.execute(
-                "SELECT key, value FROM metadata WHERE key != 'schema_version'"
-            )
-            return [{"key": row[0], "value": row[1]} for row in cur.fetchall()]
+            return self._export_metadata_internal()
 
     def list_favorites(self) -> list[dict]:
         """Return favorite symbols ordered by newest addition."""
@@ -827,13 +868,7 @@ class SQLiteDatabase:
         with self._lock:
             if self._closed:
                 return []
-            cur = self._conn.execute("""
-                SELECT s.provider, s.provider_symbol, f.created_at
-                FROM favorites f
-                JOIN symbols s ON f.symbol_id = s.id
-                ORDER BY f.created_at DESC
-            """)
-            return [{"provider": row[0], "provider_symbol": row[1], "created_at": row[2]} for row in cur.fetchall()]
+            return self._export_favorites_internal()
 
     def import_favorites(self, rows: list[dict]) -> int:
         """Import favorites, replacing existing. Looks up symbol_id from provider/provider_symbol."""
@@ -897,71 +932,59 @@ class SQLiteDatabase:
             return True
 
     def import_rates(self, rows: list[dict]) -> int:
+        """Import rates, replacing existing. Caller must manage transaction."""
         with self._lock:
             if self._closed:
                 return 0
-            try:
-                self._conn.execute("BEGIN")
-                self._conn.execute("DELETE FROM rates")
-                if not rows:
-                    self._conn.execute("COMMIT")
-                    return 0
+            self._conn.execute("DELETE FROM rates")
+            if not rows:
+                return 0
 
-                count = 0
-                for row in rows:
-                    # Support both old format (symbol) and new format (provider_symbol)
-                    provider_symbol = row.get("provider_symbol") or row.get("symbol")
-                    cur = self._conn.execute(
-                        "SELECT id FROM symbols WHERE provider = ? AND provider_symbol = ?",
-                        (row["provider"], provider_symbol),
-                    )
-                    symbol_row = cur.fetchone()
-                    if not symbol_row:
-                        continue
+            count = 0
+            for row in rows:
+                # Support both old format (symbol) and new format (provider_symbol)
+                provider_symbol = row.get("provider_symbol") or row.get("symbol")
+                cur = self._conn.execute(
+                    "SELECT id FROM symbols WHERE provider = ? AND provider_symbol = ?",
+                    (row["provider"], provider_symbol),
+                )
+                symbol_row = cur.fetchone()
+                if not symbol_row:
+                    continue
 
-                    self._conn.execute(
-                        "INSERT INTO rates (date, symbol_id, rate) VALUES (?, ?, ?)",
-                        (row["date"], symbol_row[0], row["rate"]),
-                    )
-                    count += 1
+                self._conn.execute(
+                    "INSERT INTO rates (date, symbol_id, rate) VALUES (?, ?, ?)",
+                    (row["date"], symbol_row[0], row["rate"]),
+                )
+                count += 1
 
-                self._conn.execute("COMMIT")
-                return count
-            except Exception:
-                self._conn.execute("ROLLBACK")
-                raise
+            return count
 
     def import_symbols(self, rows: list[dict]) -> int:
+        """Import symbols, replacing existing. Caller must manage transaction."""
         with self._lock:
             if self._closed:
                 return 0
-            try:
-                self._conn.execute("BEGIN")
-                self._conn.execute("DELETE FROM rates")
-                self._conn.execute("DELETE FROM symbols")
-                if not rows:
-                    self._conn.execute("COMMIT")
-                    return 0
+            self._conn.execute("DELETE FROM rates")
+            self._conn.execute("DELETE FROM symbols")
+            if not rows:
+                return 0
 
-                for row in rows:
-                    # Support both old format and new format
-                    if "provider_symbol" in row:
-                        # New format
-                        symbol = row["symbol"]
-                        provider_symbol = row["provider_symbol"]
-                    else:
-                        # Old format: symbol was provider_symbol, normalized_symbol was symbol
-                        provider_symbol = row["symbol"]
-                        symbol = row.get("normalized_symbol") or row["symbol"]
-                    self._conn.execute(
-                        "INSERT INTO symbols (provider, symbol, provider_symbol, type, name) VALUES (?, ?, ?, ?, ?)",
-                        (row["provider"], symbol, provider_symbol, row["type"], row.get("name")),
-                    )
-                self._conn.execute("COMMIT")
-                return len(rows)
-            except Exception:
-                self._conn.execute("ROLLBACK")
-                raise
+            for row in rows:
+                # Support both old format and new format
+                if "provider_symbol" in row:
+                    # New format
+                    symbol = row["symbol"]
+                    provider_symbol = row["provider_symbol"]
+                else:
+                    # Old format: symbol was provider_symbol, normalized_symbol was symbol
+                    provider_symbol = row["symbol"]
+                    symbol = row.get("normalized_symbol") or row["symbol"]
+                self._conn.execute(
+                    "INSERT INTO symbols (provider, symbol, provider_symbol, type, name) VALUES (?, ?, ?, ?, ?)",
+                    (row["provider"], symbol, provider_symbol, row["type"], row.get("name")),
+                )
+            return len(rows)
 
     def import_metadata(self, rows: list[dict]) -> int:
         """Import metadata entries (excluding schema_version)."""
@@ -979,6 +1002,20 @@ class SQLiteDatabase:
                         (row["key"], row["value"]),
                     )
             return len([r for r in rows if r["key"] != "schema_version"])
+
+    def begin_transaction(self) -> None:
+        """Begin an IMMEDIATE transaction for atomic operations."""
+        with self._lock:
+            if self._closed:
+                return
+            self._conn.execute("BEGIN IMMEDIATE")
+
+    def rollback(self) -> None:
+        """Rollback current transaction."""
+        with self._lock:
+            if self._closed:
+                return
+            self._conn.execute("ROLLBACK")
 
     def commit(self) -> None:
         with self._lock:
