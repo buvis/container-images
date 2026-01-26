@@ -258,10 +258,11 @@ class TestBackupRestoreEndpoints:
         assert data["symbols_count"] == 1
 
         # Verify file contents
+        import gzip
         import json
         from pathlib import Path
         backup_path = Path(test_settings.backup_dir) / data["filename"]
-        with open(backup_path) as f:
+        with gzip.open(backup_path, "rt", encoding="utf-8") as f:
             backup_data = json.load(f)
         assert len(backup_data["rates"]) == 1
         assert backup_data["rates"][0]["provider"] == "fcs"

@@ -54,7 +54,7 @@ curl -X POST "http://localhost:8000/api/populate_symbols?provider=cnb"
 curl -X POST "http://localhost:8000/api/backfill?provider=cnb&length=30"
 
 # backup/restore
-curl -X POST "http://localhost:8000/api/backup"  # creates backup_<timestamp>.json
+curl -X POST "http://localhost:8000/api/backup"  # creates backup_<timestamp>.json.gz
 curl "http://localhost:8000/api/backups"          # list available backups
 curl -X POST "http://localhost:8000/api/restore?timestamp=20250122_163000"
 ```
