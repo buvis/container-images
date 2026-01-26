@@ -5,9 +5,9 @@
     export let symbol: string | null = null;
     export let history: { date: string; rate: number | null }[] = [];
     export let isLoading: boolean = false;
+    export let activeRange: string = '30d';
 
     const dispatch = createEventDispatcher();
-    let activeRange = '30d';
 
     let canvas: HTMLCanvasElement;
     let chart: Chart;
@@ -15,21 +15,23 @@
     const ranges = [
         { label: '7D', value: '7d', days: 7 },
         { label: '30D', value: '30d', days: 30 },
-        { label: '90D', value: '90d', days: 90 },
-        { label: '180D', value: '180d', days: 180 },
+        { label: '3M', value: '3m', days: 90 },
+        { label: '6M', value: '6m', days: 180 },
         { label: '1Y', value: '1y', days: 365 },
+        { label: '3Y', value: '3y', days: 1095 },
+        { label: '5Y', value: '5y', days: 1825 },
+        { label: '10Y', value: '10y', days: 3650 },
     ];
 
     function setRange(range: typeof ranges[0]) {
-        activeRange = range.value;
         const to = new Date();
         const from = new Date();
         from.setDate(to.getDate() - range.days);
-        
+
         const toStr = to.toISOString().split('T')[0];
         const fromStr = from.toISOString().split('T')[0];
-        
-        dispatch('rangeChange', { from: fromStr, to: toStr, range: range.value });
+
+        dispatch('rangeChange', { from: fromStr, to: toStr, range: range.value, days: range.days });
     }
 
     $: data = {
