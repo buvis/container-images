@@ -34,6 +34,28 @@
         dispatch('rangeChange', { from: fromStr, to: toStr, range: range.value, days: range.days });
     }
 
+    $: validRates = history.map((h, i) => ({ rate: h.rate, index: i })).filter(r => r.rate !== null);
+    $: minEntry = validRates.length > 0 ? validRates.reduce((a, b) => (a.rate! < b.rate!) ? a : b) : null;
+    $: maxEntry = validRates.length > 0 ? validRates.reduce((a, b) => (a.rate! > b.rate!) ? a : b) : null;
+
+    $: pointRadii = history.map((_, i) => {
+        if (minEntry && i === minEntry.index) return 6;
+        if (maxEntry && i === maxEntry.index) return 6;
+        return 0;
+    });
+
+    $: pointColors = history.map((_, i) => {
+        if (minEntry && i === minEntry.index) return '#ef4444'; // red for low
+        if (maxEntry && i === maxEntry.index) return '#22c55e'; // green for high
+        return 'rgb(59, 130, 246)';
+    });
+
+    $: pointBorderColors = history.map((_, i) => {
+        if (minEntry && i === minEntry.index) return '#fff';
+        if (maxEntry && i === maxEntry.index) return '#fff';
+        return 'rgb(59, 130, 246)';
+    });
+
     $: data = {
         labels: history.map(h => h.date),
         datasets: [
@@ -43,7 +65,10 @@
                 tension: 0.3,
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderColor: 'rgb(59, 130, 246)',
-                pointRadius: 0,
+                pointRadius: pointRadii,
+                pointBackgroundColor: pointColors,
+                pointBorderColor: pointBorderColors,
+                pointBorderWidth: 2,
                 pointHitRadius: 10,
                 data: history.map(h => h.rate),
             },
@@ -143,4 +168,21 @@
             </div>
         {/if}
     </div>
+
+    {#if symbol && history.length > 0 && minEntry && maxEntry}
+        <div class="flex gap-6 mt-3 pt-3 border-t border-slate-700 text-sm">
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-red-500 border-2 border-white"></span>
+                <span class="text-slate-400">Low:</span>
+                <span class="text-red-400 font-medium">{history[minEntry.index].rate?.toFixed(4)}</span>
+                <span class="text-slate-500">({history[minEntry.index].date})</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-green-500 border-2 border-white"></span>
+                <span class="text-slate-400">High:</span>
+                <span class="text-green-400 font-medium">{history[maxEntry.index].rate?.toFixed(4)}</span>
+                <span class="text-slate-500">({history[maxEntry.index].date})</span>
+            </div>
+        </div>
+    {/if}
 </div>
