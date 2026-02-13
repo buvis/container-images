@@ -44,9 +44,6 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
-# Copy GStreamer compat patch (remove when GStreamer >= 1.26.3 or Mopidy >= 4.0)
-COPY ./patches/fix-gstreamer-structurewrapper.py /tmp/fix-gstreamer-structurewrapper.py
-
 # Install Mopidy
 # hadolint ignore=DL3008,DL3015,SC2086
 RUN \
@@ -60,13 +57,16 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
   && update-ca-certificates -f \
-  && python3 /tmp/fix-gstreamer-structurewrapper.py \
   && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
   && chown -R kah:audio /media \
   && chmod -R u=rwX,go=rX /media \
   && usermod -G audio kah \
   && printf "umask %d" "${UMASK}" >> /etc/bash.bashrc
+
+# Patch scan.py for GStreamer 1.25-1.26.2 StructureWrapper compat (remove when GStreamer >= 1.26.3 or Mopidy >= 4.0)
+COPY ./patches/fix-gstreamer-structurewrapper.py /tmp/fix-gstreamer-structurewrapper.py
+RUN python3 /tmp/fix-gstreamer-structurewrapper.py && rm /tmp/fix-gstreamer-structurewrapper.py
 
 # Install Mopidy extensions
 # hadolint ignore=DL3008,DL3015,SC2086
