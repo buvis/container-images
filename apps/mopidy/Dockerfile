@@ -21,7 +21,7 @@ RUN \
   gnupg2 \
   && mkdir -p /etc/apt/keyrings \
   && wget -q -O /etc/apt/keyrings/mopidy-archive-keyring.gpg https://apt.mopidy.com/mopidy.gpg \
-  && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bullseye.list \
+  && wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/trixie.list \
   && apt-get purge -y wget \
   && apt-get update \
   && apt-get autoremove -y \
@@ -57,7 +57,7 @@ RUN \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
   && update-ca-certificates -f \
-  chown -R kah:audio /app \
+  && chown -R kah:audio /app \
   && chmod -R u=rwX,go=rX /app \
   && chown -R kah:audio /media \
   && chmod -R u=rwX,go=rX /media \
