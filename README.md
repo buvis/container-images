@@ -1,5 +1,8 @@
 My container images:
 
+- [kube-exec](./apps/kube-exec)
 - [MkDocs synced to git repo](./apps/mkdocs-git-sync)
 - [Mopidy](./apps/mopidy)
-- [kube-exec](./apps/kube-exec)
+- [RompR](./apps/rompr)
+- [TQM](./apps/tqm)
+- [Vifm](./apps/vifm)
