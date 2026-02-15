@@ -1,4 +1,4 @@
-FROM alpine:3.21 AS download
+FROM alpine:3.23 AS download
 
 ARG VERSION
 ARG TARGETARCH
