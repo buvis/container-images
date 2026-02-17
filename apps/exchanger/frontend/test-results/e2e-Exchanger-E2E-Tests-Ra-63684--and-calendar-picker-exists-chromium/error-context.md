@@ -1,0 +1,121 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e6]: Exchanger
+    - navigation [ref=e7]:
+      - generic [ref=e8]:
+        - heading "Overview" [level=3] [ref=e9]
+        - list [ref=e10]:
+          - listitem [ref=e11]:
+            - link "Status" [ref=e12] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e13]:
+            - link "Market" [ref=e14] [cursor=pointer]:
+              - /url: /market
+      - generic [ref=e15]:
+        - heading "Tools" [level=3] [ref=e16]
+        - list [ref=e17]:
+          - listitem [ref=e18]:
+            - link "Symbols" [ref=e19] [cursor=pointer]:
+              - /url: /symbols
+          - listitem [ref=e20]:
+            - link "Rates" [ref=e21] [cursor=pointer]:
+              - /url: /rates
+          - listitem [ref=e22]:
+            - link "Converter" [ref=e23] [cursor=pointer]:
+              - /url: /converter
+          - listitem [ref=e24]:
+            - link "Chain Converter" [ref=e25] [cursor=pointer]:
+              - /url: /converter/multi
+          - listitem [ref=e26]:
+            - link "Compare" [ref=e27] [cursor=pointer]:
+              - /url: /compare
+      - generic [ref=e28]:
+        - heading "Administration" [level=3] [ref=e29]
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Backfill" [ref=e32] [cursor=pointer]:
+              - /url: /admin?tab=backfill
+          - listitem [ref=e33]:
+            - link "Symbols" [ref=e34] [cursor=pointer]:
+              - /url: /admin?tab=symbols
+          - listitem [ref=e35]:
+            - link "Backups" [ref=e36] [cursor=pointer]:
+              - /url: /admin?tab=backups
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - heading "Rates" [level=1] [ref=e41]
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - button "Previous month" [ref=e46] [cursor=pointer]: <
+              - generic [ref=e47]:
+                - button "Select month" [ref=e48] [cursor=pointer]: January
+                - button "Select year" [ref=e49] [cursor=pointer]: "2026"
+              - button "Next month" [disabled] [ref=e50]: ">"
+            - generic [ref=e51]:
+              - generic [ref=e52]: Mo
+              - generic [ref=e53]: Tu
+              - generic [ref=e54]: We
+              - generic [ref=e55]: Th
+              - generic [ref=e56]: Fr
+              - generic [ref=e57]: Sa
+              - generic [ref=e58]: Su
+              - button "1" [ref=e62] [cursor=pointer]
+              - button "2" [ref=e63] [cursor=pointer]
+              - button "3" [ref=e64] [cursor=pointer]
+              - button "4" [ref=e65] [cursor=pointer]
+              - button "5" [ref=e66] [cursor=pointer]
+              - button "6" [ref=e67] [cursor=pointer]
+              - button "7" [ref=e68] [cursor=pointer]
+              - button "8" [ref=e69] [cursor=pointer]
+              - button "9" [ref=e70] [cursor=pointer]
+              - button "10" [ref=e71] [cursor=pointer]
+              - button "11" [ref=e72] [cursor=pointer]
+              - button "12" [ref=e73] [cursor=pointer]
+              - button "13" [ref=e74] [cursor=pointer]
+              - button "14" [ref=e75] [cursor=pointer]
+              - button "15" [ref=e76] [cursor=pointer]
+              - button "16" [ref=e77] [cursor=pointer]
+              - button "17" [ref=e78] [cursor=pointer]
+              - button "18" [ref=e79] [cursor=pointer]
+              - button "19" [ref=e80] [cursor=pointer]
+              - button "20" [ref=e81] [cursor=pointer]
+              - button "21" [ref=e82] [cursor=pointer]
+              - button "22" [ref=e83] [cursor=pointer]
+              - button "23" [ref=e84] [cursor=pointer]
+              - button "24" [ref=e85] [cursor=pointer]
+              - button "25" [ref=e86] [cursor=pointer]
+              - button "26" [ref=e87] [cursor=pointer]
+              - button "27" [ref=e88] [cursor=pointer]: "27"
+              - button "28" [disabled] [ref=e90]
+              - button "29" [disabled] [ref=e91]
+              - button "30" [disabled] [ref=e92]
+              - button "31" [disabled] [ref=e93]
+            - button "Today" [ref=e95] [cursor=pointer]:
+              - img [ref=e96]
+              - text: Today
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - generic [ref=e101]:
+                - button "Forex" [ref=e102]
+                - button "Crypto" [ref=e103]
+              - textbox "Search symbol..." [ref=e104]
+            - generic [ref=e106]: No rates found
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - heading "Select a symbol" [level=2] [ref=e110]
+            - generic [ref=e111]:
+              - button "7D" [ref=e112]
+              - button "30D" [ref=e113]
+              - button "3M" [ref=e114]
+              - button "6M" [ref=e115]
+              - button "1Y" [ref=e116]
+              - button "3Y" [ref=e117]
+              - button "5Y" [ref=e118]
+              - button "10Y" [ref=e119]
+          - generic [ref=e121]: Select a symbol to view history
+```

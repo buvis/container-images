@@ -1,0 +1,65 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e6]: Exchanger
+    - navigation [ref=e7]:
+      - generic [ref=e8]:
+        - heading "Overview" [level=3] [ref=e9]
+        - list [ref=e10]:
+          - listitem [ref=e11]:
+            - link "Status" [ref=e12] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e13]:
+            - link "Market" [ref=e14] [cursor=pointer]:
+              - /url: /market
+      - generic [ref=e15]:
+        - heading "Tools" [level=3] [ref=e16]
+        - list [ref=e17]:
+          - listitem [ref=e18]:
+            - link "Symbols" [ref=e19] [cursor=pointer]:
+              - /url: /symbols
+          - listitem [ref=e20]:
+            - link "Rates" [ref=e21] [cursor=pointer]:
+              - /url: /rates
+          - listitem [ref=e22]:
+            - link "Converter" [ref=e23] [cursor=pointer]:
+              - /url: /converter
+          - listitem [ref=e24]:
+            - link "Chain Converter" [ref=e25] [cursor=pointer]:
+              - /url: /converter/multi
+          - listitem [ref=e26]:
+            - link "Compare" [ref=e27] [cursor=pointer]:
+              - /url: /compare
+      - generic [ref=e28]:
+        - heading "Administration" [level=3] [ref=e29]
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Backfill" [ref=e32] [cursor=pointer]:
+              - /url: /admin?tab=backfill
+          - listitem [ref=e33]:
+            - link "Symbols" [ref=e34] [cursor=pointer]:
+              - /url: /admin?tab=symbols
+          - listitem [ref=e35]:
+            - link "Backups" [ref=e36] [cursor=pointer]:
+              - /url: /admin?tab=backups
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - heading "Backfill" [level=1] [ref=e41]
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]: Provider
+            - combobox "Provider" [ref=e48]:
+              - option "CNB" [selected]
+              - option "FCS"
+          - generic [ref=e49]:
+            - generic [ref=e50]: Length (days)
+            - spinbutton "Length (days)" [ref=e51]: "30"
+          - generic [ref=e52]:
+            - generic [ref=e53]: Symbols (optional)
+            - textbox "Symbols (optional)" [ref=e56]:
+              - /placeholder: Search symbols...
+        - button "Trigger Backfill" [ref=e57]
+```
