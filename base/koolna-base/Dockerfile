@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine@sha256:d4c4845f5d60c6a974c6000ce58ae079328d03ab7f721a0734277e69905473e5 AS builder
 
 WORKDIR /build
 COPY go.mod go.sum ./
@@ -6,7 +6,7 @@ RUN go mod download
 COPY cmd/ ./cmd/
 RUN CGO_ENABLED=0 go build -o koolna ./cmd/koolna
 
-FROM debian:trixie-slim
+FROM debian:trixie-slim@sha256:f6e2cfac5cf956ea044b4bd75e6397b4372ad88fe00908045e9a0d21712ae3ba
 
 ARG GOTTY_VERSION=1.6.0
 ARG USERNAME=bob
