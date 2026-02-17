@@ -34,4 +34,36 @@ apps/sw-factory/
 # Project-specific
 # =============================================================================
 plan.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Node / SvelteKit
+node_modules/
+.svelte-kit/
+dist/
+build/
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Data & backups
 *.db
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
