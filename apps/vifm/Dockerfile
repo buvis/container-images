@@ -37,8 +37,8 @@ USER kah
 VOLUME ["/data"]
 
 # Copy the configuration and the entrypoint
-COPY --chown=kah ./apps/vifm/config/vifmrc /app/.vifm/vifmrc
-COPY --chown=kah ./apps/vifm/entrypoint.sh /entrypoint.sh
+COPY --chown=kah ./config/vifmrc /app/.vifm/vifmrc
+COPY --chown=kah ./entrypoint.sh /entrypoint.sh
 
 # Start Mopidy
 CMD ["/entrypoint.sh"]
