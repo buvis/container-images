@@ -15,12 +15,11 @@ ENV \
   UMASK=0002
 
 RUN \
-  adduser kah \
+  useradd kah \
   --uid 568 \
-  --group \
   --system \
-  --disabled-password \
   --no-create-home \
+  --shell /bin/false \
   && \
   mkdir -p /config \
   && chown -R kah:kah /config \
