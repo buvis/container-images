@@ -1,4 +1,4 @@
-ARG VERSION=stable-slim
+ARG VERSION=stable-slim@sha256:4448d44b91bf4a13cb1b4e02d9d5f87ed40621d6e33f0ae7b6ddf71d57e29364
 
 FROM debian:${VERSION}
 
