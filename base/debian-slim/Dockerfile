@@ -1,17 +1,16 @@
-ARG VERSION
+ARG VERSION=stable-slim
 
 FROM debian:${VERSION}
 
+ARG VERSION
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 
 # DEBIAN_FRONTEND: https://askubuntu.com/questions/972516/debian-frontend-environment-variable
-# APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE: http://stackoverflow.com/questions/48162574/ddg#49462622
 ENV \
   VERSION="${VERSION}" \
   DEBCONF_NONINTERACTIVE_SEEN=true \
   DEBIAN_FRONTEND="noninteractive" \
-  APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn \
   UMASK=0002
 
 RUN \
@@ -67,7 +66,7 @@ RUN \
   /var/cache/apt/* \
   /var/tmp/*
 
-ENV LANG en_US.UTF-8
+ENV LANG=en_US.UTF-8
 
 USER kah
 
