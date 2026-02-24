@@ -19,7 +19,8 @@
             section: 'Overview',
             items: [
                 { label: 'Status', href: '/' },
-                { label: 'Market', href: '/market' }
+                { label: 'Market', href: '/market' },
+                { label: 'Providers', href: '/providers' }
             ]
         },
         {

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { page } from '$app/stores';
     import {
         getSymbols,
         getFavorites,
@@ -16,7 +17,8 @@
     let symbols: SymbolItem[] = [];
     let favorites: Favorite[] = [];
     let providers: ProviderStatus[] = [];
-    let selectedProviders: Set<string> = new Set();
+    const initialProvider = $page.url.searchParams.get('provider');
+    let selectedProviders: Set<string> = initialProvider ? new Set([initialProvider]) : new Set();
     let loading = true;
     let search = '';
     let selectedTypes: Set<string> = new Set();
