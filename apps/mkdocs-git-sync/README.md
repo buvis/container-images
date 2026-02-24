@@ -60,6 +60,16 @@ Once started, navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000). You wi
     - **UPDATE_INTERVAL**: pull from repository every x seconds (`default: 900`)
     - **LOG_LEVEL**: [logging library](https://docs.python.org/3/library/logging.html#logging-levels) minimum message level to be logged (`default: INFO`)
 
+### Link checking
+
+Mount a `linkcheck.yml` file to `/app/config/linkcheck.yml` to enable periodic broken link detection. See `config/syncer/linkcheck.yml` for all options.
+
+Features:
+- Checks both internal and external links in the built site
+- Runs after every build and on its own configurable interval
+- Sends notifications to Slack, Discord, generic webhooks, and/or email
+- Configurable URL exclusion patterns
+
 ## Develop
 
 ### Update
