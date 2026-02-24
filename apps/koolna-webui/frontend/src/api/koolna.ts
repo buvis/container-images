@@ -28,11 +28,13 @@ async function parseResponse<T>(response: Response): Promise<T> {
       const body = text ? JSON.parse(text) : null
       if (body && typeof body === 'object') {
         const record = body as Record<string, unknown>
-        detail = typeof record.detail === 'string'
-          ? record.detail
-          : typeof record.message === 'string'
-            ? record.message
-            : JSON.stringify(record)
+        detail = typeof record.error === 'string'
+          ? record.error
+          : typeof record.detail === 'string'
+            ? record.detail
+            : typeof record.message === 'string'
+              ? record.message
+              : JSON.stringify(record)
       }
     } catch {
       detail = text || response.statusText
