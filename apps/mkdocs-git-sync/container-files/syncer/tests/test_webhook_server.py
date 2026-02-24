@@ -34,14 +34,6 @@ def _request(port, path="/hooks/github", method="POST", body=None, headers=None)
         return e.code
 
 
-def _start_server(event, port):
-    srv = WebhookServer(
-        trigger_event=event, secret=SECRET, branch=BRANCH, port=port
-    )
-    srv.start()
-    return srv
-
-
 class TestWebhookServer:
     def setup_method(self):
         self.event = threading.Event()
