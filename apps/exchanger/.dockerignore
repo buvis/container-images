@@ -1,0 +1,9 @@
+.env
+*.db
+.venv/
+node_modules/
+.svelte-kit/
+__pycache__/
+tests/
+backups/
+.git/
