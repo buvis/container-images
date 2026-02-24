@@ -1,0 +1,32 @@
+# Link checker configuration
+# Mount this file to /app/config/linkcheck.yml inside the container
+# Remove or set enabled: false to disable link checking
+
+enabled: false
+interval: 21600  # check every 6 hours (in seconds)
+
+# URL patterns to exclude from checking (regex, applied on top of built-in exclusions)
+exclude: []
+  # - "^https?://localhost"
+  # - "^https?://127\\.0\\.0\\.1"
+  # - "^https?://example\\.com"
+
+# Configure one or more notification targets
+notifications: []
+  # - type: slack
+  #   webhook_url: "https://hooks.slack.com/services/..."
+  #
+  # - type: discord
+  #   webhook_url: "https://discord.com/api/webhooks/..."
+  #
+  # - type: webhook
+  #   url: "https://example.com/hook"
+  #   method: POST
+  #
+  # - type: email
+  #   smtp_host: "smtp.example.com"
+  #   smtp_port: 587
+  #   from: "linkcheck@example.com"
+  #   to: "admin@example.com"
+  #   username: "user"
+  #   password: "pass"

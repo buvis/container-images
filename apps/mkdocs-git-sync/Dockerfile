@@ -15,7 +15,11 @@ USER app
 WORKDIR /app
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --user GitPython==3.1.44
+RUN pip install --no-cache-dir --user \
+    GitPython==3.1.44 \
+    LinkChecker==10.5.0 \
+    PyYAML==6.0.2 \
+    requests==2.32.3
 
 # Add application code
 ADD --chown=app:app container-files/syncer /app
