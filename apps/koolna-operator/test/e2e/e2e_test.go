@@ -268,15 +268,86 @@ var _ = Describe("Manager", Ordered, func() {
 
 		// +kubebuilder:scaffold:e2e-webhooks-checks
 
-		// TODO: Customize the e2e test suite with scenarios specific to your project.
-		// Consider applying sample/CR(s) and check their status and/or verifying
-		// the reconciliation by using the metrics, i.e.:
-		// metricsOutput, err := getMetricsOutput()
-		// Expect(err).NotTo(HaveOccurred(), "Failed to retrieve logs from curl pod")
-		// Expect(metricsOutput).To(ContainSubstring(
-		//    fmt.Sprintf(`controller_runtime_reconcile_total{controller="%s",result="success"} 1`,
-		//    strings.ToLower(<Kind>),
-		// ))
+		It("should reconcile a Koolna CR and create child resources", func() {
+			const crName = "e2e-test-koolna"
+			crNamespace := namespace
+
+			By("creating a git-creds secret for the test")
+			cmd := exec.Command("kubectl", "create", "secret", "generic", "git-creds",
+				"--namespace", crNamespace,
+				"--from-literal=username=test",
+				"--from-literal=token=test",
+			)
+			_, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create git-creds secret")
+
+			By("applying a Koolna CR")
+			cr := fmt.Sprintf(`apiVersion: koolna.buvis.net/v1alpha1
+kind: Koolna
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  repo: owner/repo
+  branch: main
+  gitSecretRef: git-creds
+  image: ghcr.io/buvis/koolna-base:latest
+  storage: 1Gi
+  deletionPolicy: Delete`, crName, crNamespace)
+
+			crFile := filepath.Join("/tmp", crName+".yaml")
+			err = os.WriteFile(crFile, []byte(cr), os.FileMode(0o644))
+			Expect(err).NotTo(HaveOccurred())
+
+			cmd = exec.Command("kubectl", "apply", "-f", crFile)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to apply Koolna CR")
+
+			By("verifying the PVC was created")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "pvc", crName+"-workspace",
+					"-n", crNamespace, "-o", "jsonpath={.metadata.name}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal(crName + "-workspace"))
+			}).Should(Succeed())
+
+			By("verifying the Pod was created")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "pod", crName,
+					"-n", crNamespace, "-o", "jsonpath={.metadata.name}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal(crName))
+			}).Should(Succeed())
+
+			By("verifying the Service was created")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "svc", crName,
+					"-n", crNamespace, "-o", "jsonpath={.spec.ports[0].port}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("3000"))
+			}).Should(Succeed())
+
+			By("verifying status.currentBranch is set")
+			Eventually(func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "koolna", crName,
+					"-n", crNamespace, "-o", "jsonpath={.status.currentBranch}")
+				output, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(output).To(Equal("main"))
+			}).Should(Succeed())
+
+			By("cleaning up the Koolna CR")
+			cmd = exec.Command("kubectl", "delete", "koolna", crName, "-n", crNamespace)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("cleaning up the git-creds secret")
+			cmd = exec.Command("kubectl", "delete", "secret", "git-creds", "-n", crNamespace)
+			_, _ = utils.Run(cmd)
+		})
 	})
 })
 

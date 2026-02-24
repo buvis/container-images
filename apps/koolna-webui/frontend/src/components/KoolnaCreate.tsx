@@ -3,7 +3,6 @@ import { createKoolna, CreateKoolnaRequest } from '../api/koolna'
 
 const IMAGE_OPTIONS = [
   'ghcr.io/buvis/koolna-base:latest',
-  'ghcr.io/buvis/koolna-node:latest',
 ] as const
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
