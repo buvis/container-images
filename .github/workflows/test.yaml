@@ -1,12 +1,11 @@
 ---
-name: Release
+name: Test
 
 on:
-  push:
+  pull_request:
     paths:
       - "apps/**"
       - "base/**"
-  workflow_dispatch:
 
 env:
   GOSS_SLEEP: 30
@@ -34,15 +33,29 @@ jobs:
           CONTAINERS=$(jq --raw-output '.changed_files | fromjson | .[] |= sub("(?<filepath>(?<first_directory>(?<root1>[/]?)[^/]+/)(?<second_directory>(?<root2>[/]?)[^/]+)(?<extra_paths>.+))"; "\(.second_directory)") | unique' changes.json)
           echo containers=$CONTAINERS >> $GITHUB_OUTPUT
 
+  hadolint:
+    name: Run hadolint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: hadolint
+        uses: reviewdog/action-hadolint@921946a7ebaaf08ac72607bad67209f4e52b5407 # v1.50.5
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          filter_mode: diff_context
+          fail_level: error
+
   build:
     name: Build
     runs-on: ubuntu-24.04
     needs:
+      - hadolint
       - changes
     strategy:
       matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
       fail-fast: false
-    if: "!contains(github.event.head_commit.message, '[ci-skip]')"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -58,46 +71,17 @@ jobs:
           echo "category=${CATEGORY}" >> $GITHUB_OUTPUT
           VERSION=$(cat ./${CATEGORY}/${{ matrix.container }}/VERSION)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          PLATFORM=$(cat ./${CATEGORY}/${{ matrix.container }}/PLATFORM)
-          echo "platform=${PLATFORM}" >> $GITHUB_OUTPUT
           if test -f "./${CATEGORY}/${{ matrix.container }}/goss.yaml"; then
             echo "goss=true" >> $GITHUB_OUTPUT
           else
             echo "goss=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
-        with:
-          platforms: amd64,arm64,arm
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASS }}
-
-      - name: Login to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Set up Docker Buildx
-        id: buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           version: latest
           driver-opts: image=moby/buildkit:latest
-
-      - name: Cache Docker layers
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
-          restore-keys: |
-            ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
 
       - name: Set up goss/dgoss
         uses: e1himself/goss-installation-action@3b8340a7c772f8064444f48b0df4c2a80d2e50fc # v1.3.0
@@ -105,7 +89,7 @@ jobs:
         with:
           version: "v0.3.16"
 
-      - name: Build and Load local test-container
+      - name: Build test image
         if: ${{ steps.prep.outputs.goss == 'true' }}
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -115,8 +99,6 @@ jobs:
           load: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
-          cache-from: "type=local,src=/tmp/.buildx-cache"
-          cache-to: "type=local,dest=/tmp/.buildx-cache,mode=max"
 
       - name: Run GOSS tests
         if: ${{ steps.prep.outputs.goss == 'true' }}
@@ -125,18 +107,22 @@ jobs:
         run: |
           dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
 
-      - name: Build and Push
+      - name: Build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
           file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
-          platforms: ${{ steps.prep.outputs.platform }}
-          push: true
-          tags: |
-            buvis/${{ matrix.container }}:latest
-            buvis/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
-          cache-from: "type=local,src=/tmp/.buildx-cache"
-          cache-to: "type=local,dest=/tmp/.buildx-cache,mode=max"
+          push: false
+
+  test-success:
+    name: Test
+    needs: [hadolint, build]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build.result }}" == "failure" ]]; then
+            exit 1
+          fi
