@@ -37,8 +37,8 @@ def main() -> None:
     syncer = Syncer(config)
     linkcheck = LinkCheckService(LINKCHECK_CONFIG_PATH, SITE_PATH)
 
-    # run initial link check after first build
-    linkcheck.run_check(after_build=True)
+    if syncer.site_ready:
+        linkcheck.run_check(after_build=True)
 
     logger.info("Starting main update loop.")
     try:
@@ -47,7 +47,7 @@ def main() -> None:
                 rebuilt = syncer.update()
                 if rebuilt:
                     linkcheck.run_check(after_build=True)
-                elif linkcheck.should_run():
+                elif syncer.site_ready and linkcheck.should_run():
                     linkcheck.run_check()
                 logger.info(f"Waiting for {config.interval} seconds")
                 sleep(config.interval)

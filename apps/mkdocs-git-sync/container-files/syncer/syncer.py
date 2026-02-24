@@ -35,7 +35,7 @@ class Syncer:
         )
         self.repo_manager.clone()
         self._log_commit_details(self.repo_manager.head_commit)
-        self._build_docs()
+        self.site_ready = self._build_docs()
         self.prev_sha = self.repo_manager.head_commit.hexsha
 
     def update(self) -> bool:
@@ -54,9 +54,9 @@ class Syncer:
 
         if new_sha != self.prev_sha:
             self._log_commit_details(head_commit)
-            self._build_docs()
+            self.site_ready = self._build_docs()
             self.prev_sha = new_sha
-            return True
+            return self.site_ready
 
         return False
 
@@ -71,10 +71,11 @@ class Syncer:
             f"  Author: {commit.committer.name}"
         )
 
-    def _build_docs(self) -> None:
-        """Trigger documentation build."""
+    def _build_docs(self) -> bool:
         try:
             self.mkdocs_builder.build()
             logger.info("Documentation built successfully")
+            return True
         except Exception as e:
             logger.error(f"Documentation build failed: {str(e)}")
+            return False
