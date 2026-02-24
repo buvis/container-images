@@ -1,11 +1,12 @@
 import os
 import sys
 import logging
-from time import sleep
+import threading
 
 from syncer import Syncer
 from config import Config, ConfigError
 from linkcheck.service import LinkCheckService
+from webhook.server import WebhookServer
 
 LINKCHECK_CONFIG_PATH = "/app/config/linkcheck.yml"
 SITE_PATH = "/app/site"
@@ -43,21 +44,33 @@ def main() -> None:
     linkcheck = LinkCheckService(LINKCHECK_CONFIG_PATH, SITE_PATH)
     linkcheck.run_check(after_build=True)
 
+    trigger_event = threading.Event()
+
+    if config.webhook_enabled:
+        webhook_server = WebhookServer(
+            trigger_event=trigger_event,
+            secret=config.webhook_secret,
+            branch=config.branch,
+            port=config.webhook_port,
+        )
+        webhook_server.start()
+
     logger.info("Starting main update loop.")
     try:
         while True:
             try:
-                rebuilt = syncer.update()
+                triggered = trigger_event.wait(timeout=config.interval)
+                trigger_event.clear()
+                source = "webhook" if triggered else "poll"
+
+                rebuilt = syncer.update(source=source)
                 if rebuilt:
                     linkcheck.run_check(after_build=True)
                 elif syncer.site_ready and linkcheck.should_run():
                     linkcheck.run_check()
-                logger.info(f"Waiting for {config.interval} seconds")
-                sleep(config.interval)
             except Exception as e:
                 logger.error(f"Error during sync/update: {e}", exc_info=True)
-                logger.info(f"Retrying in {config.interval} seconds...")
-                sleep(config.interval)
+                trigger_event.clear()
     except KeyboardInterrupt:
         logger.info("Shutdown requested by user. Exiting gracefully.")
 
