@@ -80,9 +80,10 @@ class TestBackfillService:
         registry.register(source)
 
         service = BackfillService(db=temp_db, registry=registry)
-        results = service.backfill("fcs", ["EURUSD"], length=5)
+        results, failures = service.backfill("fcs", ["EURUSD"], length=5)
 
         assert results["fcs:EURUSD"] == 2
+        assert failures == []
         assert temp_db.get_rate("2024-01-15", "EURUSD", "fcs") == 1.0850
 
     def test_backfill_all_providers(self, temp_db: SQLiteDatabase) -> None:
@@ -105,10 +106,11 @@ class TestBackfillService:
         registry.register(cnb_source)
 
         service = BackfillService(db=temp_db, registry=registry)
-        results = service.backfill("all", [], length=5)
+        results, failures = service.backfill("all", [], length=5)
 
         assert "fcs:EURUSD" in results
         assert "cnb:EURCZK" in results
+        assert failures == []
 
     def test_backfill_uses_all_source_symbols_when_none_specified(self, temp_db: SQLiteDatabase) -> None:
         _setup_symbols(temp_db, "fcs", [("forex", "EURUSD"), ("crypto", "BTCUSD")])
@@ -126,10 +128,11 @@ class TestBackfillService:
         registry.register(source)
 
         service = BackfillService(db=temp_db, registry=registry)
-        results = service.backfill("fcs", [], length=5)
+        results, failures = service.backfill("fcs", [], length=5)
 
         assert "fcs:EURUSD" in results
         assert "fcs:BTCUSD" in results
+        assert failures == []
 
     def test_backfill_filters_to_available_symbols(self, temp_db: SQLiteDatabase) -> None:
         _setup_symbols(temp_db, "fcs", [("forex", "EURUSD")])
@@ -141,7 +144,7 @@ class TestBackfillService:
 
         service = BackfillService(db=temp_db, registry=registry)
         # Request symbols that include one not available
-        results = service.backfill("fcs", ["EURUSD", "GBPUSD"], length=5)
+        results, failures = service.backfill("fcs", ["EURUSD", "GBPUSD"], length=5)
 
         assert "fcs:EURUSD" in results
         assert "fcs:GBPUSD" not in results
@@ -166,8 +169,9 @@ class TestBackfillService:
         registry = SourceRegistry()
         service = BackfillService(db=temp_db, registry=registry)
 
-        results = service.backfill("unknown", ["EURUSD"], length=5)
+        results, failures = service.backfill("unknown", ["EURUSD"], length=5)
         assert results == {}
+        assert failures == []
 
     def test_backfill_stores_rates_in_db(self, temp_db: SQLiteDatabase) -> None:
         _setup_symbols(temp_db, "fcs", [("forex", "EURUSD")])
@@ -219,3 +223,59 @@ class TestNeedsBackfill:
         assert temp_db.get_backfill_done_at("fcs") is None
         service.mark_done("fcs")
         assert temp_db.get_backfill_done_at("fcs") is not None
+
+
+class TestCheckpointResume:
+    def test_checkpoint_saved_and_cleared(self, temp_db: SQLiteDatabase) -> None:
+        """Checkpoint is cleared after successful completion."""
+        _setup_symbols(temp_db, "fcs", [("forex", "EURUSD")])
+        source = MockSource("fcs", [SymbolInfo(symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")], {"EURUSD": {"2024-01-15": 1.0}})
+        registry = SourceRegistry()
+        registry.register(source)
+
+        service = BackfillService(db=temp_db, registry=registry)
+        service.backfill("fcs", ["EURUSD"], length=5)
+
+        assert temp_db.get_backfill_checkpoint("fcs") is None
+
+    def test_checkpoint_resumes_from_failure(self, temp_db: SQLiteDatabase) -> None:
+        """After partial failure, checkpoint lets next run skip completed symbols."""
+        _setup_symbols(temp_db, "fcs", [("forex", "EURUSD"), ("forex", "GBPUSD")])
+
+        # First source fails on GBPUSD
+        class FailOnSecondSource:
+            source_id = "fcs"
+            call_count = 0
+
+            def fetch_history(self, symbols, days, on_progress=None, on_rates=None, symbol_types=None):
+                self.call_count += 1
+                sym = symbols[0]
+                if sym == "GBPUSD":
+                    raise ConnectionError("API down")
+                return {sym: {"2024-01-15": 1.0}}
+
+            def available_symbols(self, on_progress=None):
+                return ["EURUSD", "GBPUSD"]
+
+            def estimate_work_units(self, symbol_count, days):
+                return symbol_count * days
+
+        failing_source = FailOnSecondSource()
+        registry = SourceRegistry()
+        registry.register(failing_source)
+
+        service = BackfillService(db=temp_db, registry=registry)
+        results, failures = service.backfill("fcs", ["EURUSD", "GBPUSD"], length=5)
+
+        assert "fcs:EURUSD" in results
+        assert "GBPUSD" in failures
+
+    def test_needs_backfill_true_with_checkpoint(self, temp_db: SQLiteDatabase) -> None:
+        """needs_backfill returns True when checkpoint exists."""
+        import json
+        temp_db.set_backfill_checkpoint("fcs", {"last_symbol_idx": 0, "length": 5})
+        temp_db.commit()
+
+        registry = SourceRegistry()
+        service = BackfillService(db=temp_db, registry=registry, auto_backfill_time="16:30")
+        assert service.needs_backfill("fcs") is True

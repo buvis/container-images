@@ -60,30 +60,22 @@ def load_settings() -> Settings:
 
 def _parse_int(env_var: str, default: int) -> int:
     val = os.getenv(env_var)
-
     if val is None:
         return default
-
     try:
         return int(val)
     except ValueError:
-        logging.warning("invalid %s=%r, using default %d", env_var, val, default)
-
-        return default
+        raise ValueError(f"Invalid {env_var}={val!r} (expected integer)")
 
 
 def _parse_float(env_var: str, default: float) -> float:
     val = os.getenv(env_var)
-
     if val is None:
         return default
-
     try:
         return float(val)
     except ValueError:
-        logging.warning("invalid %s=%r, using default %f", env_var, val, default)
-
-        return default
+        raise ValueError(f"Invalid {env_var}={val!r} (expected number)")
 
 
 def _parse_symbols(raw: str) -> dict[str, list[str]]:
@@ -97,7 +89,10 @@ def _parse_symbols(raw: str) -> dict[str, list[str]]:
 
     for item in raw.split(","):
         item = item.strip()
-        if not item or ":" not in item:
+        if not item:
+            continue
+        if ":" not in item:
+            logging.warning("SYMBOLS: ignoring %r (expected format 'provider:symbol')", item)
             continue
         provider, symbol = item.split(":", 1)
         provider = provider.strip().lower()

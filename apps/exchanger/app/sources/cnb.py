@@ -151,25 +151,26 @@ class CnbSource:
             self._symbol_names = _parse_symbol_names(text)
         except Exception as e:
             logger.warning("Failed to fetch CNB symbol names: %s", e)
-            self._symbol_names = {}
+            return {}  # don't cache failure
 
         return self._symbol_names
 
     def _fetch_rates_for_date(self, dt: date) -> dict[str, float]:
         url = f"{CNB_URL}?date={dt.strftime('%d.%m.%Y')}"
         logger.debug("fetching CNB rates from %s", url)
+        last_error: Exception | None = None
 
         for attempt in range(MAX_RETRIES):
             try:
                 text = self._http_get(url)
                 return _parse_response(text)
             except Exception as e:
-                logger.debug("CNB fetch attempt %d failed: %s", attempt + 1, e)
+                last_error = e
+                logger.warning("CNB fetch attempt %d/%d failed: %s", attempt + 1, MAX_RETRIES, e)
                 if attempt < MAX_RETRIES - 1:
                     time.sleep(RETRY_DELAY * (attempt + 1))
 
-        logger.warning("CNB fetch failed after %d attempts for %s", MAX_RETRIES, dt)
-        return {}
+        raise ConnectionError(f"CNB fetch failed after {MAX_RETRIES} attempts for {dt}") from last_error
 
 
 def _default_http_get(url: str) -> str:

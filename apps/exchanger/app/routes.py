@@ -37,10 +37,8 @@ from app.task_manager import TaskManager
 
 
 def _sanitize_error(e: Exception) -> str:
-    """Return a safe error message without internal details."""
-    error_type = type(e).__name__
-    # Only expose error type, not the full message which may contain paths or internal info
-    return f"Task failed ({error_type})"
+    """Return error message (our code controls these, safe to expose)."""
+    return str(e) or type(e).__name__
 
 
 # Strict pattern: YYYYMMDD_HHMMSS
@@ -378,20 +376,23 @@ def create_router(
                     logger.info(f"Manual backfill started: provider={prov}, symbols={syms or 'all'}, days={days}")
                     task_manager.update_status(key, per_symbol={})
                     try:
-                        results = backfill_service.backfill(
+                        results, failures = backfill_service.backfill(
                             prov,
                             syms,
                             days,
                             on_progress=lambda u: task_manager.update_status(key, **(u if isinstance(u, dict) else {"message": u})),
                         )
                         total = sum(results.values())
+                        msg = f"Completed: {total} rows"
+                        if failures:
+                            msg += f" ({len(failures)} failed: {', '.join(failures)})"
                         task_manager.set_status(key, {
                             "status": "done",
-                            "message": f"Completed: {total} rows",
+                            "message": msg,
                             "per_symbol": results,
                             "rows_written": total,
                         })
-                        logger.info(f"Manual backfill completed for {prov}: {total} rows")
+                        logger.info(f"Manual backfill completed for {prov}: {total} rows, {len(failures)} failures")
                     except Exception as e:
                         logger.error(f"Manual backfill failed for {prov}: {e}")
                         task_manager.set_status(key, {"status": "error", "message": _sanitize_error(e)})
@@ -486,6 +487,10 @@ def create_router(
                 except asyncio.TimeoutError:
                     await websocket.send_text("ping")
         except WebSocketDisconnect:
+            pass
+        except Exception as e:
+            logger.warning("ws error: %s", e)
+        finally:
             task_manager.disconnect(websocket)
 
     @router.get("/symbols/list", response_model=list[SymbolResponse])

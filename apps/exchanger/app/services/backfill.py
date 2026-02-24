@@ -106,21 +106,23 @@ class BackfillService:
         """
         logger.debug("backfill: provider=%s symbols=%s length=%d", provider, symbols, length)
         results: dict[str, int] = {}
+        all_failures: list[str] = []
 
         if provider == "all":
             logger.debug("backfilling from all providers")
             for source in self._registry.all():
-                source_results = self._backfill_source(source, symbols, length, on_progress)
+                source_results, source_failures = self._backfill_source(source, symbols, length, on_progress)
                 results.update(source_results)
+                all_failures.extend(source_failures)
         else:
             source = self._registry.get(provider)
             if source:
-                results = self._backfill_source(source, symbols, length, on_progress)
+                results, all_failures = self._backfill_source(source, symbols, length, on_progress)
             else:
                 logger.debug("provider %s not found", provider)
 
         logger.debug("backfill complete: %s", results)
-        return results
+        return results, all_failures
 
     def _backfill_source(
         self,
@@ -195,6 +197,7 @@ class BackfillService:
 
         # Fetch and store one symbol at a time
         results: dict[str, int] = {}
+        failures: list[str] = []
         for i, provider_sym in enumerate(source_symbols[start_idx:], start_idx + 1):
             if on_progress:
                 pct = int((completed_units / total_units) * 100) if total_units > 0 else 0
@@ -224,8 +227,8 @@ class BackfillService:
                     symbol_types=symbol_types,
                 )
             except Exception as e:
-                logger.warning("failed to fetch %s from %s: %s", provider_sym, provider, e)
-                # Save checkpoint before continuing
+                logger.error("failed to fetch %s from %s: %s", provider_sym, provider, e)
+                failures.append(provider_sym)
                 self._db.set_backfill_checkpoint(provider, {"last_symbol_idx": i - 1, "length": length})
                 self._db.commit()
                 continue
@@ -249,4 +252,7 @@ class BackfillService:
         self._db.clear_backfill_checkpoint(provider)
         self._db.commit()
 
-        return results
+        if failures:
+            logger.warning("backfill %s: %d failures: %s", provider, len(failures), failures)
+
+        return results, failures

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from app.database import SQLiteDatabase
@@ -197,3 +199,62 @@ class TestSQLiteDatabase:
         # Unknown symbol
         providers = temp_db.get_providers_for_symbol("UNKNOWN")
         assert providers == []
+
+
+class TestRestoreAtomicity:
+    def test_restore_rolls_back_on_import_rates_failure(self, temp_db: SQLiteDatabase) -> None:
+        """If import_rates fails mid-restore, symbols should also be rolled back."""
+        # Seed existing data
+        temp_db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
+        temp_db.commit()
+        temp_db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
+        temp_db.commit()
+
+        backup_data = temp_db.export_all()
+        assert len(backup_data["symbols"]) == 1
+        assert len(backup_data["rates"]) == 1
+
+        # Simulate failure during import_rates
+        original_import_rates = temp_db.import_rates
+
+        def failing_import_rates(rows):
+            raise RuntimeError("simulated failure")
+
+        try:
+            temp_db.begin_transaction()
+            temp_db.import_symbols(backup_data["symbols"])
+            with patch.object(temp_db, "import_rates", side_effect=failing_import_rates):
+                try:
+                    temp_db.import_rates(backup_data["rates"])
+                except RuntimeError:
+                    temp_db.rollback()
+                    # After rollback, original data should still be intact
+                    rate = temp_db.get_rate("2024-01-15", "EURUSD", "fcs")
+                    assert rate == 1.0850
+                    return
+        except Exception:
+            temp_db.rollback()
+
+        pytest.fail("Expected RuntimeError from import_rates")
+
+    def test_successful_restore_replaces_data(self, temp_db: SQLiteDatabase) -> None:
+        """Full restore should replace all data."""
+        temp_db.populate_symbols("fcs", [Symbol(provider="fcs", symbol="EURUSD", provider_symbol="EURUSD", type="forex", name="Euro")])
+        temp_db.commit()
+        temp_db.upsert_rate("2024-01-15", "EURUSD", "fcs", 1.0850)
+        temp_db.commit()
+
+        backup_data = temp_db.export_all()
+
+        # Modify data
+        temp_db.upsert_rate("2024-01-15", "EURUSD", "fcs", 9.9999)
+        temp_db.commit()
+        assert temp_db.get_rate("2024-01-15", "EURUSD", "fcs") == 9.9999
+
+        # Restore from backup
+        temp_db.begin_transaction()
+        temp_db.import_symbols(backup_data["symbols"])
+        temp_db.import_rates(backup_data["rates"])
+        temp_db.commit()
+
+        assert temp_db.get_rate("2024-01-15", "EURUSD", "fcs") == 1.0850

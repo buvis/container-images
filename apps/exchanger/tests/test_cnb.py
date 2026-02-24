@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from app.sources.cnb import CnbSource, CNB_CURRENCIES, _parse_response
 
 
@@ -122,10 +124,10 @@ class TestFetchRatesIntegration:
         assert len(called_urls) == 1
         assert "date=20.01.2026" in called_urls[0]
 
-    def test_returns_empty_on_error(self) -> None:
+    def test_raises_on_persistent_error(self) -> None:
         def failing_get(url: str) -> str:
             raise ConnectionError("Network error")
 
-        source = CnbSource(http_get=failing_get)
-        rate = source.fetch_rate("EURCZK", date(2026, 1, 20))
-        assert rate is None
+        source = CnbSource(http_get=failing_get, fetch_delay=0)
+        with pytest.raises(ConnectionError, match="CNB fetch failed after"):
+            source.fetch_rate("EURCZK", date(2026, 1, 20))

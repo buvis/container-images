@@ -86,7 +86,7 @@ class Application:
             logger.info(f"Backfill started: provider={provider}, symbols={symbols}, days={length}")
             self.task_manager.update_status(task_key, per_symbol={})
             try:
-                results = self.backfill_service.backfill(
+                results, failures = self.backfill_service.backfill(
                     provider,
                     symbols,
                     length,
@@ -94,13 +94,16 @@ class Application:
                 )
                 total = sum(results.values())
                 self.backfill_service.mark_done(provider)
+                msg = f"Completed: {total} rows"
+                if failures:
+                    msg += f" ({len(failures)} failed: {', '.join(failures)})"
                 self.task_manager.set_status(task_key, {
                     "status": "done",
-                    "message": f"Completed: {total} rows",
+                    "message": msg,
                     "per_symbol": results,
                     "rows_written": total,
                 })
-                logger.info(f"Backfill completed: {total} rows")
+                logger.info(f"Backfill completed: {total} rows, {len(failures)} failures")
             except ShutdownRequested:
                 logger.info(f"Backfill {provider} interrupted by shutdown")
                 self.task_manager.set_status(task_key, {"status": "cancelled", "message": "Shutdown requested"})
@@ -253,7 +256,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     fastapi_app = FastAPI(
         title="Exchanger",
         description="Multi-provider caching proxy for exchange rates",
-        version="1.0.0",
+        version="0.1.0",
         lifespan=lifespan,
     )
 
@@ -278,7 +281,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @fastapi_app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
-        return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {exc}"})
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     return fastapi_app
 

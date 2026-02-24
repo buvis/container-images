@@ -13,10 +13,15 @@ Multi-provider caching proxy for exchange rates. Stores daily rates in SQLite, a
 |----------|----------|---------|-------------|
 | `PROVIDER_FCS_API_KEY` | no | - | FCSAPI key (only if using FCS provider) |
 | `DB_PATH` | no | `/data/exchanger.db` | SQLite path |
+| `BACKUP_DIR` | no | `backups/` next to DB | Backup directory |
 | `SYMBOLS` | no | - | Format: `provider:symbol,...` (e.g. `fcs:EURCZK,cnb:USDCZK`) |
 | `AUTO_BACKFILL_TIME` | no | `16:30` | Daily task time (HH:MM) |
 | `AUTO_BACKFILL_DAYS` | no | `31` | Days to fetch per backfill |
 | `SYMBOLS_MAX_AGE_DAYS` | no | `30` | Refresh symbols after N days |
+| `PROVIDER_CNB_FETCH_DELAY` | no | `2.0` | Seconds between CNB API calls |
+| `RATE_LIMIT_WAIT` | no | `65` | Seconds to wait on FCS rate limit |
+| `SCHEDULER_TICK_SECONDS` | no | `5.0` | Scheduler loop interval |
+| `DASHBOARD_HISTORY_DAYS` | no | `7` | Default range for dashboard sparklines |
 | `LOG_LEVEL` | no | `INFO` | Log level (DEBUG, INFO, WARNING, ERROR) |
 
 ## API
@@ -29,23 +34,27 @@ Interactive API docs available at:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/providers` | List registered providers |
-| GET | `/providers/status` | Provider health and symbol counts |
-| GET | `/rates?date=&symbol=&provider=` | Get single rate |
-| GET | `/rates/list?date=&provider=` | List all rates for date |
-| GET | `/rates/history?symbol=&from_date=&to_date=&provider=` | Rate history for charting |
-| GET | `/rates/coverage?year=&provider=&symbols=` | Coverage counts per date |
-| POST | `/backfill?provider=&length=&symbols=` | Start backfill task |
-| POST | `/populate_symbols?provider=` | Fetch symbols from provider |
-| GET | `/symbols/list?provider=&type=&q=` | List symbols with filter |
-| GET | `/task_status` | Background task status |
-| GET | `/favorites` | User's favorite symbols |
-| POST | `/favorites` | Add favorite (body: `{symbol}`) |
-| DELETE | `/favorites/{symbol}` | Remove favorite |
-| GET | `/backups` | List available backups |
-| POST | `/backup` | Create backup |
-| POST | `/restore?timestamp=` | Restore from backup |
+| GET | `/api/health` | Health check |
+| GET | `/api/providers` | List registered providers |
+| GET | `/api/providers/status` | Provider health and symbol counts |
+| GET | `/api/rates?date=&symbol=&provider=` | Get single rate |
+| GET | `/api/rates/list?date=&provider=` | List all rates for date |
+| GET | `/api/rates/history?symbol=&from_date=&to_date=&provider=` | Rate history for charting |
+| GET | `/api/rates/coverage?year=&provider=&symbols=` | Coverage counts per date |
+| POST | `/api/backfill?provider=&length=&symbols=` | Start backfill task |
+| POST | `/api/populate_symbols?provider=` | Fetch symbols from provider |
+| GET | `/api/symbols/list?provider=&type=&q=` | List symbols with filter |
+| GET | `/api/task_status` | Background task status |
+| GET | `/api/favorites` | User's favorite symbols |
+| POST | `/api/favorites` | Add favorite (body: `{provider, provider_symbol}`) |
+| DELETE | `/api/favorites/{provider}/{provider_symbol}` | Remove favorite |
+| GET | `/api/backups` | List available backups |
+| POST | `/api/backup` | Create backup |
+| POST | `/api/restore?timestamp=` | Restore from backup |
+
+## Security
+
+No authentication. Deploy behind a reverse proxy with auth if exposed to untrusted networks.
 
 ## Backup/restore
 

@@ -42,8 +42,8 @@ class SQLiteDatabase:
         logger.debug("database initialized")
 
     def _init_db(self) -> None:
-        # Enable WAL mode for better concurrency
         self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA foreign_keys=ON")
         self._migrate_schema()
         self._conn.commit()
 
@@ -941,6 +941,7 @@ class SQLiteDatabase:
                 return 0
 
             count = 0
+            skipped = 0
             for row in rows:
                 # Support both old format (symbol) and new format (provider_symbol)
                 provider_symbol = row.get("provider_symbol") or row.get("symbol")
@@ -950,6 +951,7 @@ class SQLiteDatabase:
                 )
                 symbol_row = cur.fetchone()
                 if not symbol_row:
+                    skipped += 1
                     continue
 
                 self._conn.execute(
@@ -958,6 +960,8 @@ class SQLiteDatabase:
                 )
                 count += 1
 
+            if skipped:
+                logger.warning("import_rates: skipped %d rows (symbols not found)", skipped)
             return count
 
     def import_symbols(self, rows: list[dict]) -> int:
