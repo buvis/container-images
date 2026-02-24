@@ -70,7 +70,6 @@ def main() -> None:
                     linkcheck.run_check()
             except Exception as e:
                 logger.error(f"Error during sync/update: {e}", exc_info=True)
-                trigger_event.clear()
     except KeyboardInterrupt:
         logger.info("Shutdown requested by user. Exiting gracefully.")
 
