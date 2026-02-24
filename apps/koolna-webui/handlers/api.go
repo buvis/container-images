@@ -44,6 +44,35 @@ func NewAPIHandler(client dynamic.Interface, kube kubernetes.Interface, config *
 	}
 }
 
+type createRequest struct {
+	Name         string `json:"name"`
+	Repo         string `json:"repo"`
+	Branch       string `json:"branch"`
+	DotfilesRepo string `json:"dotfilesRepo,omitempty"`
+	Image        string `json:"image"`
+	Storage      string `json:"storage"`
+	GitSecretRef string `json:"gitSecretRef,omitempty"`
+}
+
+type koolnaResponse struct {
+	Name      string `json:"name"`
+	Repo      string `json:"repo"`
+	Branch    string `json:"branch"`
+	Phase     string `json:"phase"`
+	IP        string `json:"ip,omitempty"`
+	Suspended bool   `json:"suspended"`
+}
+
+func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
+	resp := koolnaResponse{Name: obj.GetName()}
+	resp.Repo, _, _ = unstructured.NestedString(obj.Object, "spec", "repo")
+	resp.Branch, _, _ = unstructured.NestedString(obj.Object, "spec", "branch")
+	resp.Suspended, _, _ = unstructured.NestedBool(obj.Object, "spec", "suspended")
+	resp.Phase, _, _ = unstructured.NestedString(obj.Object, "status", "phase")
+	resp.IP, _, _ = unstructured.NestedString(obj.Object, "status", "ip")
+	return resp
+}
+
 // RegisterRoutes wires the handler functions into the provided router.
 func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/koolnas", h.ListKoolnas).Methods("GET")
@@ -63,7 +92,11 @@ func (h *APIHandler) ListKoolnas(w http.ResponseWriter, _ *http.Request) {
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
 	}
-	respondJSON(w, http.StatusOK, list)
+	items := make([]koolnaResponse, 0, len(list.Items))
+	for i := range list.Items {
+		items = append(items, toKoolnaResponse(&list.Items[i]))
+	}
+	respondJSON(w, http.StatusOK, items)
 }
 
 // GetKoolna fetches a single Koolna by name.
@@ -79,28 +112,67 @@ func (h *APIHandler) GetKoolna(w http.ResponseWriter, r *http.Request) {
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
 	}
-	respondJSON(w, http.StatusOK, obj)
+	respondJSON(w, http.StatusOK, toKoolnaResponse(obj))
 }
 
 // CreateKoolna creates a new Koolna from the request payload.
 func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
-	var payload map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+	var req createRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, http.StatusBadRequest, err)
 		return
 	}
-	if payload == nil {
-		respondError(w, http.StatusBadRequest, fmt.Errorf("request body must be a JSON object"))
+
+	if req.Name == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("name is required"))
 		return
 	}
+	if req.Repo == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("repo is required"))
+		return
+	}
+	if req.Image == "" {
+		req.Image = "ghcr.io/buvis/koolna-base:latest"
+	}
+	if req.Branch == "" {
+		req.Branch = "main"
+	}
+	if req.Storage == "" {
+		req.Storage = "10Gi"
+	}
+	if req.GitSecretRef == "" {
+		req.GitSecretRef = "git-creds"
+	}
 
-	obj := &unstructured.Unstructured{Object: payload}
+	spec := map[string]interface{}{
+		"repo":         req.Repo,
+		"branch":       req.Branch,
+		"image":        req.Image,
+		"storage":      req.Storage,
+		"gitSecretRef": req.GitSecretRef,
+	}
+	if req.DotfilesRepo != "" {
+		spec["dotfilesRepo"] = req.DotfilesRepo
+	}
+
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "koolna.buvis.net/v1alpha1",
+			"kind":       "Koolna",
+			"metadata": map[string]interface{}{
+				"name":      req.Name,
+				"namespace": h.ns,
+			},
+			"spec": spec,
+		},
+	}
+
 	created, err := h.resource().Create(context.Background(), obj, metav1.CreateOptions{})
 	if err != nil {
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, created)
+	respondJSON(w, http.StatusCreated, toKoolnaResponse(created))
 }
 
 // DeleteKoolna removes the named resource.
@@ -236,7 +308,7 @@ func (h *APIHandler) patchSuspended(w http.ResponseWriter, r *http.Request, susp
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
 	}
-	respondJSON(w, http.StatusOK, obj)
+	respondJSON(w, http.StatusOK, toKoolnaResponse(obj))
 }
 
 func (h *APIHandler) resource() dynamic.ResourceInterface {
