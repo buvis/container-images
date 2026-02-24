@@ -24,4 +24,6 @@ RUN pip install --no-cache-dir --user \
 # Add application code
 ADD --chown=app:app container-files/syncer /app
 
+EXPOSE 9000
+
 CMD ["python3", "/app/run.py"]

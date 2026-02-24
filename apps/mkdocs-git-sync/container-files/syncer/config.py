@@ -8,9 +8,12 @@ GIT_REPO_ENV = "GIT_REPO"
 GIT_CREDENTIALS_ENV = "GIT_CREDENTIALS"
 GIT_BRANCH_ENV = "GIT_BRANCH"
 UPDATE_INTERVAL_ENV = "UPDATE_INTERVAL"
+GITHUB_WEBHOOK_SECRET_ENV = "GITHUB_WEBHOOK_SECRET"
+WEBHOOK_PORT_ENV = "WEBHOOK_PORT"
 # Defaults
 DEFAULT_BRANCH = "main"
 DEFAULT_INTERVAL = 900
+DEFAULT_WEBHOOK_PORT = 9000
 DEFAULT_REQUIREMENTS_PATH = "/app/config/requirements.txt"
 
 logger = logging.getLogger(__name__)
@@ -59,6 +62,27 @@ class Config:
         interval_str = os.environ.get(UPDATE_INTERVAL_ENV)
         self.interval = self._parse_interval(interval_str)
         logger.info(f"Update interval set to: {self.interval} seconds")
+
+        self.webhook_secret = os.environ.get(GITHUB_WEBHOOK_SECRET_ENV)
+        self.webhook_port = self._parse_port(os.environ.get(WEBHOOK_PORT_ENV))
+        self.webhook_enabled = self.webhook_secret is not None
+
+        if self.webhook_enabled:
+            logger.info(f"Webhook server will listen on port {self.webhook_port}")
+        else:
+            logger.info("No webhook secret configured; webhook server disabled")
+
+    @staticmethod
+    def _parse_port(value: Optional[str]) -> int:
+        if value is None:
+            return DEFAULT_WEBHOOK_PORT
+        try:
+            return int(value)
+        except ValueError:
+            logger.warning(
+                f"Invalid {WEBHOOK_PORT_ENV} value '{value}'; using default: {DEFAULT_WEBHOOK_PORT}"
+            )
+            return DEFAULT_WEBHOOK_PORT
 
     @staticmethod
     def _parse_interval(value: Optional[str]) -> int:

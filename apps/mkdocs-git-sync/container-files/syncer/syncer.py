@@ -38,8 +38,9 @@ class Syncer:
         self.site_ready = self._build_docs()
         self.prev_sha = self.repo_manager.head_commit.hexsha
 
-    def update(self) -> bool:
+    def update(self, source: str = "poll") -> bool:
         """Main update cycle: pull changes and rebuild if needed."""
+        logger.info(f"Sync started (trigger: {source})")
         if not self.repo_manager:
             raise RuntimeError("Syncer not initialized properly")
 

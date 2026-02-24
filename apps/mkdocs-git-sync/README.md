@@ -59,6 +59,22 @@ Once started, navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000). You wi
     - **GIT_BRANCH**: repository's branch to use (`default: main`)
     - **UPDATE_INTERVAL**: pull from repository every x seconds (`default: 900`)
     - **LOG_LEVEL**: [logging library](https://docs.python.org/3/library/logging.html#logging-levels) minimum message level to be logged (`default: INFO`)
+    - **GITHUB_WEBHOOK_SECRET**: HMAC-SHA256 secret for GitHub webhook validation. When set, starts a webhook server alongside polling. Configure the same secret in your GitHub repo's webhook settings.
+    - **WEBHOOK_PORT**: port for the webhook HTTP server (`default: 9000`)
+
+### GitHub webhooks
+
+Set `GITHUB_WEBHOOK_SECRET` to enable near-instant rebuilds on push. The webhook server listens on `WEBHOOK_PORT` (default 9000) at `POST /hooks/github`.
+
+To configure:
+1. Set `GITHUB_WEBHOOK_SECRET` env var on the container
+2. In your GitHub repo, go to Settings > Webhooks > Add webhook
+3. Set Payload URL to `http://<your-host>:9000/hooks/github`
+4. Set Content type to `application/json`
+5. Set Secret to the same value as `GITHUB_WEBHOOK_SECRET`
+6. Select "Just the push event"
+
+When configured, polling continues as a fallback. Without the secret, the app behaves exactly as before (polling only).
 
 ### Link checking
 
