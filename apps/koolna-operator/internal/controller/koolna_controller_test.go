@@ -96,7 +96,7 @@ var _ = Describe("Koolna Controller", func() {
 			By("Creating the Koolna resource")
 			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
 
-			By("Reconciling")
+			By("Reconciling to create resources")
 			_, err := reconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
 			})
@@ -126,12 +126,24 @@ var _ = Describe("Koolna Controller", func() {
 			}, svc)).To(Succeed())
 			Expect(svc.Spec.Ports[0].Port).To(Equal(int32(3000)))
 
+			By("Simulating kubelet setting pod to Running")
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.PodIP = "10.0.0.1"
+			Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
+
+			By("Reconciling again to pick up pod status")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
 			By("Checking status was updated")
 			updated := &koolnav1alpha1.Koolna{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, updated)).To(Succeed())
 			Expect(updated.Status.Phase).To(Equal(koolnav1alpha1.KoolnaPhaseRunning))
 			Expect(updated.Status.PodName).To(Equal(resourceName))
 			Expect(updated.Status.PVCName).To(Equal(resourceName + "-workspace"))
+			Expect(updated.Status.CurrentBranch).To(Equal("main"))
 		})
 	})
 
@@ -388,6 +400,17 @@ var _ = Describe("Koolna Controller", func() {
 
 			By("Verifying Pod was created")
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, pod)).To(Succeed())
+
+			By("Simulating kubelet setting pod to Running")
+			pod.Status.Phase = corev1.PodRunning
+			pod.Status.PodIP = "10.0.0.2"
+			Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
+
+			By("Reconciling again to pick up pod status")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying status is Running")
 			updated := &koolnav1alpha1.Koolna{}

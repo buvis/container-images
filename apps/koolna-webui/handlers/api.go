@@ -158,11 +158,11 @@ func (h *APIHandler) CheckoutBranch(w http.ResponseWriter, r *http.Request) {
 
 	stdout, stderr, err := h.execInPod(ctx, podName, []string{"git", "checkout", payload.Branch})
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to run git checkout: %v", err)
 		if stderr != "" {
-			errMsg = fmt.Sprintf("%s (stderr: %s)", errMsg, stderr)
+			respondError(w, http.StatusInternalServerError, fmt.Errorf("failed to run git checkout: %v (stderr: %s)", err, stderr))
+		} else {
+			respondError(w, http.StatusInternalServerError, fmt.Errorf("failed to run git checkout: %v", err))
 		}
-		respondError(w, http.StatusInternalServerError, fmt.Errorf(errMsg))
 		return
 	}
 
@@ -200,11 +200,11 @@ func (h *APIHandler) GetBranch(w http.ResponseWriter, r *http.Request) {
 
 	stdout, stderr, err := h.execInPod(ctx, podName, []string{"git", "branch", "--show-current"})
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to read branch: %v", err)
 		if stderr != "" {
-			errMsg = fmt.Sprintf("%s (stderr: %s)", errMsg, stderr)
+			respondError(w, http.StatusInternalServerError, fmt.Errorf("failed to read branch: %v (stderr: %s)", err, stderr))
+		} else {
+			respondError(w, http.StatusInternalServerError, fmt.Errorf("failed to read branch: %v", err))
 		}
-		respondError(w, http.StatusInternalServerError, fmt.Errorf(errMsg))
 		return
 	}
 
@@ -244,7 +244,7 @@ func (h *APIHandler) resource() dynamic.ResourceInterface {
 }
 
 func (h *APIHandler) podNameForInstance(ctx context.Context, name string) (string, error) {
-	selector := fmt.Sprintf("app.kubernetes.io/instance=%s", name)
+	selector := fmt.Sprintf("koolna.buvis.net/name=%s", name)
 	pods, err := h.kube.CoreV1().Pods(h.ns).List(ctx, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return "", err
