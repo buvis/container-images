@@ -35,10 +35,13 @@ def main() -> None:
         sys.exit(1)
 
     syncer = Syncer(config)
-    linkcheck = LinkCheckService(LINKCHECK_CONFIG_PATH, SITE_PATH)
 
-    if syncer.site_ready:
-        linkcheck.run_check(after_build=True)
+    if not syncer.site_ready:
+        logger.error("Initial site build failed. Exiting.")
+        sys.exit(1)
+
+    linkcheck = LinkCheckService(LINKCHECK_CONFIG_PATH, SITE_PATH)
+    linkcheck.run_check(after_build=True)
 
     logger.info("Starting main update loop.")
     try:
