@@ -5,6 +5,10 @@ from time import sleep
 
 from syncer import Syncer
 from config import Config, ConfigError
+from linkcheck.service import LinkCheckService
+
+LINKCHECK_CONFIG_PATH = "/app/config/linkcheck.yml"
+SITE_PATH = "/app/site"
 
 
 def setup_logging():
@@ -17,10 +21,6 @@ def setup_logging():
 
 
 def main() -> None:
-    """
-    Main execution loop for the syncer application.
-    Loads configuration, sets up the syncer, and runs the update loop.
-    """
     setup_logging()
     logger = logging.getLogger("syncer")
 
@@ -35,12 +35,20 @@ def main() -> None:
         sys.exit(1)
 
     syncer = Syncer(config)
+    linkcheck = LinkCheckService(LINKCHECK_CONFIG_PATH, SITE_PATH)
+
+    # run initial link check after first build
+    linkcheck.run_check(after_build=True)
 
     logger.info("Starting main update loop.")
     try:
         while True:
             try:
-                syncer.update()
+                rebuilt = syncer.update()
+                if rebuilt:
+                    linkcheck.run_check(after_build=True)
+                elif linkcheck.should_run():
+                    linkcheck.run_check()
                 logger.info(f"Waiting for {config.interval} seconds")
                 sleep(config.interval)
             except Exception as e:

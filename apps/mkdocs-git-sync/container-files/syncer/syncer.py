@@ -38,7 +38,7 @@ class Syncer:
         self._build_docs()
         self.prev_sha = self.repo_manager.head_commit.hexsha
 
-    def update(self) -> None:
+    def update(self) -> bool:
         """Main update cycle: pull changes and rebuild if needed."""
         if not self.repo_manager:
             raise RuntimeError("Syncer not initialized properly")
@@ -47,7 +47,7 @@ class Syncer:
             self.repo_manager.pull()
         except Exception as e:
             logger.error(f"Update failed: {str(e)}")
-            return
+            return False
 
         head_commit = self.repo_manager.head_commit
         new_sha = head_commit.hexsha
@@ -56,6 +56,9 @@ class Syncer:
             self._log_commit_details(head_commit)
             self._build_docs()
             self.prev_sha = new_sha
+            return True
+
+        return False
 
     def _log_commit_details(self, commit) -> None:
         """Log commit details without sensitive info."""
