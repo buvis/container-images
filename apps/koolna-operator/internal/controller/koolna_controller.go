@@ -18,6 +18,8 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -102,6 +104,10 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 			}
 		}
 	}()
+
+	if err = validateSpec(koolna.Spec); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	pvc, err := r.reconcilePVC(ctx, &koolna)
 	if err != nil {
@@ -347,6 +353,24 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 
 const workspaceVolumeName = "workspace"
 
+var (
+	validRepoPattern   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+	validBranchPattern = regexp.MustCompile(`^[\w./-]+$`)
+)
+
+func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
+	if !validRepoPattern.MatchString(spec.Repo) {
+		return fmt.Errorf("invalid repo format %q: must match owner/repo", spec.Repo)
+	}
+	if !validBranchPattern.MatchString(spec.Branch) {
+		return fmt.Errorf("invalid branch format %q", spec.Branch)
+	}
+	if spec.DotfilesRepo != "" && !validRepoPattern.MatchString(spec.DotfilesRepo) {
+		return fmt.Errorf("invalid dotfilesRepo format %q: must match owner/repo", spec.DotfilesRepo)
+	}
+	return nil
+}
+
 func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
 	secretName := koolna.Spec.GitSecretRef
 
@@ -358,7 +382,13 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 			"-c",
 		},
 		Args: []string{
-			"if [ ! -d /workspace/.git ]; then git clone https://$GIT_USERNAME:$GIT_TOKEN@github.com/$REPO_URL /workspace && cd /workspace && git checkout $REPO_BRANCH; fi",
+			`if [ ! -d /workspace/.git ]; then
+  printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
+  git config --global credential.helper "store --file=/tmp/.gitcredentials"
+  git clone "https://github.com/$REPO_URL" /workspace
+  rm -f /tmp/.gitcredentials
+  cd /workspace && git checkout "$REPO_BRANCH"
+fi`,
 		},
 		Env: []corev1.EnvVar{
 			{
@@ -416,7 +446,11 @@ func buildDotfilesInitContainer(koolna *koolnav1alpha1.Koolna) *corev1.Container
 			"-c",
 		},
 		Args: []string{
-			"git clone https://$GIT_USERNAME:$GIT_TOKEN@github.com/$DOTFILES_REPO ~/.dotfiles && [ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true",
+			`printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
+git config --global credential.helper "store --file=/tmp/.gitcredentials"
+git clone "https://github.com/$DOTFILES_REPO" ~/.dotfiles
+rm -f /tmp/.gitcredentials
+[ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true`,
 		},
 		Env: []corev1.EnvVar{
 			{
