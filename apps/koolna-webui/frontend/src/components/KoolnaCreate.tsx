@@ -3,6 +3,8 @@ import { createKoolna, CreateKoolnaRequest } from '../api/koolna'
 
 const IMAGE_OPTIONS = [
   'ghcr.io/buvis/koolna-base:latest',
+  'ghcr.io/buvis/koolna-base:python',
+  'ghcr.io/buvis/koolna-base:node',
 ] as const
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
@@ -176,18 +178,21 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           <label className="text-sm font-semibold text-white/80" htmlFor="koolna-image">
             Image
           </label>
-          <select
-            id="koolna-image"
-            value={formState.image}
-            onChange={(event) => handleFieldChange('image', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
-          >
-            {IMAGE_OPTIONS.map((option) => (
-              <option key={option} value={option} className="bg-slate-900/70">
-                {option}
-              </option>
-            ))}
-          </select>
+          <>
+            <input
+              id="koolna-image"
+              list="image-options"
+              value={formState.image}
+              onChange={(event) => handleFieldChange('image', event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              placeholder="ghcr.io/buvis/koolna-base:latest"
+            />
+            <datalist id="image-options">
+              {IMAGE_OPTIONS.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+          </>
         </div>
 
         <div>
