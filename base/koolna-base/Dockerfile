@@ -43,7 +43,7 @@ RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/s
 RUN groupadd --gid $USER_GID $USERNAME \
   && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
   && usermod -aG sudo $USERNAME \
-  && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
+  && echo "$USERNAME ALL=(ALL) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt, /usr/bin/dpkg, /usr/bin/snap, /usr/local/bin/mise, /bin/systemctl, /usr/sbin/service" > /etc/sudoers.d/$USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME
 
 RUN mkdir -p /workspace /home/$USERNAME/.local/bin /home/$USERNAME/.config/mise \
