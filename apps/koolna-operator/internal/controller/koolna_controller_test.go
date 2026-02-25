@@ -343,6 +343,174 @@ var _ = Describe("Koolna Controller", func() {
 		})
 	})
 
+	Context("When Koolna has invalid repo format", func() {
+		const resourceName = "test-invalid-repo"
+
+		AfterEach(func() {
+			cleanupKoolna(resourceName, "default")
+		})
+
+		It("should fail reconciliation", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "invalid repo$(evil)",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid repo"))
+		})
+	})
+
+	Context("When Koolna has invalid branch format", func() {
+		const resourceName = "test-invalid-branch"
+
+		AfterEach(func() {
+			cleanupKoolna(resourceName, "default")
+		})
+
+		It("should fail reconciliation", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "owner/repo",
+					Branch:       "main; rm -rf /",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid branch"))
+		})
+	})
+
+	Context("When Koolna has invalid dotfilesRepo format", func() {
+		const resourceName = "test-invalid-dotfiles"
+
+		AfterEach(func() {
+			cleanupKoolna(resourceName, "default")
+		})
+
+		It("should fail reconciliation", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					DotfilesRepo: "not a valid repo",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid dotfilesRepo"))
+		})
+	})
+
+	Context("When building git-clone init container", func() {
+		It("should not embed credentials in clone URL", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-initc", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+			c := buildGitCloneInitContainer(koolna)
+			script := c.Args[0]
+			Expect(script).NotTo(ContainSubstring("$GIT_USERNAME:$GIT_TOKEN@"))
+			Expect(script).To(ContainSubstring("credential.helper"))
+		})
+
+		It("should quote variable expansions", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-initc-q", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+			c := buildGitCloneInitContainer(koolna)
+			script := c.Args[0]
+			Expect(script).To(ContainSubstring(`"$REPO_BRANCH"`))
+		})
+	})
+
+	Context("When building dotfiles init container", func() {
+		It("should not embed credentials in clone URL", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-dotf", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					DotfilesRepo: "owner/dotfiles",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+			c := buildDotfilesInitContainer(koolna)
+			Expect(c).NotTo(BeNil())
+			script := c.Args[0]
+			Expect(script).NotTo(ContainSubstring("$GIT_USERNAME:$GIT_TOKEN@"))
+			Expect(script).To(ContainSubstring("credential.helper"))
+		})
+
+		It("should return nil when dotfilesRepo is empty", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-no-dotf", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+			c := buildDotfilesInitContainer(koolna)
+			Expect(c).To(BeNil())
+		})
+	})
+
 	Context("When resuming suspended Koolna", func() {
 		const resourceName = "test-resume"
 
