@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weekly-summary
+  namespace: clara
+spec:
+  schedule: "0 7 * * 1"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: weekly-summary
+              image: ghcr.io/buvis/clara:v0.1.0
+              command: ["python", "-m", "clara.jobs.digest", "weekly"]
+              envFrom:
+                - configMapRef:
+                    name: clara-config
+                - secretRef:
+                    name: clara-secret

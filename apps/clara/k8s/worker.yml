@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: clara
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/buvis/clara:v0.1.0
+          command: ["python", "-m", "clara.worker"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          envFrom:
+            - configMapRef:
+                name: clara-config
+            - secretRef:
+                name: clara-secret
+          readinessProbe:
+            exec:
+              command: ["pgrep", "-f", "clara.worker"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", "clara.worker"]
+            initialDelaySeconds: 10
+            periodSeconds: 30

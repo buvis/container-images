@@ -1,0 +1,101 @@
+[project]
+name = "clara"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "pydantic[email]",
+    "argon2-cffi>=23.1",
+    "bcrypt>=4.0",
+    "PyJWT>=2.10",
+    "redis>=5.0",
+    "rq>=2.0",
+    "python-multipart>=0.0.20",
+    "aiofiles>=24.0",
+    "python-dateutil>=2.9",
+    "vobject>=0.9",
+    "pyotp>=2.9",
+    "qrcode[pil]>=7.4",
+    "structlog>=24.0",
+    "prometheus-fastapi-instrumentator>=7.0",
+    "cryptography>=46.0.5",
+    "caldav>=1.4",
+    "icalendar>=6.0",
+    "python-frontmatter>=1.1",
+    "GitPython>=3.1",
+    "python-slugify>=8.0",
+    "requests>=2.31",
+    "defusedxml>=0.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.9",
+    "mypy>=1.14",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "httpx>=0.28",
+    "aiosqlite>=0.20",
+    "types-aiofiles>=24.0",
+    "types-python-dateutil>=2.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clara"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/clara/deps.py" = ["B008"]
+"src/clara/*/api.py" = ["B008"]
+"src/clara/*/**_api.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "vobject.*",
+    "qrcode.*",
+    "frontmatter.*",
+    "caldav.*",
+    "icalendar.*",
+    "defusedxml.*",
+    "requests.*",
+    "slugify.*",
+    "cryptography.*",
+    "cryptography.fernet",
+    "git.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "clara.dav_sync.converters.*",
+    "clara.dav_sync.client",
+    "clara.dav_sync.sync_engine",
+]
+disallow_untyped_calls = false
+warn_return_any = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
