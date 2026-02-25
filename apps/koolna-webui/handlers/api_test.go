@@ -234,3 +234,165 @@ func TestGetKoolna_NotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d", w.Code)
 	}
 }
+
+func TestDeleteKoolna_Success(t *testing.T) {
+	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Running", "10.0.0.1")
+	router := setupTest(t, existing)
+
+	req := httptest.NewRequest("DELETE", "/api/koolnas/env-1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["message"] != "deleted" {
+		t.Errorf("message = %v, want deleted", resp["message"])
+	}
+}
+
+func TestDeleteKoolna_NotFound(t *testing.T) {
+	router := setupTest(t)
+
+	req := httptest.NewRequest("DELETE", "/api/koolnas/ghost", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPauseKoolna_Success(t *testing.T) {
+	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Running", "10.0.0.1")
+	router := setupTest(t, existing)
+
+	req := httptest.NewRequest("POST", "/api/koolnas/env-1/pause", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPauseKoolna_NotFound(t *testing.T) {
+	router := setupTest(t)
+
+	req := httptest.NewRequest("POST", "/api/koolnas/ghost/pause", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestResumeKoolna_Success(t *testing.T) {
+	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Suspended", "")
+	router := setupTest(t, existing)
+
+	req := httptest.NewRequest("POST", "/api/koolnas/env-1/resume", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateKoolna_InvalidJSON(t *testing.T) {
+	router := setupTest(t)
+
+	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader("not json"))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestCreateKoolna_EmptyBody(t *testing.T) {
+	router := setupTest(t)
+
+	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestCreateKoolna_WithDotfiles(t *testing.T) {
+	router := setupTest(t)
+
+	body := `{"name":"with-dots","repo":"owner/repo","dotfilesRepo":"owner/dotfiles"}`
+	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["name"] != "with-dots" {
+		t.Errorf("name = %v, want with-dots", resp["name"])
+	}
+}
+
+func TestCreateKoolna_Duplicate(t *testing.T) {
+	existing := makeKoolnaUnstructured("dup", "owner/repo", "main", "Running", "")
+	router := setupTest(t, existing)
+
+	body := `{"name":"dup","repo":"owner/repo"}`
+	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestListKoolnas_MultipleItems(t *testing.T) {
+	obj1 := makeKoolnaUnstructured("env-1", "owner/repo-a", "main", "Running", "10.0.0.1")
+	obj2 := makeKoolnaUnstructured("env-2", "owner/repo-b", "dev", "Pending", "")
+	router := setupTest(t, obj1, obj2)
+
+	req := httptest.NewRequest("GET", "/api/koolnas", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var items []map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &items); err != nil {
+		t.Fatalf("expected JSON array: %v", err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(items))
+	}
+
+	names := map[string]bool{}
+	for _, item := range items {
+		if name, ok := item["name"].(string); ok {
+			names[name] = true
+		}
+	}
+	if !names["env-1"] || !names["env-2"] {
+		t.Errorf("expected env-1 and env-2, got %v", names)
+	}
+}
