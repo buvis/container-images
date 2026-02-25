@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup
+  namespace: clara
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleanup
+              image: ghcr.io/buvis/clara:v0.1.0
+              command: ["python", "-m", "clara.jobs.cleanup"]
+              envFrom:
+                - configMapRef:
+                    name: clara-config
+                - secretRef:
+                    name: clara-secret

@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-digest
+  namespace: clara
+spec:
+  schedule: "0 7 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: daily-digest
+              image: ghcr.io/buvis/clara:v0.1.0
+              command: ["python", "-m", "clara.jobs.digest", "daily"]
+              envFrom:
+                - configMapRef:
+                    name: clara-config
+                - secretRef:
+                    name: clara-secret
