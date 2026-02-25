@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: clara
+
+resources:
+  - namespace.yml
+  - configmap.yml
+  - postgres.yml
+  - redis.yml
+  - backend.yml
+  - worker.yml
+  - ingress.yml
+  - networkpolicy.yml
+  - pdb.yml
+  - cronjob-cleanup.yml
+  - cronjob-daily-digest.yml
+  - cronjob-weekly-summary.yml
+
+secretGenerator:
+  - name: clara-secret
+    envs:
+      - secrets.env
+
+generatorOptions:
+  disableNameSuffixHash: true
