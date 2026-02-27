@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #05060a;
+  --color-surface: #0a0c10;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+body {
+  @apply bg-bg text-gray-100;
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}

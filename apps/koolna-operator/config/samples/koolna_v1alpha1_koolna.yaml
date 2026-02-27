@@ -1,0 +1,19 @@
+apiVersion: koolna.buvis.net/v1alpha1
+kind: Koolna
+metadata:
+  name: myproject-main
+spec:
+  repo: owner/name
+  branch: main
+  gitSecretRef: git-creds
+  image: ghcr.io/buvis/koolna-base:latest
+  storage: 10Gi
+  resources:
+    limits:
+      cpu: '2'
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  suspended: false
+  deletionPolicy: Delete

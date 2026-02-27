@@ -1,0 +1,4 @@
+#!/bin/bash
+# Shim to launch the whatwedo Python script
+
+exec python3 /usr/local/lib/whatwedo "$@"
