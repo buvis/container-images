@@ -1,5 +1,5 @@
 FROM node:22-alpine@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34 AS frontend-builder
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.30.3
 
 WORKDIR /frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
