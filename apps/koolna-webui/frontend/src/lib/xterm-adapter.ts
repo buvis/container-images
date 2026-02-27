@@ -12,10 +12,12 @@ export class XtermAdapter implements TerminalInterface {
   private messageEl: HTMLDivElement;
   private messageTimeout?: ReturnType<typeof setTimeout>;
 
-  constructor(
-    private container: HTMLElement,
-    private session: string
-  ) {
+  private container: HTMLElement;
+  private session: string;
+
+  constructor(container: HTMLElement, session: string) {
+    this.container = container;
+    this.session = session;
     this.fitAddon = new FitAddon();
     const weblinksAddon = new WebLinksAddon();
 

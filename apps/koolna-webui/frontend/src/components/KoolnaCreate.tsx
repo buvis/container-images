@@ -1,5 +1,5 @@
-import { FormEvent, useState } from 'react'
-import { createKoolna, CreateKoolnaRequest } from '../api/koolna'
+import { type FormEvent, useState } from 'react'
+import { createKoolna, type CreateKoolnaRequest } from '../api/koolna'
 
 const IMAGE_OPTIONS = [
   'ghcr.io/buvis/koolna-base:latest',

@@ -34,10 +34,13 @@ export interface WebTTYCallbacks {
 }
 
 export class ConnectionFactory {
-  constructor(
-    private url: string,
-    private protocols: string[]
-  ) {}
+  private url: string;
+  private protocols: string[];
+
+  constructor(url: string, protocols: string[]) {
+    this.url = url;
+    this.protocols = protocols;
+  }
 
   create(): Connection {
     return new Connection(this.url, this.protocols);
@@ -84,11 +87,16 @@ export class WebTTY {
   private connection: Connection | null = null;
   private callbacks: Required<WebTTYCallbacks>;
 
+  private term: TerminalInterface;
+  private connectionFactory: ConnectionFactory;
+
   constructor(
-    private term: TerminalInterface,
-    private connectionFactory: ConnectionFactory,
+    term: TerminalInterface,
+    connectionFactory: ConnectionFactory,
     callbacks: WebTTYCallbacks = {}
   ) {
+    this.term = term;
+    this.connectionFactory = connectionFactory;
     this.callbacks = {
       onStatus: callbacks.onStatus ?? (() => {}),
       onReconnect: callbacks.onReconnect ?? (() => {}),

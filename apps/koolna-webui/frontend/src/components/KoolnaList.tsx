@@ -4,7 +4,7 @@ import {
   pauseKoolna,
   resumeKoolna,
   deleteKoolna,
-  Koolna,
+  type Koolna,
 } from '../api/koolna'
 
 type KoolnaListProps = {
