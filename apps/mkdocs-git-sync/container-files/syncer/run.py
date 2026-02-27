@@ -49,9 +49,9 @@ def main() -> None:
     if config.webhook_enabled:
         webhook_server = WebhookServer(
             trigger_event=trigger_event,
-            secret=config.webhook_secret,
             branch=config.branch,
             port=config.webhook_port,
+            providers=config.webhook_providers,
         )
         webhook_server.start()
 

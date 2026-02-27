@@ -86,7 +86,7 @@ class TestWebhookIntegration:
         mock_config = MagicMock()
         mock_config.interval = 10
         mock_config.webhook_enabled = True
-        mock_config.webhook_secret = "secret"
+        mock_config.webhook_providers = {"github": "secret"}
         mock_config.webhook_port = 9000
         mock_config.branch = "main"
         mock_config_cls.return_value = mock_config
@@ -121,7 +121,7 @@ class TestWebhookIntegration:
         mock_config = MagicMock()
         mock_config.interval = 10
         mock_config.webhook_enabled = True
-        mock_config.webhook_secret = "secret"
+        mock_config.webhook_providers = {"github": "secret"}
         mock_config.webhook_port = 9000
         mock_config.branch = "main"
         mock_config_cls.return_value = mock_config
