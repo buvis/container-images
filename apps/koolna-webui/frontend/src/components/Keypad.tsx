@@ -33,10 +33,11 @@ export function Keypad({ onKey }: KeypadProps) {
     inputRef.current?.focus();
   };
 
-  const handleMobileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.value) {
-      onKey(e.target.value);
-      e.target.value = '';
+  const handleMobileInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement
+    if (target.value) {
+      onKey(target.value)
+      target.value = ""
     }
   };
 
