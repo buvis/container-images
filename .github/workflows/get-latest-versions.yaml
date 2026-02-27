@@ -7,53 +7,69 @@ on:
   - cron: "0 */4 * * *"
 
 jobs:
-  get-version:
+  detect-updates:
     runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.check.outputs.matrix }}
+      has-updates: ${{ steps.check.outputs.has-updates }}
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 1
-    - name: Fetch new base versions
+    - name: Check for version updates
+      id: check
       run: |
-        find ./base -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | while read app; do
-          if test -f "./base/${app}/latest-version.sh"; then
-            version=$(bash "./base/${app}/latest-version.sh")
-            if [[ ! -z "${version}" || "${version}" != "null" ]]; then
-              echo "${version}" | tee "./base/${app}/VERSION" > /dev/null
-              echo "${app} ${version}"
+        updates="[]"
+        for category in base apps; do
+          for dir in ./${category}/*/; do
+            [ -d "${dir}" ] || continue
+            app=$(basename "${dir}")
+            if test -f "./${category}/${app}/latest-version.sh"; then
+              current=$(cat "./${category}/${app}/VERSION")
+              latest=$(bash "./${category}/${app}/latest-version.sh")
+              if [[ -n "${latest}" && "${latest}" != "null" && "${latest}" != "${current}" ]]; then
+                echo "${category}/${app}: ${current} -> ${latest}"
+                updates=$(echo "${updates}" | jq -c --arg cat "${category}" --arg app "${app}" --arg ver "${latest}" '. + [{"category": $cat, "app": $app, "version": $ver}]')
+              fi
             fi
-          fi
+          done
         done
-    - name: Fetch new app versions
-      id: update
-      run: |
-        find ./apps -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | while read app; do
-          if test -f "./apps/${app}/latest-version.sh"; then
-            version=$(bash "./apps/${app}/latest-version.sh")
-            if [[ ! -z "${version}" || "${version}" != "null" ]]; then
-              echo "${version}" | tee "./apps/${app}/VERSION" > /dev/null
-              echo "${app} ${version}"
-              echo "app=${app}" >> $GITHUB_OUTPUT
-              echo "version=${version}" >> $GITHUB_OUTPUT
-            fi
-          fi
-        done
+        echo "matrix={\"include\":${updates}}" >> $GITHUB_OUTPUT
+        if [ "${updates}" != "[]" ]; then
+          echo "has-updates=true" >> $GITHUB_OUTPUT
+        else
+          echo "has-updates=false" >> $GITHUB_OUTPUT
+        fi
+
+  create-pr:
+    runs-on: ubuntu-24.04
+    needs: detect-updates
+    if: needs.detect-updates.outputs.has-updates == 'true'
+    strategy:
+      matrix: ${{ fromJson(needs.detect-updates.outputs.matrix) }}
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      with:
+        fetch-depth: 1
+    - name: Update VERSION file
+      run: echo "${{ matrix.version }}" > "./${{ matrix.category }}/${{ matrix.app }}/VERSION"
     - name: Create pull request
       id: create-pr
       uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        branch: "chore/update-${{ steps.update.outputs.app }}-${{ steps.update.outputs.version }}"
+        token: ${{ secrets.BOT_TOKEN }}
+        branch: "chore/update-${{ matrix.app }}-${{ matrix.version }}"
         delete-branch: true
-        title: "Update ${{ steps.update.outputs.app }} to version ${{ steps.update.outputs.version }}"
+        title: "Update ${{ matrix.app }} to version ${{ matrix.version }}"
         signoff: true
         committer: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
         author: "${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>"
         assignees: "tbouska"
-        commit-message: "chore: update ${{ steps.update.outputs.app }} to version ${{ steps.update.outputs.version }}"
+        commit-message: "chore: update ${{ matrix.app }} to version ${{ matrix.version }}"
         labels: chore/update
     - name: Enable auto-merge
       if: steps.create-pr.outputs.pull-request-number
       run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --auto
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.BOT_TOKEN }}
