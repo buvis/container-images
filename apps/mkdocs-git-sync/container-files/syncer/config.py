@@ -9,6 +9,8 @@ GIT_CREDENTIALS_ENV = "GIT_CREDENTIALS"
 GIT_BRANCH_ENV = "GIT_BRANCH"
 UPDATE_INTERVAL_ENV = "UPDATE_INTERVAL"
 GITHUB_WEBHOOK_SECRET_ENV = "GITHUB_WEBHOOK_SECRET"
+GITLAB_WEBHOOK_SECRET_ENV = "GITLAB_WEBHOOK_SECRET"
+BITBUCKET_WEBHOOK_SECRET_ENV = "BITBUCKET_WEBHOOK_SECRET"
 WEBHOOK_PORT_ENV = "WEBHOOK_PORT"
 # Defaults
 DEFAULT_BRANCH = "main"
@@ -63,14 +65,25 @@ class Config:
         self.interval = self._parse_interval(interval_str)
         logger.info(f"Update interval set to: {self.interval} seconds")
 
-        self.webhook_secret = os.environ.get(GITHUB_WEBHOOK_SECRET_ENV)
+        self.webhook_providers = {}
+        gh_secret = os.environ.get(GITHUB_WEBHOOK_SECRET_ENV)
+        gl_secret = os.environ.get(GITLAB_WEBHOOK_SECRET_ENV)
+        bb_secret = os.environ.get(BITBUCKET_WEBHOOK_SECRET_ENV)
+        if gh_secret:
+            self.webhook_providers["github"] = gh_secret
+        if gl_secret:
+            self.webhook_providers["gitlab"] = gl_secret
+        if bb_secret:
+            self.webhook_providers["bitbucket"] = bb_secret
+
         self.webhook_port = self._parse_port(os.environ.get(WEBHOOK_PORT_ENV))
-        self.webhook_enabled = self.webhook_secret is not None
+        self.webhook_enabled = len(self.webhook_providers) > 0
 
         if self.webhook_enabled:
-            logger.info(f"Webhook server will listen on port {self.webhook_port}")
+            names = ", ".join(self.webhook_providers.keys())
+            logger.info(f"Webhook server will listen on port {self.webhook_port} ({names})")
         else:
-            logger.info("No webhook secret configured; webhook server disabled")
+            logger.info("No webhook secrets configured; webhook server disabled")
 
     @staticmethod
     def _parse_port(value: Optional[str]) -> int:
