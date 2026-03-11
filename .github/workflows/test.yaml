@@ -3,9 +3,6 @@ name: Test
 
 on:
   pull_request:
-    paths:
-      - "apps/**"
-      - "base/**"
 
 env:
   GOSS_SLEEP: 30
@@ -16,6 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       matrix: '{"container": ${{ steps.reduce.outputs.containers }} }'
+      has_changes: ${{ steps.filter.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -28,13 +26,17 @@ jobs:
             - 'apps/**'
             - 'base/**'
       - run: echo '${{ toJson(steps.filter.outputs) }}' > changes.json
+        if: steps.filter.outputs.changed == 'true'
       - id: reduce
+        if: steps.filter.outputs.changed == 'true'
         run: |
           CONTAINERS=$(jq --raw-output '.changed_files | fromjson | .[] |= sub("(?<filepath>(?<first_directory>(?<root1>[/]?)[^/]+/)(?<second_directory>(?<root2>[/]?)[^/]+)(?<extra_paths>.+))"; "\(.second_directory)") | unique' changes.json)
           echo containers=$CONTAINERS >> $GITHUB_OUTPUT
 
   hadolint:
     name: Run hadolint
+    needs: changes
+    if: needs.changes.outputs.has_changes == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -50,6 +52,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-24.04
+    if: needs.changes.outputs.has_changes == 'true'
     needs:
       - hadolint
       - changes
