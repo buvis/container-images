@@ -7,7 +7,7 @@ RUN pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm build
 
-FROM python:3.14-slim@sha256:35f442c69294267a391b05d9526b6a330986ad9b008152a2e24257a1f98a8dc0 AS builder
+FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9 AS builder
 RUN pip install --no-cache-dir uv==0.10.7
 
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY backend/alembic/ alembic/
 COPY backend/alembic.ini .
 COPY backend/entrypoint.sh .
 
-FROM python:3.14-slim@sha256:35f442c69294267a391b05d9526b6a330986ad9b008152a2e24257a1f98a8dc0
+FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9
 
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
