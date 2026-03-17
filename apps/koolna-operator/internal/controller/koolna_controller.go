@@ -377,6 +377,7 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 	var script string
 	if secretName != "" {
 		script = `if [ ! -d /workspace/.git ]; then
+  rm -rf /workspace/*  /workspace/.[!.]* /workspace/..?*
   printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
   git config --global credential.helper "store --file=/tmp/.gitcredentials"
   git clone "https://github.com/$REPO_URL" /workspace
@@ -385,6 +386,7 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 fi`
 	} else {
 		script = `if [ ! -d /workspace/.git ]; then
+  rm -rf /workspace/* /workspace/.[!.]* /workspace/..?*
   git clone "https://github.com/$REPO_URL" /workspace
   cd /workspace && git checkout "$REPO_BRANCH"
 fi`
