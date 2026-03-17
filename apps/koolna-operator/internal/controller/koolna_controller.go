@@ -374,24 +374,36 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
 	secretName := koolna.Spec.GitSecretRef
 
-	return corev1.Container{
-		Name:  "git-clone",
-		Image: "alpine/git",
-		Command: []string{
-			"sh",
-			"-c",
-		},
-		Args: []string{
-			`if [ ! -d /workspace/.git ]; then
+	var script string
+	if secretName != "" {
+		script = `if [ ! -d /workspace/.git ]; then
   printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
   git config --global credential.helper "store --file=/tmp/.gitcredentials"
   git clone "https://github.com/$REPO_URL" /workspace
   rm -f /tmp/.gitcredentials
   cd /workspace && git checkout "$REPO_BRANCH"
-fi`,
+fi`
+	} else {
+		script = `if [ ! -d /workspace/.git ]; then
+  git clone "https://github.com/$REPO_URL" /workspace
+  cd /workspace && git checkout "$REPO_BRANCH"
+fi`
+	}
+
+	env := []corev1.EnvVar{
+		{
+			Name:  "REPO_URL",
+			Value: koolna.Spec.Repo,
 		},
-		Env: []corev1.EnvVar{
-			{
+		{
+			Name:  "REPO_BRANCH",
+			Value: koolna.Spec.Branch,
+		},
+	}
+
+	if secretName != "" {
+		env = append(env,
+			corev1.EnvVar{
 				Name: "GIT_USERNAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -402,7 +414,7 @@ fi`,
 					},
 				},
 			},
-			{
+			corev1.EnvVar{
 				Name: "GIT_TOKEN",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -413,15 +425,18 @@ fi`,
 					},
 				},
 			},
-			{
-				Name:  "REPO_URL",
-				Value: koolna.Spec.Repo,
-			},
-			{
-				Name:  "REPO_BRANCH",
-				Value: koolna.Spec.Branch,
-			},
+		)
+	}
+
+	return corev1.Container{
+		Name:  "git-clone",
+		Image: "alpine/git",
+		Command: []string{
+			"sh",
+			"-c",
 		},
+		Args: []string{script},
+		Env:  env,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      workspaceVolumeName,
@@ -438,22 +453,28 @@ func buildDotfilesInitContainer(koolna *koolnav1alpha1.Koolna) *corev1.Container
 
 	secretName := koolna.Spec.GitSecretRef
 
-	return &corev1.Container{
-		Name:  "dotfiles-setup",
-		Image: "alpine/git",
-		Command: []string{
-			"sh",
-			"-c",
-		},
-		Args: []string{
-			`printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
+	var script string
+	if secretName != "" {
+		script = `printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
 git config --global credential.helper "store --file=/tmp/.gitcredentials"
 git clone "https://github.com/$DOTFILES_REPO" ~/.dotfiles
 rm -f /tmp/.gitcredentials
-[ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true`,
+[ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true`
+	} else {
+		script = `git clone "https://github.com/$DOTFILES_REPO" ~/.dotfiles
+[ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true`
+	}
+
+	env := []corev1.EnvVar{
+		{
+			Name:  "DOTFILES_REPO",
+			Value: koolna.Spec.DotfilesRepo,
 		},
-		Env: []corev1.EnvVar{
-			{
+	}
+
+	if secretName != "" {
+		env = append(env,
+			corev1.EnvVar{
 				Name: "GIT_USERNAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -464,7 +485,7 @@ rm -f /tmp/.gitcredentials
 					},
 				},
 			},
-			{
+			corev1.EnvVar{
 				Name: "GIT_TOKEN",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -475,11 +496,18 @@ rm -f /tmp/.gitcredentials
 					},
 				},
 			},
-			{
-				Name:  "DOTFILES_REPO",
-				Value: koolna.Spec.DotfilesRepo,
-			},
+		)
+	}
+
+	return &corev1.Container{
+		Name:  "dotfiles-setup",
+		Image: "alpine/git",
+		Command: []string{
+			"sh",
+			"-c",
 		},
+		Args: []string{script},
+		Env:  env,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      workspaceVolumeName,
