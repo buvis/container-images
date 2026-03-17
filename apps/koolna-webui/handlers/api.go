@@ -140,16 +140,14 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	if req.Storage == "" {
 		req.Storage = "10Gi"
 	}
-	if req.GitSecretRef == "" {
-		req.GitSecretRef = "git-creds"
-	}
-
 	spec := map[string]interface{}{
-		"repo":         req.Repo,
-		"branch":       req.Branch,
-		"image":        req.Image,
-		"storage":      req.Storage,
-		"gitSecretRef": req.GitSecretRef,
+		"repo":    req.Repo,
+		"branch":  req.Branch,
+		"image":   req.Image,
+		"storage": req.Storage,
+	}
+	if req.GitSecretRef != "" {
+		spec["gitSecretRef"] = req.GitSecretRef
 	}
 	if req.DotfilesRepo != "" {
 		spec["dotfilesRepo"] = req.DotfilesRepo
