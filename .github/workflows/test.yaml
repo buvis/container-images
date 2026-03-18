@@ -4,6 +4,10 @@ name: Test
 on:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GOSS_SLEEP: 30
 

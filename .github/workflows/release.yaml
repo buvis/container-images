@@ -8,6 +8,10 @@ on:
       - "base/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GOSS_SLEEP: 30
 
