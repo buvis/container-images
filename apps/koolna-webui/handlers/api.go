@@ -52,6 +52,8 @@ type createRequest struct {
 	Image        string `json:"image"`
 	Storage      string `json:"storage"`
 	GitSecretRef string `json:"gitSecretRef,omitempty"`
+	GitUsername  string `json:"gitUsername,omitempty"`
+	GitToken     string `json:"gitToken,omitempty"`
 }
 
 type koolnaResponse struct {
@@ -139,6 +141,28 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Storage == "" {
 		req.Storage = "10Gi"
+	}
+	if req.GitUsername != "" && req.GitToken != "" {
+		secretName := req.Name + "-git"
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: h.ns,
+				Labels: map[string]string{
+					"koolna.buvis.net/name": req.Name,
+				},
+			},
+			Type: corev1.SecretTypeOpaque,
+			StringData: map[string]string{
+				"username": req.GitUsername,
+				"token":    req.GitToken,
+			},
+		}
+		if _, err := h.kube.CoreV1().Secrets(h.ns).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		req.GitSecretRef = secretName
 	}
 	spec := map[string]interface{}{
 		"repo":    req.Repo,
