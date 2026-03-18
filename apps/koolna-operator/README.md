@@ -16,9 +16,37 @@ spec:
   image: ghcr.io/buvis/koolna-base:latest
   storage: 10Gi              # workspace PVC size
   dotfilesRepo: owner/dots   # optional dotfiles repo
+  dotfilesMethod: bare-git   # bare-git | script | clone
+  dotfilesBareDir: .cfg      # bare-git only, default: .cfg
   suspended: false           # true = delete pod, keep PVC
   deletionPolicy: Retain     # Retain or Delete PVC on CR deletion
 ```
+
+## Dotfiles
+
+Dotfiles config can be set per-Koolna (CRD fields above) or system-wide via a ConfigMap. The operator checks for a `koolna-defaults` ConfigMap in the Koolna's namespace; CRD fields override it.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: koolna-defaults
+  namespace: koolna
+data:
+  dotfilesRepo: owner/dotfiles
+  dotfilesMethod: bare-git       # bare-git | script | clone
+  dotfilesBareDir: .cfg          # bare-git only
+```
+
+**Methods:**
+
+| Method | What it does |
+|--------|-------------|
+| `bare-git` | Bare clone to `$HOME/<bareDir>`, checkout into `$HOME`, init submodules |
+| `script` | Clone to cache, auto-run `install.sh`, `setup.sh`, `bootstrap.sh`, or `Makefile` |
+| `clone` | Clone to `$HOME/.dotfiles`, no install step |
+
+Dotfiles are installed by `startup.sh` in the main container (as the correct user with `$HOME` access). Clones are cached in `/workspace/.dotfiles-cache` across pod restarts.
 
 ## Lifecycle
 

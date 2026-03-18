@@ -6,6 +6,9 @@ spec:
   repo: owner/name
   branch: main
   gitSecretRef: git-creds
+  dotfilesRepo: owner/dotfiles
+  dotfilesMethod: bare-git
+  dotfilesBareDir: .cfg
   image: ghcr.io/buvis/koolna-base:latest
   storage: 10Gi
   resources:
