@@ -2,6 +2,11 @@
 name: Test
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/**'
+      - 'base/**'
   pull_request:
 
 concurrency:
