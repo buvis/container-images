@@ -16,6 +16,8 @@ export interface CreateKoolnaRequest {
   dotfilesRepo?: string
   image?: string
   storage?: string | number
+  gitUsername?: string
+  gitToken?: string
 }
 
 const API_BASE = '/api/koolnas'

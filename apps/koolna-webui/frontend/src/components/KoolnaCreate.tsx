@@ -17,6 +17,9 @@ type FormState = {
   image: string
   storage: string
   dotfilesRepo: string
+  privateRepo: boolean
+  gitUsername: string
+  gitToken: string
 }
 
 type ValidationError = {
@@ -37,12 +40,15 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     image: IMAGE_OPTIONS[0],
     storage: '10Gi',
     dotfilesRepo: '',
+    privateRepo: false,
+    gitUsername: '',
+    gitToken: '',
   })
   const [errors, setErrors] = useState<ValidationError>({})
   const [apiError, setApiError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const handleFieldChange = (field: keyof FormState, value: string) => {
+  const handleFieldChange = (field: keyof FormState, value: string | boolean) => {
     setFormState((prev) => ({
       ...prev,
       [field]: value,
@@ -86,6 +92,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
     if (formState.dotfilesRepo.trim()) {
       payload.dotfilesRepo = formState.dotfilesRepo.trim()
+    }
+    if (formState.privateRepo && formState.gitUsername.trim() && formState.gitToken.trim()) {
+      payload.gitUsername = formState.gitUsername.trim()
+      payload.gitToken = formState.gitToken.trim()
     }
 
     try {
@@ -207,6 +217,48 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             placeholder="owner/dotfiles-repo"
           />
         </div>
+
+        <div>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formState.privateRepo}
+              onChange={(event) => handleFieldChange('privateRepo', event.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-slate-900/60 text-sky-500 focus:ring-sky-400"
+            />
+            <span className="text-sm font-semibold text-white/80">Private repository</span>
+          </label>
+        </div>
+
+        {formState.privateRepo && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
+                GitHub username
+              </label>
+              <input
+                id="koolna-git-username"
+                value={formState.gitUsername}
+                onChange={(event) => handleFieldChange('gitUsername', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-token">
+                Personal access token
+              </label>
+              <input
+                id="koolna-git-token"
+                type="password"
+                value={formState.gitToken}
+                onChange={(event) => handleFieldChange('gitToken', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-3 pt-2">
           <button
