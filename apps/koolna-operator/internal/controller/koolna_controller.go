@@ -459,12 +459,10 @@ func buildDotfilesInitContainer(koolna *koolnav1alpha1.Koolna) *corev1.Container
 	if secretName != "" {
 		script = `printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
 git config --global credential.helper "store --file=/tmp/.gitcredentials"
-git clone "https://github.com/$DOTFILES_REPO" ~/.dotfiles
-rm -f /tmp/.gitcredentials
-[ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true`
+git clone "https://github.com/$DOTFILES_REPO" /workspace/.dotfiles
+rm -f /tmp/.gitcredentials`
 	} else {
-		script = `git clone "https://github.com/$DOTFILES_REPO" ~/.dotfiles
-[ -x ~/.dotfiles/install.sh ] && ~/.dotfiles/install.sh || true`
+		script = `git clone "https://github.com/$DOTFILES_REPO" /workspace/.dotfiles`
 	}
 
 	env := []corev1.EnvVar{

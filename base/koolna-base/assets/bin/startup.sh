@@ -23,6 +23,13 @@ RESPAWN_SCRIPT="${RESPAWN_SCRIPT:-$SCRIPT_DIR/respawn-shell.sh}"
 KOOLNA_BIN="${KOOLNA_BIN:-/usr/local/bin/koolna}"
 KOOLNA_PORT="${KOOLNA_PORT:-3000}"
 
+if [ -d /workspace/.dotfiles ]; then
+  log_info "Installing dotfiles from /workspace/.dotfiles..."
+  if [ -x /workspace/.dotfiles/install.sh ]; then
+    /workspace/.dotfiles/install.sh || log_warn "Dotfiles install script failed"
+  fi
+fi
+
 log_info "Creating tmux sessions..."
 
 tmux new-session -d -s manager "${RESPAWN_SCRIPT} 'Manager shell' 'Primary manager session'" 2>/dev/null || true
