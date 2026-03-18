@@ -338,8 +338,10 @@ async function init() {
 
   const close = tty.open();
   initKeypad(tty, term);
+  const clipboardClose = startClipboardBridge(session, term);
 
   window.addEventListener('beforeunload', () => {
+    clipboardClose();
     close();
     term.close();
   });
@@ -400,6 +402,26 @@ function initKeypad(tty, term) {
       }
     });
   }
+}
+
+function startClipboardBridge(session, term) {
+  const streamUrl = `/clipboard/stream?session=${encodeURIComponent(session)}`;
+  const es = new EventSource(streamUrl);
+  let lastSeq = 0;
+
+  es.addEventListener('clipboard', async (e) => {
+    try {
+      const entry = JSON.parse(e.data);
+      if (entry.seq <= lastSeq) return;
+      lastSeq = entry.seq;
+      await navigator.clipboard.writeText(entry.text);
+      term.showMessage('Copied', 1000);
+    } catch {
+      // clipboard write may require user gesture in some browsers
+    }
+  });
+
+  return () => es.close();
 }
 
 document.addEventListener('DOMContentLoaded', init);

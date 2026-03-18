@@ -42,7 +42,26 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
 
     const close = tty.open();
 
+    // Subscribe to clipboard bridge for tmux copy → browser clipboard sync
+    const clipboardUrl = `/terminal/${name}/clipboard/stream?session=${encodeURIComponent(session)}`;
+    const es = new EventSource(clipboardUrl);
+    let lastSeq = 0;
+    const onClipboard = async (e: MessageEvent) => {
+      try {
+        const entry = JSON.parse(e.data);
+        if (entry.seq <= lastSeq) return;
+        lastSeq = entry.seq;
+        await navigator.clipboard.writeText(entry.text);
+        adapter.showMessage('Copied', 1000);
+      } catch {
+        // clipboard write may require user gesture in some browsers
+      }
+    };
+    es.addEventListener('clipboard', onClipboard);
+
     return () => {
+      es.removeEventListener('clipboard', onClipboard);
+      es.close();
       close();
       adapter.dispose();
       ttyRef.current = null;

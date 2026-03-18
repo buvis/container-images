@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/signal"
@@ -46,6 +47,11 @@ func main() {
 
 	mux.HandleFunc("/manager/ws", websocketProxyHandler("ws://127.0.0.1:8080/ws", "manager"))
 	mux.HandleFunc("/worker/ws", websocketProxyHandler("ws://127.0.0.1:8081/ws", "worker"))
+
+	clipboardURL, _ := url.Parse("http://127.0.0.1:4040")
+	clipboardProxy := httputil.NewSingleHostReverseProxy(clipboardURL)
+	clipboardProxy.FlushInterval = -1 // flush immediately for SSE streaming
+	mux.Handle("/clipboard/", clipboardProxy)
 
 	loggedHandler := loggingMiddleware(mux)
 
