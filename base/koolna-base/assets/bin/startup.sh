@@ -23,11 +23,63 @@ RESPAWN_SCRIPT="${RESPAWN_SCRIPT:-$SCRIPT_DIR/respawn-shell.sh}"
 KOOLNA_BIN="${KOOLNA_BIN:-/usr/local/bin/koolna}"
 KOOLNA_PORT="${KOOLNA_PORT:-3000}"
 
-if [ -d /workspace/.dotfiles ]; then
-  log_info "Installing dotfiles from /workspace/.dotfiles..."
-  if [ -x /workspace/.dotfiles/install.sh ]; then
-    /workspace/.dotfiles/install.sh || log_warn "Dotfiles install script failed"
+install_dotfiles() {
+  local repo="$1" method="$2"
+  local cache="/workspace/.dotfiles-cache"
+
+  case "$method" in
+    bare-git)
+      local bare_dir="$HOME/${DOTFILES_BARE_DIR:-.cfg}"
+      if [ ! -d "$bare_dir/HEAD" ]; then
+        if [ ! -d "$cache/HEAD" ]; then
+          git clone --bare "https://github.com/$repo" "$cache"
+        fi
+        cp -a "$cache" "$bare_dir"
+        git --git-dir="$bare_dir" --work-tree="$HOME" config status.showUntrackedFiles no
+        git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>/dev/null || {
+          mkdir -p "$bare_dir/backup"
+          git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>&1 \
+            | grep -E '^\s+' | awk '{print $1}' | while read -r f; do
+              mkdir -p "$bare_dir/backup/$(dirname "$f")"
+              mv "$HOME/$f" "$bare_dir/backup/$f" 2>/dev/null || true
+            done
+          git --git-dir="$bare_dir" --work-tree="$HOME" checkout
+        }
+        git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
+      fi
+      ;;
+    script)
+      if [ ! -d "$cache/.git" ]; then
+        git clone "https://github.com/$repo" "$cache"
+      fi
+      for script in install.sh setup.sh bootstrap.sh; do
+        if [ -x "$cache/$script" ]; then
+          "$cache/$script"; return
+        fi
+      done
+      if [ -f "$cache/Makefile" ]; then
+        make -C "$cache" install; return
+      fi
+      ;;
+    clone)
+      if [ ! -d "$HOME/.dotfiles/.git" ]; then
+        git clone "https://github.com/$repo" "$HOME/.dotfiles"
+      fi
+      ;;
+  esac
+}
+
+if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${DOTFILES_METHOD:-}" ]; then
+  if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
+    printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
+    git config --global credential.helper "store --file=/tmp/.gitcredentials"
   fi
+
+  log_info "Installing dotfiles ($DOTFILES_METHOD) from $DOTFILES_REPO..."
+  install_dotfiles "$DOTFILES_REPO" "$DOTFILES_METHOD"
+
+  rm -f /tmp/.gitcredentials
+  git config --global --unset credential.helper 2>/dev/null || true
 fi
 
 log_info "Creating tmux sessions..."

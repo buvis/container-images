@@ -38,8 +38,10 @@ type KoolnaSpec struct {
 	Repo           string                      `json:"repo"`
 	Branch         string                      `json:"branch"`
 	GitSecretRef   string                      `json:"gitSecretRef,omitempty"`
-	DotfilesRepo   string                      `json:"dotfilesRepo,omitempty"`
-	Image          string                      `json:"image"`
+	DotfilesRepo    string                      `json:"dotfilesRepo,omitempty"`
+	DotfilesMethod  string                      `json:"dotfilesMethod,omitempty"`
+	DotfilesBareDir string                      `json:"dotfilesBareDir,omitempty"`
+	Image           string                      `json:"image"`
 	Storage        resource.Quantity           `json:"storage"`
 	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
 	Suspended      bool                        `json:"suspended,omitempty"`

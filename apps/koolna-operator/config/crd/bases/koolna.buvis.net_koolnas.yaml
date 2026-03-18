@@ -58,6 +58,10 @@ spec:
                 description: DeletionPolicy governs how associated resources are handled
                   when a Koolna is deleted.
                 type: string
+              dotfilesBareDir:
+                type: string
+              dotfilesMethod:
+                type: string
               dotfilesRepo:
                 type: string
               gitSecretRef:

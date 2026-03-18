@@ -52,6 +52,7 @@ type KoolnaReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile ensures the cluster state matches the desired Koolna spec by
 // managing the PVC, Pod, and Service lifecycle for each Koolna instance.
@@ -339,7 +340,8 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 		return &pods.Items[0], nil
 	}
 
-	pod := buildPodSpec(koolna, pvcName)
+	dotfiles := r.resolveDotfilesConfig(ctx, koolna)
+	pod := buildPodSpec(koolna, pvcName, dotfiles)
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -351,7 +353,42 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	return pod, nil
 }
 
-const workspaceVolumeName = "workspace"
+const (
+	workspaceVolumeName    = "workspace"
+	defaultsConfigMapName  = "koolna-defaults"
+)
+
+type dotfilesConfig struct {
+	Repo    string
+	Method  string
+	BareDir string
+}
+
+func (r *KoolnaReconciler) resolveDotfilesConfig(ctx context.Context, koolna *koolnav1alpha1.Koolna) dotfilesConfig {
+	cfg := dotfilesConfig{
+		Repo:    koolna.Spec.DotfilesRepo,
+		Method:  koolna.Spec.DotfilesMethod,
+		BareDir: koolna.Spec.DotfilesBareDir,
+	}
+
+	if cfg.Repo != "" {
+		return cfg
+	}
+
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{Name: defaultsConfigMapName, Namespace: koolna.Namespace}, cm); err != nil {
+		return cfg
+	}
+
+	cfg.Repo = cm.Data["dotfilesRepo"]
+	if v, ok := cm.Data["dotfilesMethod"]; ok {
+		cfg.Method = v
+	}
+	if v, ok := cm.Data["dotfilesBareDir"]; ok {
+		cfg.BareDir = v
+	}
+	return cfg
+}
 
 var (
 	validRepoPattern   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
@@ -448,40 +485,36 @@ fi`
 	}
 }
 
-func buildDotfilesInitContainer(koolna *koolnav1alpha1.Koolna) *corev1.Container {
-	if koolna.Spec.DotfilesRepo == "" {
+func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvVar {
+	if cfg.Repo == "" {
 		return nil
 	}
 
-	secretName := koolna.Spec.GitSecretRef
-
-	var script string
-	if secretName != "" {
-		script = `printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
-git config --global credential.helper "store --file=/tmp/.gitcredentials"
-git clone "https://github.com/$DOTFILES_REPO" /workspace/.dotfiles
-rm -f /tmp/.gitcredentials`
-	} else {
-		script = `git clone "https://github.com/$DOTFILES_REPO" /workspace/.dotfiles`
+	method := cfg.Method
+	if method == "" {
+		method = "clone"
 	}
 
 	env := []corev1.EnvVar{
-		{
-			Name:  "DOTFILES_REPO",
-			Value: koolna.Spec.DotfilesRepo,
-		},
+		{Name: "DOTFILES_REPO", Value: cfg.Repo},
+		{Name: "DOTFILES_METHOD", Value: method},
 	}
 
-	if secretName != "" {
+	if cfg.BareDir != "" {
+		env = append(env, corev1.EnvVar{
+			Name:  "DOTFILES_BARE_DIR",
+			Value: cfg.BareDir,
+		})
+	}
+
+	if gitSecretRef != "" {
 		env = append(env,
 			corev1.EnvVar{
 				Name: "GIT_USERNAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key: "username",
+						LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
+						Key:                  "username",
 					},
 				},
 			},
@@ -489,42 +522,23 @@ rm -f /tmp/.gitcredentials`
 				Name: "GIT_TOKEN",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key: "token",
+						LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
+						Key:                  "token",
 					},
 				},
 			},
 		)
 	}
 
-	return &corev1.Container{
-		Name:  "dotfiles-setup",
-		Image: "alpine/git",
-		Command: []string{
-			"sh",
-			"-c",
-		},
-		Args: []string{script},
-		Env:  env,
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      workspaceVolumeName,
-				MountPath: "/workspace",
-			},
-		},
-	}
+	return env
 }
 
-func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string) *corev1.Pod {
-	initContainers := []corev1.Container{
-		buildGitCloneInitContainer(koolna),
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig) *corev1.Pod {
+	env := []corev1.EnvVar{
+		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
+		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 	}
-
-	if dotfiles := buildDotfilesInitContainer(koolna); dotfiles != nil {
-		initContainers = append(initContainers, *dotfiles)
-	}
+	env = append(env, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -537,28 +551,19 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string) *corev1.Pod {
 		Spec: corev1.PodSpec{
 			RestartPolicy:      corev1.RestartPolicyAlways,
 			ServiceAccountName: "koolna-auth-syncer",
-			InitContainers:     initContainers,
+			InitContainers: []corev1.Container{
+				buildGitCloneInitContainer(koolna),
+			},
 			Containers: []corev1.Container{
 				{
 					Name:       "koolna",
 					Image:      koolna.Spec.Image,
 					WorkingDir: "/workspace",
 					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 3000,
-						},
+						{ContainerPort: 3000},
 					},
 					Resources: koolna.Spec.Resources,
-					Env: []corev1.EnvVar{
-						{
-							Name:  "KOOLNA_AUTH_SECRET",
-							Value: authSecretName(koolna),
-						},
-						{
-							Name:  "KOOLNA_NAMESPACE",
-							Value: koolna.Namespace,
-						},
-					},
+					Env:       env,
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      workspaceVolumeName,

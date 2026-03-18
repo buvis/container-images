@@ -45,15 +45,17 @@ func NewAPIHandler(client dynamic.Interface, kube kubernetes.Interface, config *
 }
 
 type createRequest struct {
-	Name         string `json:"name"`
-	Repo         string `json:"repo"`
-	Branch       string `json:"branch"`
-	DotfilesRepo string `json:"dotfilesRepo,omitempty"`
-	Image        string `json:"image"`
-	Storage      string `json:"storage"`
-	GitSecretRef string `json:"gitSecretRef,omitempty"`
-	GitUsername  string `json:"gitUsername,omitempty"`
-	GitToken     string `json:"gitToken,omitempty"`
+	Name            string `json:"name"`
+	Repo            string `json:"repo"`
+	Branch          string `json:"branch"`
+	DotfilesRepo    string `json:"dotfilesRepo,omitempty"`
+	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
+	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
+	Image           string `json:"image"`
+	Storage         string `json:"storage"`
+	GitSecretRef    string `json:"gitSecretRef,omitempty"`
+	GitUsername     string `json:"gitUsername,omitempty"`
+	GitToken        string `json:"gitToken,omitempty"`
 }
 
 type koolnaResponse struct {
@@ -75,8 +77,12 @@ func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
 	return resp
 }
 
+const defaultsConfigMapName = "koolna-defaults"
+
 // RegisterRoutes wires the handler functions into the provided router.
 func RegisterRoutes(r *mux.Router, h *APIHandler) {
+	r.HandleFunc("/api/defaults", h.GetDefaults).Methods("GET")
+	r.HandleFunc("/api/defaults", h.UpdateDefaults).Methods("PUT")
 	r.HandleFunc("/api/koolnas", h.ListKoolnas).Methods("GET")
 	r.HandleFunc("/api/koolnas", h.CreateKoolna).Methods("POST")
 	r.HandleFunc("/api/koolnas/{name}", h.GetKoolna).Methods("GET")
@@ -85,6 +91,78 @@ func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/koolnas/{name}", h.DeleteKoolna).Methods("DELETE")
 	r.HandleFunc("/api/koolnas/{name}/pause", h.PauseKoolna).Methods("POST")
 	r.HandleFunc("/api/koolnas/{name}/resume", h.ResumeKoolna).Methods("POST")
+}
+
+type defaultsResponse struct {
+	DotfilesRepo    string `json:"dotfilesRepo,omitempty"`
+	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
+	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
+}
+
+// GetDefaults reads the koolna-defaults ConfigMap.
+func (h *APIHandler) GetDefaults(w http.ResponseWriter, _ *http.Request) {
+	cm, err := h.kube.CoreV1().ConfigMaps(h.ns).Get(context.Background(), defaultsConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			respondJSON(w, http.StatusOK, defaultsResponse{})
+			return
+		}
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	respondJSON(w, http.StatusOK, defaultsResponse{
+		DotfilesRepo:    cm.Data["dotfilesRepo"],
+		DotfilesMethod:  cm.Data["dotfilesMethod"],
+		DotfilesBareDir: cm.Data["dotfilesBareDir"],
+	})
+}
+
+// UpdateDefaults creates or updates the koolna-defaults ConfigMap.
+func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
+	var req defaultsResponse
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	data := map[string]string{}
+	if req.DotfilesRepo != "" {
+		data["dotfilesRepo"] = req.DotfilesRepo
+	}
+	if req.DotfilesMethod != "" {
+		data["dotfilesMethod"] = req.DotfilesMethod
+	}
+	if req.DotfilesBareDir != "" {
+		data["dotfilesBareDir"] = req.DotfilesBareDir
+	}
+
+	cm, err := h.kube.CoreV1().ConfigMaps(h.ns).Get(context.Background(), defaultsConfigMapName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		cm = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      defaultsConfigMapName,
+				Namespace: h.ns,
+			},
+			Data: data,
+		}
+		if _, err := h.kube.CoreV1().ConfigMaps(h.ns).Create(context.Background(), cm, metav1.CreateOptions{}); err != nil {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		respondJSON(w, http.StatusOK, req)
+		return
+	}
+	if err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+
+	cm.Data = data
+	if _, err := h.kube.CoreV1().ConfigMaps(h.ns).Update(context.Background(), cm, metav1.UpdateOptions{}); err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	respondJSON(w, http.StatusOK, req)
 }
 
 // ListKoolnas returns all Koolna instances in the configured namespace.
@@ -175,6 +253,12 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DotfilesRepo != "" {
 		spec["dotfilesRepo"] = req.DotfilesRepo
+		if req.DotfilesMethod != "" {
+			spec["dotfilesMethod"] = req.DotfilesMethod
+		}
+		if req.DotfilesBareDir != "" {
+			spec["dotfilesBareDir"] = req.DotfilesBareDir
+		}
 	}
 
 	obj := &unstructured.Unstructured{

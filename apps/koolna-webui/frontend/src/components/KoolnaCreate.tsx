@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from 'react'
-import { createKoolna, type CreateKoolnaRequest } from '../api/koolna'
+import { type FormEvent, useEffect, useState } from 'react'
+import { createKoolna, type CreateKoolnaRequest, type DotfilesMethod, getDefaults } from '../api/koolna'
 
 const IMAGE_OPTIONS = [
   'ghcr.io/buvis/koolna-base:latest',
@@ -9,6 +9,7 @@ const IMAGE_OPTIONS = [
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
 const REPO_PATTERN = /^[\w-]+\/[\w.-]+$/
+const DOTFILES_METHODS: DotfilesMethod[] = ['bare-git', 'script', 'clone']
 
 type FormState = {
   name: string
@@ -17,6 +18,8 @@ type FormState = {
   image: string
   storage: string
   dotfilesRepo: string
+  dotfilesMethod: DotfilesMethod
+  dotfilesBareDir: string
   privateRepo: boolean
   gitUsername: string
   gitToken: string
@@ -40,6 +43,8 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     image: IMAGE_OPTIONS[0],
     storage: '10Gi',
     dotfilesRepo: '',
+    dotfilesMethod: 'bare-git',
+    dotfilesBareDir: '',
     privateRepo: false,
     gitUsername: '',
     gitToken: '',
@@ -47,6 +52,17 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
   const [errors, setErrors] = useState<ValidationError>({})
   const [apiError, setApiError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    getDefaults().then((defaults) => {
+      setFormState((prev) => ({
+        ...prev,
+        dotfilesRepo: defaults.dotfilesRepo ?? prev.dotfilesRepo,
+        dotfilesMethod: defaults.dotfilesMethod ?? prev.dotfilesMethod,
+        dotfilesBareDir: defaults.dotfilesBareDir ?? prev.dotfilesBareDir,
+      }))
+    }).catch(() => {})
+  }, [])
 
   const handleFieldChange = (field: keyof FormState, value: string | boolean) => {
     setFormState((prev) => ({
@@ -92,6 +108,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
     if (formState.dotfilesRepo.trim()) {
       payload.dotfilesRepo = formState.dotfilesRepo.trim()
+      payload.dotfilesMethod = formState.dotfilesMethod
+      if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesBareDir.trim()) {
+        payload.dotfilesBareDir = formState.dotfilesBareDir.trim()
+      }
     }
     if (formState.privateRepo && formState.gitUsername.trim() && formState.gitToken.trim()) {
       payload.gitUsername = formState.gitUsername.trim()
@@ -217,6 +237,41 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             placeholder="owner/dotfiles-repo"
           />
         </div>
+
+        {formState.dotfilesRepo.trim() && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-method">
+                Method
+              </label>
+              <select
+                id="koolna-dotfiles-method"
+                value={formState.dotfilesMethod}
+                onChange={(event) => handleFieldChange('dotfilesMethod', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              >
+                {DOTFILES_METHODS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {formState.dotfilesMethod === 'bare-git' && (
+              <div>
+                <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-baredir">
+                  Bare repo dir
+                </label>
+                <input
+                  id="koolna-dotfiles-baredir"
+                  value={formState.dotfilesBareDir}
+                  onChange={(event) => handleFieldChange('dotfilesBareDir', event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                  placeholder=".cfg"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="inline-flex cursor-pointer items-center gap-2">

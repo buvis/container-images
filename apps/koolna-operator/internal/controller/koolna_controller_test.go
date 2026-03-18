@@ -475,39 +475,47 @@ var _ = Describe("Koolna Controller", func() {
 		})
 	})
 
-	Context("When building dotfiles init container", func() {
-		It("should not embed credentials in clone URL", func() {
-			koolna := &koolnav1alpha1.Koolna{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-dotf", Namespace: "default"},
-				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
-					Branch:       "main",
-					GitSecretRef: "git-creds",
-					DotfilesRepo: "owner/dotfiles",
-					Image:        "ghcr.io/buvis/koolna-base:latest",
-					Storage:      resource.MustParse("1Gi"),
-				},
+	Context("When building dotfiles env vars", func() {
+		It("should include git secret env vars when gitSecretRef is set", func() {
+			cfg := dotfilesConfig{Repo: "owner/dotfiles"}
+			envVars := buildDotfilesEnvVars(cfg, "git-creds")
+			Expect(envVars).NotTo(BeEmpty())
+			names := make([]string, len(envVars))
+			for i, e := range envVars {
+				names[i] = e.Name
 			}
-			c := buildDotfilesInitContainer(koolna)
-			Expect(c).NotTo(BeNil())
-			script := c.Args[0]
-			Expect(script).NotTo(ContainSubstring("$GIT_USERNAME:$GIT_TOKEN@"))
-			Expect(script).To(ContainSubstring("credential.helper"))
+			Expect(names).To(ContainElement("DOTFILES_REPO"))
+			Expect(names).To(ContainElement("DOTFILES_METHOD"))
+			Expect(names).To(ContainElement("GIT_USERNAME"))
+			Expect(names).To(ContainElement("GIT_TOKEN"))
 		})
 
-		It("should return nil when dotfilesRepo is empty", func() {
-			koolna := &koolnav1alpha1.Koolna{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-no-dotf", Namespace: "default"},
-				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
-					Branch:       "main",
-					GitSecretRef: "git-creds",
-					Image:        "ghcr.io/buvis/koolna-base:latest",
-					Storage:      resource.MustParse("1Gi"),
-				},
+		It("should return nil when repo is empty", func() {
+			cfg := dotfilesConfig{}
+			envVars := buildDotfilesEnvVars(cfg, "git-creds")
+			Expect(envVars).To(BeNil())
+		})
+
+		It("should default method to clone", func() {
+			cfg := dotfilesConfig{Repo: "owner/dotfiles"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			var method string
+			for _, e := range envVars {
+				if e.Name == "DOTFILES_METHOD" {
+					method = e.Value
+				}
 			}
-			c := buildDotfilesInitContainer(koolna)
-			Expect(c).To(BeNil())
+			Expect(method).To(Equal("clone"))
+		})
+
+		It("should include DOTFILES_BARE_DIR when set", func() {
+			cfg := dotfilesConfig{Repo: "owner/dotfiles", Method: "bare-git", BareDir: ".buvis"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			names := make([]string, len(envVars))
+			for i, e := range envVars {
+				names[i] = e.Name
+			}
+			Expect(names).To(ContainElement("DOTFILES_BARE_DIR"))
 		})
 	})
 

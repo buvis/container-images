@@ -9,15 +9,25 @@ export interface Koolna {
   suspended: boolean
 }
 
+export type DotfilesMethod = 'bare-git' | 'script' | 'clone'
+
 export interface CreateKoolnaRequest {
   name: string
   repo: string
   branch?: string
   dotfilesRepo?: string
+  dotfilesMethod?: DotfilesMethod
+  dotfilesBareDir?: string
   image?: string
   storage?: string | number
   gitUsername?: string
   gitToken?: string
+}
+
+export interface DotfilesDefaults {
+  dotfilesRepo?: string
+  dotfilesMethod?: DotfilesMethod
+  dotfilesBareDir?: string
 }
 
 const API_BASE = '/api/koolnas'
@@ -64,6 +74,20 @@ function jsonHeaders(): HeadersInit {
 function koolnaUrl(name?: string, suffix?: string): string {
   const base = name ? `${API_BASE}/${encodeURIComponent(name)}` : API_BASE
   return suffix ? `${base}/${suffix}` : base
+}
+
+export async function getDefaults(): Promise<DotfilesDefaults> {
+  const response = await fetch('/api/defaults')
+  return parseResponse<DotfilesDefaults>(response)
+}
+
+export async function updateDefaults(defaults: DotfilesDefaults): Promise<DotfilesDefaults> {
+  const response = await fetch('/api/defaults', {
+    method: 'PUT',
+    headers: jsonHeaders(),
+    body: JSON.stringify(defaults),
+  })
+  return parseResponse<DotfilesDefaults>(response)
 }
 
 export async function listKoolnas(): Promise<Koolna[]> {
