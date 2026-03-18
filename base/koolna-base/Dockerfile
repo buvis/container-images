@@ -58,6 +58,8 @@ ENV MISE_DATA_DIR="$HOME/.local/share/mise"
 ENV MISE_CONFIG_DIR="$HOME/.config/mise"
 ENV MISE_CACHE_DIR="$HOME/.cache/mise"
 ENV MISE_NODE_DEFAULT_PACKAGES_FILE="$HOME/.default-npm-packages"
+ENV MISE_TRUSTED_CONFIG_PATHS="/workspace"
+ENV MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS="false"
 
 COPY --chown=${USERNAME}:${USERNAME} assets/config/.default-npm-packages /home/$USERNAME/.default-npm-packages
 COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERNAME/.config/mise/config.toml

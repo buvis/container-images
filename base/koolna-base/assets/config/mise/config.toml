@@ -4,5 +4,3 @@ python = "3.14.3"
 
 [settings]
 experimental = true
-trusted_config_paths = ["/workspace"]
-idiomatic_version_file_enable_tools = false
