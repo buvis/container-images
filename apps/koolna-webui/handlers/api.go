@@ -97,6 +97,7 @@ type defaultsResponse struct {
 	DotfilesRepo    string `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
+	DefaultBranch   string `json:"defaultBranch,omitempty"`
 }
 
 // GetDefaults reads the koolna-defaults ConfigMap.
@@ -114,6 +115,7 @@ func (h *APIHandler) GetDefaults(w http.ResponseWriter, _ *http.Request) {
 		DotfilesRepo:    cm.Data["dotfilesRepo"],
 		DotfilesMethod:  cm.Data["dotfilesMethod"],
 		DotfilesBareDir: cm.Data["dotfilesBareDir"],
+		DefaultBranch:   cm.Data["defaultBranch"],
 	})
 }
 
@@ -134,6 +136,9 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DotfilesBareDir != "" {
 		data["dotfilesBareDir"] = req.DotfilesBareDir
+	}
+	if req.DefaultBranch != "" {
+		data["defaultBranch"] = req.DefaultBranch
 	}
 
 	cm, err := h.kube.CoreV1().ConfigMaps(h.ns).Get(context.Background(), defaultsConfigMapName, metav1.GetOptions{})
