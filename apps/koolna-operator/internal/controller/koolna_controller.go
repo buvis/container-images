@@ -420,12 +420,14 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
   git clone "https://github.com/$REPO_URL" /workspace
   rm -f /tmp/.gitcredentials
   cd /workspace && git checkout "$REPO_BRANCH"
+  chown -R 1000:1000 /workspace
 fi`
 	} else {
 		script = `if [ ! -d /workspace/.git ]; then
   rm -rf /workspace/* /workspace/.[!.]* /workspace/..?*
   git clone "https://github.com/$REPO_URL" /workspace
   cd /workspace && git checkout "$REPO_BRANCH"
+  chown -R 1000:1000 /workspace
 fi`
 	}
 
