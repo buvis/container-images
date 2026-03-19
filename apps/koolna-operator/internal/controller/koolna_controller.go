@@ -52,7 +52,6 @@ type KoolnaReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 
 // Reconcile ensures the cluster state matches the desired Koolna spec by
 // managing the PVC, Pod, and Service lifecycle for each Koolna instance.
@@ -340,7 +339,7 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 		return &pods.Items[0], nil
 	}
 
-	dotfiles := r.resolveDotfilesConfig(ctx, koolna)
+	dotfiles := dotfilesConfigFromSpec(koolna.Spec)
 	pod := buildPodSpec(koolna, pvcName, dotfiles)
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
@@ -353,10 +352,7 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	return pod, nil
 }
 
-const (
-	workspaceVolumeName    = "workspace"
-	defaultsConfigMapName  = "koolna-defaults"
-)
+const workspaceVolumeName = "workspace"
 
 type dotfilesConfig struct {
 	Repo    string
@@ -364,30 +360,12 @@ type dotfilesConfig struct {
 	BareDir string
 }
 
-func (r *KoolnaReconciler) resolveDotfilesConfig(ctx context.Context, koolna *koolnav1alpha1.Koolna) dotfilesConfig {
-	cfg := dotfilesConfig{
-		Repo:    koolna.Spec.DotfilesRepo,
-		Method:  koolna.Spec.DotfilesMethod,
-		BareDir: koolna.Spec.DotfilesBareDir,
+func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
+	return dotfilesConfig{
+		Repo:    spec.DotfilesRepo,
+		Method:  spec.DotfilesMethod,
+		BareDir: spec.DotfilesBareDir,
 	}
-
-	if cfg.Repo != "" {
-		return cfg
-	}
-
-	cm := &corev1.ConfigMap{}
-	if err := r.Get(ctx, types.NamespacedName{Name: defaultsConfigMapName, Namespace: koolna.Namespace}, cm); err != nil {
-		return cfg
-	}
-
-	cfg.Repo = cm.Data["dotfilesRepo"]
-	if v, ok := cm.Data["dotfilesMethod"]; ok {
-		cfg.Method = v
-	}
-	if v, ok := cm.Data["dotfilesBareDir"]; ok {
-		cfg.BareDir = v
-	}
-	return cfg
 }
 
 var (
