@@ -52,21 +52,8 @@ install_dotfiles() {
       fi
       git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
       ;;
-    script)
-      if [ ! -d "$cache/.git" ]; then
-        rm -rf "$cache"
-        git clone "$repo" "$cache"
-      else
-        git -C "$cache" pull --ff-only || true
-      fi
-      for script in install.sh setup.sh bootstrap.sh; do
-        if [ -x "$cache/$script" ]; then
-          "$cache/$script"; return
-        fi
-      done
-      if [ -f "$cache/Makefile" ]; then
-        make -C "$cache" install; return
-      fi
+    command)
+      eval "${DOTFILES_COMMAND:-}"
       ;;
     clone)
       if [ ! -d "$HOME/.dotfiles/.git" ]; then
@@ -76,6 +63,10 @@ install_dotfiles() {
       fi
       ;;
   esac
+
+  if [ -n "${DOTFILES_INIT:-}" ]; then
+    eval "$DOTFILES_INIT"
+  fi
 }
 
 if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${DOTFILES_METHOD:-}" ]; then
