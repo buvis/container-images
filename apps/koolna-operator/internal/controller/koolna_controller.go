@@ -362,8 +362,12 @@ type dotfilesConfig struct {
 }
 
 func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
+	repo := spec.DotfilesRepo
+	if repo != "" {
+		repo = resolveRepoURL(repo)
+	}
 	return dotfilesConfig{
-		Repo:    spec.DotfilesRepo,
+		Repo:    repo,
 		Method:  spec.DotfilesMethod,
 		BareDir: spec.DotfilesBareDir,
 	}
@@ -402,9 +406,10 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 	if secretName != "" {
 		script = `if [ ! -d /workspace/.git ]; then
   rm -rf /workspace/*  /workspace/.[!.]* /workspace/..?*
-  printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
+  REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
+  printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > /tmp/.gitcredentials
   git config --global credential.helper "store --file=/tmp/.gitcredentials"
-  git clone "https://github.com/$REPO_URL" /workspace
+  git clone "$REPO_URL" /workspace
   rm -f /tmp/.gitcredentials
   cd /workspace && git checkout "$REPO_BRANCH"
   chown -R 1000:1000 /workspace
@@ -412,16 +417,18 @@ fi`
 	} else {
 		script = `if [ ! -d /workspace/.git ]; then
   rm -rf /workspace/* /workspace/.[!.]* /workspace/..?*
-  git clone "https://github.com/$REPO_URL" /workspace
+  git clone "$REPO_URL" /workspace
   cd /workspace && git checkout "$REPO_BRANCH"
   chown -R 1000:1000 /workspace
 fi`
 	}
 
+	repoURL := resolveRepoURL(koolna.Spec.Repo)
+
 	env := []corev1.EnvVar{
 		{
 			Name:  "REPO_URL",
-			Value: koolna.Spec.Repo,
+			Value: repoURL,
 		},
 		{
 			Name:  "REPO_BRANCH",
