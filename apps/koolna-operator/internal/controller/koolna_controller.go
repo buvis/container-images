@@ -366,6 +366,8 @@ type dotfilesConfig struct {
 	Repo    string
 	Method  string
 	BareDir string
+	Command string
+	Init    string
 }
 
 func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
@@ -377,6 +379,8 @@ func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
 		Repo:    repo,
 		Method:  spec.DotfilesMethod,
 		BareDir: spec.DotfilesBareDir,
+		Command: spec.DotfilesCommand,
+		Init:    spec.DotfilesInit,
 	}
 }
 
@@ -489,25 +493,40 @@ fi`
 }
 
 func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvVar {
-	if cfg.Repo == "" {
+	if cfg.Method == "none" {
+		return nil
+	}
+	if cfg.Repo == "" && cfg.Command == "" {
 		return nil
 	}
 
 	method := cfg.Method
 	if method == "" {
-		method = "clone"
+		if cfg.Command != "" {
+			method = "command"
+		} else {
+			method = "clone"
+		}
 	}
 
 	env := []corev1.EnvVar{
-		{Name: "DOTFILES_REPO", Value: cfg.Repo},
 		{Name: "DOTFILES_METHOD", Value: method},
 	}
 
+	if method != "command" && cfg.Repo != "" {
+		env = append(env, corev1.EnvVar{Name: "DOTFILES_REPO", Value: cfg.Repo})
+	}
+
 	if cfg.BareDir != "" {
-		env = append(env, corev1.EnvVar{
-			Name:  "DOTFILES_BARE_DIR",
-			Value: cfg.BareDir,
-		})
+		env = append(env, corev1.EnvVar{Name: "DOTFILES_BARE_DIR", Value: cfg.BareDir})
+	}
+
+	if cfg.Command != "" {
+		env = append(env, corev1.EnvVar{Name: "DOTFILES_COMMAND", Value: cfg.Command})
+	}
+
+	if cfg.Init != "" {
+		env = append(env, corev1.EnvVar{Name: "DOTFILES_INIT", Value: cfg.Init})
 	}
 
 	if gitSecretRef != "" {
