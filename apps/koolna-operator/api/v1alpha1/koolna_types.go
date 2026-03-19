@@ -41,6 +41,8 @@ type KoolnaSpec struct {
 	DotfilesRepo    string                      `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string                      `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string                      `json:"dotfilesBareDir,omitempty"`
+	DotfilesCommand string                      `json:"dotfilesCommand,omitempty"`
+	DotfilesInit    string                      `json:"dotfilesInit,omitempty"`
 	Image           string                      `json:"image"`
 	Storage        resource.Quantity           `json:"storage"`
 	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
