@@ -9,7 +9,7 @@ export interface Koolna {
   suspended: boolean
 }
 
-export type DotfilesMethod = 'bare-git' | 'script' | 'clone'
+export type DotfilesMethod = 'none' | 'bare-git' | 'clone' | 'command'
 
 export interface CreateKoolnaRequest {
   name: string
@@ -18,6 +18,8 @@ export interface CreateKoolnaRequest {
   dotfilesRepo?: string
   dotfilesMethod?: DotfilesMethod
   dotfilesBareDir?: string
+  dotfilesCommand?: string
+  dotfilesInit?: string
   image?: string
   storage?: string | number
   gitUsername?: string
@@ -28,6 +30,8 @@ export interface DotfilesDefaults {
   dotfilesRepo?: string
   dotfilesMethod?: DotfilesMethod
   dotfilesBareDir?: string
+  dotfilesCommand?: string
+  dotfilesInit?: string
   defaultBranch?: string
 }
 

@@ -9,7 +9,7 @@ const IMAGE_OPTIONS = [
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
 const REPO_PATTERN = /^https:\/\/[^/]+\/.+$/
-const DOTFILES_METHODS: DotfilesMethod[] = ['bare-git', 'script', 'clone']
+const DOTFILES_METHODS: DotfilesMethod[] = ['none', 'bare-git', 'clone', 'command']
 
 type FormState = {
   name: string
@@ -17,9 +17,11 @@ type FormState = {
   branch: string
   image: string
   storage: string
-  dotfilesRepo: string
   dotfilesMethod: DotfilesMethod
+  dotfilesRepo: string
   dotfilesBareDir: string
+  dotfilesCommand: string
+  dotfilesInit: string
   privateRepo: boolean
   gitUsername: string
   gitToken: string
@@ -42,9 +44,11 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     branch: 'main',
     image: IMAGE_OPTIONS[0],
     storage: '10Gi',
-    dotfilesRepo: '',
     dotfilesMethod: 'bare-git',
+    dotfilesRepo: '',
     dotfilesBareDir: '',
+    dotfilesCommand: '',
+    dotfilesInit: '',
     privateRepo: false,
     gitUsername: '',
     gitToken: '',
@@ -59,9 +63,11 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
       setFormState((prev) => ({
         ...prev,
         branch: defaults.defaultBranch ?? prev.branch,
-        dotfilesRepo: defaults.dotfilesRepo ?? prev.dotfilesRepo,
         dotfilesMethod: defaults.dotfilesMethod ?? prev.dotfilesMethod,
+        dotfilesRepo: defaults.dotfilesRepo ?? prev.dotfilesRepo,
         dotfilesBareDir: defaults.dotfilesBareDir ?? prev.dotfilesBareDir,
+        dotfilesCommand: defaults.dotfilesCommand ?? prev.dotfilesCommand,
+        dotfilesInit: defaults.dotfilesInit ?? prev.dotfilesInit,
       }))
     }).catch(() => {})
   }, [])
@@ -117,11 +123,22 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
       storage: formState.storage,
     }
 
-    if (formState.dotfilesRepo.trim()) {
-      payload.dotfilesRepo = formState.dotfilesRepo.trim()
+    if (formState.dotfilesMethod !== 'none') {
       payload.dotfilesMethod = formState.dotfilesMethod
-      if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesBareDir.trim()) {
-        payload.dotfilesBareDir = formState.dotfilesBareDir.trim()
+      if (formState.dotfilesMethod === 'command') {
+        if (formState.dotfilesCommand.trim()) {
+          payload.dotfilesCommand = formState.dotfilesCommand.trim()
+        }
+      } else {
+        if (formState.dotfilesRepo.trim()) {
+          payload.dotfilesRepo = formState.dotfilesRepo.trim()
+        }
+        if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesBareDir.trim()) {
+          payload.dotfilesBareDir = formState.dotfilesBareDir.trim()
+        }
+      }
+      if (formState.dotfilesInit.trim()) {
+        payload.dotfilesInit = formState.dotfilesInit.trim()
       }
     }
     if (formState.privateRepo && formState.gitUsername.trim() && formState.gitToken.trim()) {
@@ -246,34 +263,34 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles">
-            Dotfiles (optional)
+          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-method">
+            Dotfiles
           </label>
-          <input
-            id="koolna-dotfiles"
-            value={formState.dotfilesRepo}
-            onChange={(event) => handleFieldChange('dotfilesRepo', event.target.value)}
+          <select
+            id="koolna-dotfiles-method"
+            value={formState.dotfilesMethod}
+            onChange={(event) => handleFieldChange('dotfilesMethod', event.target.value)}
             className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
-            placeholder="https://github.com/owner/dotfiles"
-          />
+          >
+            {DOTFILES_METHODS.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
         </div>
 
-        {formState.dotfilesRepo.trim() && (
-          <div className="grid gap-4 md:grid-cols-2">
+        {(formState.dotfilesMethod === 'bare-git' || formState.dotfilesMethod === 'clone') && (
+          <div className={`grid gap-4 ${formState.dotfilesMethod === 'bare-git' ? 'md:grid-cols-2' : ''}`}>
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-method">
-                Method
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-repo">
+                Repository
               </label>
-              <select
-                id="koolna-dotfiles-method"
-                value={formState.dotfilesMethod}
-                onChange={(event) => handleFieldChange('dotfilesMethod', event.target.value)}
+              <input
+                id="koolna-dotfiles-repo"
+                value={formState.dotfilesRepo}
+                onChange={(event) => handleFieldChange('dotfilesRepo', event.target.value)}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
-              >
-                {DOTFILES_METHODS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+                placeholder="https://github.com/owner/dotfiles"
+              />
             </div>
 
             {formState.dotfilesMethod === 'bare-git' && (
@@ -290,6 +307,36 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {formState.dotfilesMethod === 'command' && (
+          <div>
+            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-command">
+              Command
+            </label>
+            <input
+              id="koolna-dotfiles-command"
+              value={formState.dotfilesCommand}
+              onChange={(event) => handleFieldChange('dotfilesCommand', event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              placeholder="curl -Ls https://example.com/setup | bash"
+            />
+          </div>
+        )}
+
+        {formState.dotfilesMethod !== 'none' && (
+          <div>
+            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-init">
+              Init command (optional)
+            </label>
+            <input
+              id="koolna-dotfiles-init"
+              value={formState.dotfilesInit}
+              onChange={(event) => handleFieldChange('dotfilesInit', event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              placeholder="~/.dotfiles/install.sh"
+            />
           </div>
         )}
 
