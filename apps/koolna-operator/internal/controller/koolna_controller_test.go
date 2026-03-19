@@ -85,7 +85,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
 					GitSecretRef: "git-creds",
 					Image:        "ghcr.io/buvis/koolna-base:latest",
@@ -161,7 +161,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
 					GitSecretRef: "git-creds",
 					Image:        "ghcr.io/buvis/koolna-base:latest",
@@ -232,7 +232,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:           "owner/repo",
+					Repo:           "https://github.com/owner/repo",
 					Branch:         "main",
 					GitSecretRef:   "git-creds",
 					Image:          "ghcr.io/buvis/koolna-base:latest",
@@ -301,7 +301,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:           "owner/repo",
+					Repo:           "https://github.com/owner/repo",
 					Branch:         "main",
 					GitSecretRef:   "git-creds",
 					Image:          "ghcr.io/buvis/koolna-base:latest",
@@ -389,7 +389,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main; rm -rf /",
 					GitSecretRef: "git-creds",
 					Image:        "ghcr.io/buvis/koolna-base:latest",
@@ -421,7 +421,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
 					GitSecretRef: "git-creds",
 					DotfilesRepo: "not a valid repo",
@@ -445,7 +445,7 @@ var _ = Describe("Koolna Controller", func() {
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-initc", Namespace: "default"},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
 					GitSecretRef: "git-creds",
 					Image:        "ghcr.io/buvis/koolna-base:latest",
@@ -462,7 +462,7 @@ var _ = Describe("Koolna Controller", func() {
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-initc-q", Namespace: "default"},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
 					GitSecretRef: "git-creds",
 					Image:        "ghcr.io/buvis/koolna-base:latest",
@@ -477,7 +477,7 @@ var _ = Describe("Koolna Controller", func() {
 
 	Context("When building dotfiles env vars", func() {
 		It("should include git secret env vars when gitSecretRef is set", func() {
-			cfg := dotfilesConfig{Repo: "owner/dotfiles"}
+			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles"}
 			envVars := buildDotfilesEnvVars(cfg, "git-creds")
 			Expect(envVars).NotTo(BeEmpty())
 			names := make([]string, len(envVars))
@@ -497,7 +497,7 @@ var _ = Describe("Koolna Controller", func() {
 		})
 
 		It("should default method to clone", func() {
-			cfg := dotfilesConfig{Repo: "owner/dotfiles"}
+			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles"}
 			envVars := buildDotfilesEnvVars(cfg, "")
 			var method string
 			for _, e := range envVars {
@@ -509,13 +509,56 @@ var _ = Describe("Koolna Controller", func() {
 		})
 
 		It("should include DOTFILES_BARE_DIR when set", func() {
-			cfg := dotfilesConfig{Repo: "owner/dotfiles", Method: "bare-git", BareDir: ".buvis"}
+			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles", Method: "bare-git", BareDir: ".buvis"}
 			envVars := buildDotfilesEnvVars(cfg, "")
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
 				names[i] = e.Name
 			}
 			Expect(names).To(ContainElement("DOTFILES_BARE_DIR"))
+		})
+	})
+
+	Context("When resolving repo URLs", func() {
+		It("should pass through full HTTPS URLs", func() {
+			Expect(resolveRepoURL("https://github.com/owner/repo")).To(Equal("https://github.com/owner/repo"))
+			Expect(resolveRepoURL("https://gitlab.com/group/project")).To(Equal("https://gitlab.com/group/project"))
+		})
+
+		It("should prepend https://github.com/ for legacy format", func() {
+			Expect(resolveRepoURL("owner/repo")).To(Equal("https://github.com/owner/repo"))
+		})
+	})
+
+	Context("When validating spec with URLs", func() {
+		It("should accept full HTTPS URLs", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:    "https://gitlab.com/group/project",
+				Branch:  "main",
+				Image:   "ghcr.io/buvis/koolna-base:latest",
+				Storage: resource.MustParse("1Gi"),
+			}
+			Expect(validateSpec(spec)).To(Succeed())
+		})
+
+		It("should accept legacy owner/repo format", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:    "owner/repo",
+				Branch:  "main",
+				Image:   "ghcr.io/buvis/koolna-base:latest",
+				Storage: resource.MustParse("1Gi"),
+			}
+			Expect(validateSpec(spec)).To(Succeed())
+		})
+
+		It("should reject invalid repo format", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:    "not-a-valid-repo",
+				Branch:  "main",
+				Image:   "ghcr.io/buvis/koolna-base:latest",
+				Storage: resource.MustParse("1Gi"),
+			}
+			Expect(validateSpec(spec)).NotTo(Succeed())
 		})
 	})
 
@@ -533,7 +576,7 @@ var _ = Describe("Koolna Controller", func() {
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "owner/repo",
+					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
 					GitSecretRef: "git-creds",
 					Image:        "ghcr.io/buvis/koolna-base:latest",

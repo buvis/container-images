@@ -288,7 +288,7 @@ metadata:
   name: %s
   namespace: %s
 spec:
-  repo: owner/repo
+  repo: https://github.com/owner/repo
   branch: main
   gitSecretRef: git-creds
   image: ghcr.io/buvis/koolna-base:latest
