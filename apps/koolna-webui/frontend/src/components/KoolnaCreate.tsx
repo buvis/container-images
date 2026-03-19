@@ -78,7 +78,17 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     const secret = formState.privateRepo && formState.gitToken.trim()
       ? `${formState.name}-git`
       : undefined
-    listBranches(repo, secret).then(setBranches).catch(() => setBranches([]))
+    listBranches(repo, secret)
+      .then((result) => {
+        setBranches(result)
+        if (!formState.privateRepo && result.length === 0) return
+      })
+      .catch(() => {
+        setBranches([])
+        if (!formState.privateRepo) {
+          setFormState((prev) => ({ ...prev, privateRepo: true }))
+        }
+      })
   }, [formState.repo, formState.privateRepo, formState.gitToken, formState.name])
 
   const handleFieldChange = (field: keyof FormState, value: string | boolean) => {
@@ -206,6 +216,48 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             <p className="mt-1 text-xs text-rose-400">{errors.repo}</p>
           )}
         </div>
+
+        <div>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formState.privateRepo}
+              onChange={(event) => handleFieldChange('privateRepo', event.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-slate-900/60 text-sky-500 focus:ring-sky-400"
+            />
+            <span className="text-sm font-semibold text-white/80">Private repository</span>
+          </label>
+        </div>
+
+        {formState.privateRepo && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
+                Username
+              </label>
+              <input
+                id="koolna-git-username"
+                value={formState.gitUsername}
+                onChange={(event) => handleFieldChange('gitUsername', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-token">
+                Personal access token
+              </label>
+              <input
+                id="koolna-git-token"
+                type="password"
+                value={formState.gitToken}
+                onChange={(event) => handleFieldChange('gitToken', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
@@ -337,48 +389,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
               className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
               placeholder="~/.dotfiles/install.sh"
             />
-          </div>
-        )}
-
-        <div>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formState.privateRepo}
-              onChange={(event) => handleFieldChange('privateRepo', event.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-slate-900/60 text-sky-500 focus:ring-sky-400"
-            />
-            <span className="text-sm font-semibold text-white/80">Private repository</span>
-          </label>
-        </div>
-
-        {formState.privateRepo && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
-                Username
-              </label>
-              <input
-                id="koolna-git-username"
-                value={formState.gitUsername}
-                onChange={(event) => handleFieldChange('gitUsername', event.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
-                autoComplete="username"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-token">
-                Personal access token
-              </label>
-              <input
-                id="koolna-git-token"
-                type="password"
-                value={formState.gitToken}
-                onChange={(event) => handleFieldChange('gitToken', event.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
-                autoComplete="off"
-              />
-            </div>
           </div>
         )}
 
