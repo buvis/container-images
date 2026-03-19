@@ -45,12 +45,17 @@ install_dotfiles() {
             done
           git --git-dir="$bare_dir" --work-tree="$HOME" checkout
         }
-        git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
+      else
+        git --git-dir="$bare_dir" --work-tree="$HOME" fetch origin || true
+        git --git-dir="$bare_dir" --work-tree="$HOME" merge --ff-only || true
       fi
+      git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
       ;;
     script)
       if [ ! -d "$cache/.git" ]; then
         git clone "https://github.com/$repo" "$cache"
+      else
+        git -C "$cache" pull --ff-only || true
       fi
       for script in install.sh setup.sh bootstrap.sh; do
         if [ -x "$cache/$script" ]; then
@@ -64,6 +69,8 @@ install_dotfiles() {
     clone)
       if [ ! -d "$HOME/.dotfiles/.git" ]; then
         git clone "https://github.com/$repo" "$HOME/.dotfiles"
+      else
+        git -C "$HOME/.dotfiles" pull --ff-only || true
       fi
       ;;
   esac
