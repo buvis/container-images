@@ -32,6 +32,7 @@ install_dotfiles() {
       local bare_dir="$HOME/${DOTFILES_BARE_DIR:-.cfg}"
       if [ ! -d "$bare_dir/HEAD" ]; then
         if [ ! -d "$cache/HEAD" ]; then
+          rm -rf "$cache"
           git clone --bare "https://github.com/$repo" "$cache"
         fi
         cp -a "$cache" "$bare_dir"
@@ -53,6 +54,7 @@ install_dotfiles() {
       ;;
     script)
       if [ ! -d "$cache/.git" ]; then
+        rm -rf "$cache"
         git clone "https://github.com/$repo" "$cache"
       else
         git -C "$cache" pull --ff-only || true
