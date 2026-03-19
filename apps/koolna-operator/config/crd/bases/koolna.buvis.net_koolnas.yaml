@@ -60,6 +60,10 @@ spec:
                 type: string
               dotfilesBareDir:
                 type: string
+              dotfilesCommand:
+                type: string
+              dotfilesInit:
+                type: string
               dotfilesMethod:
                 type: string
               dotfilesRepo:

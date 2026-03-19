@@ -15,9 +15,11 @@ spec:
   gitSecretRef: git-creds    # secret with username/token keys
   image: ghcr.io/buvis/koolna-base:latest
   storage: 10Gi              # workspace PVC size
-  dotfilesRepo: https://github.com/owner/dots  # optional dotfiles URL
-  dotfilesMethod: bare-git   # bare-git | script | clone
+  dotfilesMethod: bare-git   # none | bare-git | clone | command
+  dotfilesRepo: https://github.com/owner/dots  # URL for bare-git/clone
   dotfilesBareDir: .cfg      # bare-git only, default: .cfg
+  dotfilesCommand: ""        # command method: shell command to run
+  dotfilesInit: ""           # optional post-setup command (any method)
   suspended: false           # true = delete pod, keep PVC
   deletionPolicy: Retain     # Retain or Delete PVC on CR deletion
 ```
@@ -34,8 +36,9 @@ metadata:
   namespace: koolna
 data:
   dotfilesRepo: https://github.com/owner/dotfiles
-  dotfilesMethod: bare-git       # bare-git | script | clone
+  dotfilesMethod: bare-git       # none | bare-git | clone | command
   dotfilesBareDir: .cfg          # bare-git only
+  dotfilesInit: ""               # optional post-setup command
   defaultBranch: master          # pre-filled in create form
 ```
 
@@ -45,9 +48,12 @@ Repo fields accept full HTTPS URLs (any git host). Legacy `owner/repo` format is
 
 | Method | What it does |
 |--------|-------------|
+| `none` | No dotfiles. Explicit opt-out when defaults are configured. |
 | `bare-git` | Bare clone to `$HOME/<bareDir>`, checkout into `$HOME`, init submodules |
-| `script` | Clone to cache, auto-run `install.sh`, `setup.sh`, `bootstrap.sh`, or `Makefile` |
-| `clone` | Clone to `$HOME/.dotfiles`, no install step |
+| `clone` | Clone to `$HOME/.dotfiles` |
+| `command` | Run an arbitrary shell command (e.g., `curl -Ls https://example.com/setup \| bash`) |
+
+All methods except `none` support an optional `dotfilesInit` command that runs after the main method completes.
 
 Dotfiles are installed by `startup.sh` in the main container (as the correct user with `$HOME` access). Clones are cached in `/workspace/.dotfiles-cache` across pod restarts.
 
