@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: koolna-defaults
+  namespace: koolna
+data:
+  dotfilesMethod: ""
+  dotfilesRepo: ""
+  dotfilesBareDir: ""
+  defaultBranch: main
