@@ -396,3 +396,27 @@ func TestListKoolnas_MultipleItems(t *testing.T) {
 		t.Errorf("expected env-1 and env-2, got %v", names)
 	}
 }
+
+func TestListBranches_MissingRepo(t *testing.T) {
+	router := setupTest(t)
+
+	req := httptest.NewRequest("GET", "/api/branches", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestListBranches_NonHTTPS(t *testing.T) {
+	router := setupTest(t)
+
+	req := httptest.NewRequest("GET", "/api/branches?repo=git@github.com:owner/repo.git", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}

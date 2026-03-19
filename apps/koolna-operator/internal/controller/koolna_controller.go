@@ -110,6 +110,13 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return ctrl.Result{}, err
 	}
 
+	if !strings.HasPrefix(koolna.Spec.Repo, "https://") {
+		log.Info("repo uses legacy owner/repo format, use full URL instead", "repo", koolna.Spec.Repo)
+	}
+	if koolna.Spec.DotfilesRepo != "" && !strings.HasPrefix(koolna.Spec.DotfilesRepo, "https://") {
+		log.Info("dotfilesRepo uses legacy owner/repo format, use full URL instead", "dotfilesRepo", koolna.Spec.DotfilesRepo)
+	}
+
 	pvc, err := r.reconcilePVC(ctx, &koolna)
 	if err != nil {
 		log.Error(err, "unable to reconcile PVC", "name", req.NamespacedName)

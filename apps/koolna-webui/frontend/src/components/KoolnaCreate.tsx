@@ -309,7 +309,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
-                GitHub username
+                Username
               </label>
               <input
                 id="koolna-git-username"

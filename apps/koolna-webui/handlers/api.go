@@ -225,7 +225,7 @@ func (h *APIHandler) ListBranches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var branches []string
+	branches := []string{}
 	scanner := bufio.NewScanner(bytes.NewReader(out))
 	for scanner.Scan() {
 		parts := strings.SplitN(scanner.Text(), "\t", 2)
