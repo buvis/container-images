@@ -517,6 +517,35 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(names).To(ContainElement("DOTFILES_BARE_DIR"))
 		})
+
+		It("should return nil when method is none", func() {
+			cfg := dotfilesConfig{Method: "none", Repo: "https://github.com/owner/dotfiles"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			Expect(envVars).To(BeNil())
+		})
+
+		It("should support command method without repo", func() {
+			cfg := dotfilesConfig{Method: "command", Command: "curl -Ls https://example.com | bash"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			Expect(envVars).NotTo(BeEmpty())
+			names := make([]string, len(envVars))
+			for i, e := range envVars {
+				names[i] = e.Name
+			}
+			Expect(names).To(ContainElement("DOTFILES_METHOD"))
+			Expect(names).To(ContainElement("DOTFILES_COMMAND"))
+			Expect(names).NotTo(ContainElement("DOTFILES_REPO"))
+		})
+
+		It("should include DOTFILES_INIT when set", func() {
+			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles", Init: "~/.dotfiles/install.sh"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			names := make([]string, len(envVars))
+			for i, e := range envVars {
+				names[i] = e.Name
+			}
+			Expect(names).To(ContainElement("DOTFILES_INIT"))
+		})
 	})
 
 	Context("When resolving repo URLs", func() {
