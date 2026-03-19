@@ -28,6 +28,7 @@ export interface DotfilesDefaults {
   dotfilesRepo?: string
   dotfilesMethod?: DotfilesMethod
   dotfilesBareDir?: string
+  defaultBranch?: string
 }
 
 const API_BASE = '/api/koolnas'
@@ -88,6 +89,13 @@ export async function updateDefaults(defaults: DotfilesDefaults): Promise<Dotfil
     body: JSON.stringify(defaults),
   })
   return parseResponse<DotfilesDefaults>(response)
+}
+
+export async function listBranches(repo: string, secret?: string): Promise<string[]> {
+  const params = new URLSearchParams({ repo })
+  if (secret) params.set('secret', secret)
+  const response = await fetch(`/api/branches?${params}`)
+  return parseResponse<string[]>(response)
 }
 
 export async function listKoolnas(): Promise<Koolna[]> {
