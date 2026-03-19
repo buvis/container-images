@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -369,19 +370,27 @@ func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
 }
 
 var (
-	validRepoPattern   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+	validURLPattern    = regexp.MustCompile(`^https://[^/]+/.+$`)
+	validLegacyPattern = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
 	validBranchPattern = regexp.MustCompile(`^[\w./-]+$`)
 )
 
+func resolveRepoURL(raw string) string {
+	if strings.HasPrefix(raw, "https://") {
+		return raw
+	}
+	return "https://github.com/" + raw
+}
+
 func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
-	if !validRepoPattern.MatchString(spec.Repo) {
-		return fmt.Errorf("invalid repo format %q: must match owner/repo", spec.Repo)
+	if !validURLPattern.MatchString(spec.Repo) && !validLegacyPattern.MatchString(spec.Repo) {
+		return fmt.Errorf("invalid repo format %q: use https://host/owner/repo or owner/repo", spec.Repo)
 	}
 	if !validBranchPattern.MatchString(spec.Branch) {
 		return fmt.Errorf("invalid branch format %q", spec.Branch)
 	}
-	if spec.DotfilesRepo != "" && !validRepoPattern.MatchString(spec.DotfilesRepo) {
-		return fmt.Errorf("invalid dotfilesRepo format %q: must match owner/repo", spec.DotfilesRepo)
+	if spec.DotfilesRepo != "" && !validURLPattern.MatchString(spec.DotfilesRepo) && !validLegacyPattern.MatchString(spec.DotfilesRepo) {
+		return fmt.Errorf("invalid dotfilesRepo format %q: use https://host/owner/repo or owner/repo", spec.DotfilesRepo)
 	}
 	return nil
 }
