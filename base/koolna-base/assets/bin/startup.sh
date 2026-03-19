@@ -69,15 +69,19 @@ install_dotfiles() {
   fi
 }
 
-if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${DOTFILES_METHOD:-}" ]; then
-  if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
+if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
+  if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
     repo_host=$(echo "$DOTFILES_REPO" | sed 's|https://\([^/]*\).*|\1|')
     printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$repo_host" > /tmp/.gitcredentials
     git config --global credential.helper "store --file=/tmp/.gitcredentials"
   fi
 
-  log_info "Installing dotfiles ($DOTFILES_METHOD) from $DOTFILES_REPO..."
-  install_dotfiles "$DOTFILES_REPO" "$DOTFILES_METHOD"
+  if [ -n "${DOTFILES_REPO:-}" ]; then
+    log_info "Installing dotfiles ($DOTFILES_METHOD) from $DOTFILES_REPO..."
+  else
+    log_info "Installing dotfiles ($DOTFILES_METHOD)..."
+  fi
+  install_dotfiles "${DOTFILES_REPO:-}" "$DOTFILES_METHOD"
 
   rm -f /tmp/.gitcredentials
   git config --global --unset credential.helper 2>/dev/null || true

@@ -546,6 +546,29 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(names).To(ContainElement("DOTFILES_INIT"))
 		})
+
+		It("should support command method with init command", func() {
+			cfg := dotfilesConfig{Method: "command", Command: "curl -Ls https://example.com | bash", Init: "~/.setup/post.sh"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			names := make([]string, len(envVars))
+			for i, e := range envVars {
+				names[i] = e.Name
+			}
+			Expect(names).To(ContainElement("DOTFILES_METHOD"))
+			Expect(names).To(ContainElement("DOTFILES_COMMAND"))
+			Expect(names).To(ContainElement("DOTFILES_INIT"))
+			Expect(names).NotTo(ContainElement("DOTFILES_REPO"))
+		})
+
+		It("should not set DOTFILES_BARE_DIR for clone method", func() {
+			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles", Method: "clone", BareDir: ".stale"}
+			envVars := buildDotfilesEnvVars(cfg, "")
+			names := make([]string, len(envVars))
+			for i, e := range envVars {
+				names[i] = e.Name
+			}
+			Expect(names).NotTo(ContainElement("DOTFILES_BARE_DIR"))
+		})
 	})
 
 	Context("When resolving repo URLs", func() {

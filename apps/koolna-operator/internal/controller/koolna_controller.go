@@ -407,6 +407,19 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 	if spec.DotfilesRepo != "" && !validURLPattern.MatchString(spec.DotfilesRepo) && !validLegacyPattern.MatchString(spec.DotfilesRepo) {
 		return fmt.Errorf("invalid dotfilesRepo format %q: use https://host/owner/repo or owner/repo", spec.DotfilesRepo)
 	}
+	switch spec.DotfilesMethod {
+	case "", "none":
+	case "bare-git", "clone":
+		if spec.DotfilesRepo == "" {
+			return fmt.Errorf("dotfilesMethod %q requires dotfilesRepo", spec.DotfilesMethod)
+		}
+	case "command":
+		if spec.DotfilesCommand == "" {
+			return fmt.Errorf("dotfilesMethod \"command\" requires dotfilesCommand")
+		}
+	default:
+		return fmt.Errorf("invalid dotfilesMethod %q: must be none, bare-git, clone, or command", spec.DotfilesMethod)
+	}
 	return nil
 }
 
@@ -515,11 +528,11 @@ func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvV
 		{Name: "DOTFILES_METHOD", Value: method},
 	}
 
-	if method != "command" && cfg.Repo != "" {
+	if (method == "bare-git" || method == "clone") && cfg.Repo != "" {
 		env = append(env, corev1.EnvVar{Name: "DOTFILES_REPO", Value: cfg.Repo})
 	}
 
-	if cfg.BareDir != "" {
+	if method == "bare-git" && cfg.BareDir != "" {
 		env = append(env, corev1.EnvVar{Name: "DOTFILES_BARE_DIR", Value: cfg.BareDir})
 	}
 
