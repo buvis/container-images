@@ -33,7 +33,7 @@ install_dotfiles() {
       if [ ! -d "$bare_dir/HEAD" ]; then
         if [ ! -d "$cache/HEAD" ]; then
           rm -rf "$cache"
-          git clone --bare "https://github.com/$repo" "$cache"
+          git clone --bare "$repo" "$cache"
         fi
         cp -a "$cache" "$bare_dir"
         git --git-dir="$bare_dir" --work-tree="$HOME" config status.showUntrackedFiles no
@@ -55,7 +55,7 @@ install_dotfiles() {
     script)
       if [ ! -d "$cache/.git" ]; then
         rm -rf "$cache"
-        git clone "https://github.com/$repo" "$cache"
+        git clone "$repo" "$cache"
       else
         git -C "$cache" pull --ff-only || true
       fi
@@ -70,7 +70,7 @@ install_dotfiles() {
       ;;
     clone)
       if [ ! -d "$HOME/.dotfiles/.git" ]; then
-        git clone "https://github.com/$repo" "$HOME/.dotfiles"
+        git clone "$repo" "$HOME/.dotfiles"
       else
         git -C "$HOME/.dotfiles" pull --ff-only || true
       fi
@@ -80,7 +80,8 @@ install_dotfiles() {
 
 if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${DOTFILES_METHOD:-}" ]; then
   if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
-    printf "https://%s:%s@github.com\n" "$GIT_USERNAME" "$GIT_TOKEN" > /tmp/.gitcredentials
+    repo_host=$(echo "$DOTFILES_REPO" | sed 's|https://\([^/]*\).*|\1|')
+    printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$repo_host" > /tmp/.gitcredentials
     git config --global credential.helper "store --file=/tmp/.gitcredentials"
   fi
 
