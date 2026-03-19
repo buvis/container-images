@@ -56,6 +56,8 @@ type createRequest struct {
 	DotfilesRepo    string `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
+	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
+	DotfilesInit    string `json:"dotfilesInit,omitempty"`
 	Image           string `json:"image"`
 	Storage         string `json:"storage"`
 	GitSecretRef    string `json:"gitSecretRef,omitempty"`
@@ -103,6 +105,8 @@ type defaultsResponse struct {
 	DotfilesRepo    string `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
+	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
+	DotfilesInit    string `json:"dotfilesInit,omitempty"`
 	DefaultBranch   string `json:"defaultBranch,omitempty"`
 }
 
@@ -121,6 +125,8 @@ func (h *APIHandler) GetDefaults(w http.ResponseWriter, _ *http.Request) {
 		DotfilesRepo:    cm.Data["dotfilesRepo"],
 		DotfilesMethod:  cm.Data["dotfilesMethod"],
 		DotfilesBareDir: cm.Data["dotfilesBareDir"],
+		DotfilesCommand: cm.Data["dotfilesCommand"],
+		DotfilesInit:    cm.Data["dotfilesInit"],
 		DefaultBranch:   cm.Data["defaultBranch"],
 	})
 }
@@ -142,6 +148,12 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DotfilesBareDir != "" {
 		data["dotfilesBareDir"] = req.DotfilesBareDir
+	}
+	if req.DotfilesCommand != "" {
+		data["dotfilesCommand"] = req.DotfilesCommand
+	}
+	if req.DotfilesInit != "" {
+		data["dotfilesInit"] = req.DotfilesInit
 	}
 	if req.DefaultBranch != "" {
 		data["defaultBranch"] = req.DefaultBranch
@@ -324,14 +336,20 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	if req.GitSecretRef != "" {
 		spec["gitSecretRef"] = req.GitSecretRef
 	}
+	if req.DotfilesMethod != "" {
+		spec["dotfilesMethod"] = req.DotfilesMethod
+	}
 	if req.DotfilesRepo != "" {
 		spec["dotfilesRepo"] = req.DotfilesRepo
-		if req.DotfilesMethod != "" {
-			spec["dotfilesMethod"] = req.DotfilesMethod
-		}
-		if req.DotfilesBareDir != "" {
-			spec["dotfilesBareDir"] = req.DotfilesBareDir
-		}
+	}
+	if req.DotfilesBareDir != "" {
+		spec["dotfilesBareDir"] = req.DotfilesBareDir
+	}
+	if req.DotfilesCommand != "" {
+		spec["dotfilesCommand"] = req.DotfilesCommand
+	}
+	if req.DotfilesInit != "" {
+		spec["dotfilesInit"] = req.DotfilesInit
 	}
 
 	obj := &unstructured.Unstructured{
