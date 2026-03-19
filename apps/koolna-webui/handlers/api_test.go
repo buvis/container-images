@@ -65,7 +65,7 @@ func TestSetupCompiles(t *testing.T) {
 func TestCreateKoolna_FlatPayload(t *testing.T) {
 	router := setupTest(t)
 
-	body := `{"name":"my-env","repo":"owner/repo","branch":"main","image":"ghcr.io/buvis/koolna-base:latest","storage":"10Gi"}`
+	body := `{"name":"my-env","repo":"https://github.com/owner/repo","branch":"main","image":"ghcr.io/buvis/koolna-base:latest","storage":"10Gi"}`
 	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -82,7 +82,7 @@ func TestCreateKoolna_FlatPayload(t *testing.T) {
 	if resp["name"] != "my-env" {
 		t.Errorf("name = %v, want my-env", resp["name"])
 	}
-	if resp["repo"] != "owner/repo" {
+	if resp["repo"] != "https://github.com/owner/repo" {
 		t.Errorf("repo = %v, want owner/repo", resp["repo"])
 	}
 	if resp["branch"] != "main" {
@@ -93,7 +93,7 @@ func TestCreateKoolna_FlatPayload(t *testing.T) {
 func TestCreateKoolna_MissingName(t *testing.T) {
 	router := setupTest(t)
 
-	body := `{"repo":"owner/repo","branch":"main"}`
+	body := `{"repo":"https://github.com/owner/repo","branch":"main"}`
 	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -121,7 +121,7 @@ func TestCreateKoolna_MissingRepo(t *testing.T) {
 func TestCreateKoolna_Defaults(t *testing.T) {
 	router := setupTest(t)
 
-	body := `{"name":"minimal","repo":"owner/repo"}`
+	body := `{"name":"minimal","repo":"https://github.com/owner/repo"}`
 	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -141,7 +141,7 @@ func TestCreateKoolna_Defaults(t *testing.T) {
 }
 
 func TestListKoolnas_ReturnsFlatArray(t *testing.T) {
-	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Running", "10.0.0.1")
+	existing := makeKoolnaUnstructured("env-1", "https://github.com/owner/repo", "main", "Running", "10.0.0.1")
 	router := setupTest(t, existing)
 
 	req := httptest.NewRequest("GET", "/api/koolnas", nil)
@@ -162,7 +162,7 @@ func TestListKoolnas_ReturnsFlatArray(t *testing.T) {
 	if items[0]["name"] != "env-1" {
 		t.Errorf("name = %v, want env-1", items[0]["name"])
 	}
-	if items[0]["repo"] != "owner/repo" {
+	if items[0]["repo"] != "https://github.com/owner/repo" {
 		t.Errorf("repo = %v, want owner/repo", items[0]["repo"])
 	}
 	if items[0]["phase"] != "Running" {
@@ -191,7 +191,7 @@ func TestListKoolnas_Empty(t *testing.T) {
 }
 
 func TestGetKoolna_ReturnsFlatObject(t *testing.T) {
-	existing := makeKoolnaUnstructured("env-1", "owner/repo", "dev", "Running", "10.0.0.1")
+	existing := makeKoolnaUnstructured("env-1", "https://github.com/owner/repo", "dev", "Running", "10.0.0.1")
 	router := setupTest(t, existing)
 
 	req := httptest.NewRequest("GET", "/api/koolnas/env-1", nil)
@@ -209,7 +209,7 @@ func TestGetKoolna_ReturnsFlatObject(t *testing.T) {
 	if resp["name"] != "env-1" {
 		t.Errorf("name = %v, want env-1", resp["name"])
 	}
-	if resp["repo"] != "owner/repo" {
+	if resp["repo"] != "https://github.com/owner/repo" {
 		t.Errorf("repo = %v, want owner/repo", resp["repo"])
 	}
 	if resp["branch"] != "dev" {
@@ -236,7 +236,7 @@ func TestGetKoolna_NotFound(t *testing.T) {
 }
 
 func TestDeleteKoolna_Success(t *testing.T) {
-	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Running", "10.0.0.1")
+	existing := makeKoolnaUnstructured("env-1", "https://github.com/owner/repo", "main", "Running", "10.0.0.1")
 	router := setupTest(t, existing)
 
 	req := httptest.NewRequest("DELETE", "/api/koolnas/env-1", nil)
@@ -267,7 +267,7 @@ func TestDeleteKoolna_NotFound(t *testing.T) {
 }
 
 func TestPauseKoolna_Success(t *testing.T) {
-	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Running", "10.0.0.1")
+	existing := makeKoolnaUnstructured("env-1", "https://github.com/owner/repo", "main", "Running", "10.0.0.1")
 	router := setupTest(t, existing)
 
 	req := httptest.NewRequest("POST", "/api/koolnas/env-1/pause", nil)
@@ -292,7 +292,7 @@ func TestPauseKoolna_NotFound(t *testing.T) {
 }
 
 func TestResumeKoolna_Success(t *testing.T) {
-	existing := makeKoolnaUnstructured("env-1", "owner/repo", "main", "Suspended", "")
+	existing := makeKoolnaUnstructured("env-1", "https://github.com/owner/repo", "main", "Suspended", "")
 	router := setupTest(t, existing)
 
 	req := httptest.NewRequest("POST", "/api/koolnas/env-1/resume", nil)
@@ -333,7 +333,7 @@ func TestCreateKoolna_EmptyBody(t *testing.T) {
 func TestCreateKoolna_WithDotfiles(t *testing.T) {
 	router := setupTest(t)
 
-	body := `{"name":"with-dots","repo":"owner/repo","dotfilesRepo":"owner/dotfiles"}`
+	body := `{"name":"with-dots","repo":"https://github.com/owner/repo","dotfilesRepo":"https://github.com/owner/dotfiles"}`
 	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -351,10 +351,10 @@ func TestCreateKoolna_WithDotfiles(t *testing.T) {
 }
 
 func TestCreateKoolna_Duplicate(t *testing.T) {
-	existing := makeKoolnaUnstructured("dup", "owner/repo", "main", "Running", "")
+	existing := makeKoolnaUnstructured("dup", "https://github.com/owner/repo", "main", "Running", "")
 	router := setupTest(t, existing)
 
-	body := `{"name":"dup","repo":"owner/repo"}`
+	body := `{"name":"dup","repo":"https://github.com/owner/repo"}`
 	req := httptest.NewRequest("POST", "/api/koolnas", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -366,8 +366,8 @@ func TestCreateKoolna_Duplicate(t *testing.T) {
 }
 
 func TestListKoolnas_MultipleItems(t *testing.T) {
-	obj1 := makeKoolnaUnstructured("env-1", "owner/repo-a", "main", "Running", "10.0.0.1")
-	obj2 := makeKoolnaUnstructured("env-2", "owner/repo-b", "dev", "Pending", "")
+	obj1 := makeKoolnaUnstructured("env-1", "https://github.com/owner/repo-a", "main", "Running", "10.0.0.1")
+	obj2 := makeKoolnaUnstructured("env-2", "https://github.com/owner/repo-b", "dev", "Pending", "")
 	router := setupTest(t, obj1, obj2)
 
 	req := httptest.NewRequest("GET", "/api/koolnas", nil)
