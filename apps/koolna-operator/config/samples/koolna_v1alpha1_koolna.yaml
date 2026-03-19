@@ -3,10 +3,10 @@ kind: Koolna
 metadata:
   name: myproject-main
 spec:
-  repo: owner/name
+  repo: https://github.com/owner/name
   branch: main
   gitSecretRef: git-creds
-  dotfilesRepo: owner/dotfiles
+  dotfilesRepo: https://github.com/owner/dotfiles
   dotfilesMethod: bare-git
   dotfilesBareDir: .cfg
   image: ghcr.io/buvis/koolna-base:latest

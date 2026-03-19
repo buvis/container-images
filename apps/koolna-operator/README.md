@@ -10,12 +10,12 @@ kind: Koolna
 metadata:
   name: my-env
 spec:
-  repo: owner/repo           # GitHub repo to clone
+  repo: https://github.com/owner/repo  # full HTTPS clone URL
   branch: main               # branch to checkout
   gitSecretRef: git-creds    # secret with username/token keys
   image: ghcr.io/buvis/koolna-base:latest
   storage: 10Gi              # workspace PVC size
-  dotfilesRepo: owner/dots   # optional dotfiles repo
+  dotfilesRepo: https://github.com/owner/dots  # optional dotfiles URL
   dotfilesMethod: bare-git   # bare-git | script | clone
   dotfilesBareDir: .cfg      # bare-git only, default: .cfg
   suspended: false           # true = delete pod, keep PVC
@@ -24,7 +24,7 @@ spec:
 
 ## Dotfiles
 
-Dotfiles config can be set per-Koolna (CRD fields above) or system-wide via a ConfigMap. The operator checks for a `koolna-defaults` ConfigMap in the Koolna's namespace; CRD fields override it.
+Dotfiles config can be set per-Koolna (CRD fields above) or system-wide via a ConfigMap. The webui pre-fills the creation form from `koolna-defaults`; the user can override or clear.
 
 ```yaml
 apiVersion: v1
@@ -33,10 +33,13 @@ metadata:
   name: koolna-defaults
   namespace: koolna
 data:
-  dotfilesRepo: owner/dotfiles
+  dotfilesRepo: https://github.com/owner/dotfiles
   dotfilesMethod: bare-git       # bare-git | script | clone
   dotfilesBareDir: .cfg          # bare-git only
+  defaultBranch: master          # pre-filled in create form
 ```
+
+Repo fields accept full HTTPS URLs (any git host). Legacy `owner/repo` format is supported with automatic `https://github.com/` prefix.
 
 **Methods:**
 

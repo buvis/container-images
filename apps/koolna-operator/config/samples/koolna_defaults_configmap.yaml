@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: koolna-defaults
 data:
-  dotfilesRepo: owner/dotfiles
+  dotfilesRepo: https://github.com/owner/dotfiles
+  defaultBranch: master
   dotfilesMethod: bare-git
   dotfilesBareDir: .cfg
