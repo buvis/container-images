@@ -1,12 +1,17 @@
 package handlers
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -83,6 +88,7 @@ const defaultsConfigMapName = "koolna-defaults"
 func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/defaults", h.GetDefaults).Methods("GET")
 	r.HandleFunc("/api/defaults", h.UpdateDefaults).Methods("PUT")
+	r.HandleFunc("/api/branches", h.ListBranches).Methods("GET")
 	r.HandleFunc("/api/koolnas", h.ListKoolnas).Methods("GET")
 	r.HandleFunc("/api/koolnas", h.CreateKoolna).Methods("POST")
 	r.HandleFunc("/api/koolnas/{name}", h.GetKoolna).Methods("GET")
@@ -168,6 +174,68 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, req)
+}
+
+// ListBranches runs git ls-remote --heads against a repo URL and returns branch names.
+func (h *APIHandler) ListBranches(w http.ResponseWriter, r *http.Request) {
+	repoURL := r.URL.Query().Get("repo")
+	if repoURL == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("repo query parameter is required"))
+		return
+	}
+	if !strings.HasPrefix(repoURL, "https://") {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("repo must be an HTTPS URL"))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "git", "ls-remote", "--heads", repoURL)
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+
+	secretName := r.URL.Query().Get("secret")
+	if secretName != "" {
+		secret, err := h.kube.CoreV1().Secrets(h.ns).Get(ctx, secretName, metav1.GetOptions{})
+		if err != nil {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		host := strings.TrimPrefix(repoURL, "https://")
+		if idx := strings.Index(host, "/"); idx > 0 {
+			host = host[:idx]
+		}
+		cred := fmt.Sprintf("https://%s:%s@%s", secret.Data["username"], secret.Data["token"], host)
+		credFile, err := os.CreateTemp("", "gitcred")
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
+		defer os.Remove(credFile.Name())
+		_, _ = credFile.WriteString(cred + "\n")
+		credFile.Close()
+		cmd.Env = append(cmd.Env, "GIT_CONFIG_COUNT=1",
+			"GIT_CONFIG_KEY_0=credential.helper",
+			"GIT_CONFIG_VALUE_0=store --file="+credFile.Name())
+	}
+
+	out, err := cmd.Output()
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, fmt.Errorf("git ls-remote failed: %v", err))
+		return
+	}
+
+	var branches []string
+	scanner := bufio.NewScanner(bytes.NewReader(out))
+	for scanner.Scan() {
+		parts := strings.SplitN(scanner.Text(), "\t", 2)
+		if len(parts) == 2 {
+			branch := strings.TrimPrefix(parts[1], "refs/heads/")
+			branches = append(branches, branch)
+		}
+	}
+	sort.Strings(branches)
+	respondJSON(w, http.StatusOK, branches)
 }
 
 // ListKoolnas returns all Koolna instances in the configured namespace.
