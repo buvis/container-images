@@ -360,7 +360,11 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	return pod, nil
 }
 
-const workspaceVolumeName = "workspace"
+const (
+	workspaceVolumeName = "workspace"
+	homeVolumeName      = "home"
+	homeMountPath       = "/home/bob"
+)
 
 type dotfilesConfig struct {
 	Repo    string
@@ -426,27 +430,30 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
 	secretName := koolna.Spec.GitSecretRef
 
+	const ws = homeMountPath + "/workspace"
 	var script string
 	if secretName != "" {
-		script = `if [ ! -d /workspace/.git ]; then
-  rm -rf /workspace/*  /workspace/.[!.]* /workspace/..?*
+		script = `chown 1000:1000 ` + homeMountPath + `
+if [ ! -d ` + ws + `/.git ]; then
+  rm -rf ` + ws + `
   REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > /tmp/.gitcredentials
   git config --global credential.helper "store --file=/tmp/.gitcredentials"
-  git clone "$REPO_URL" /workspace
+  git clone "$REPO_URL" ` + ws + `
   rm -f /tmp/.gitcredentials
-  cd /workspace && git checkout "$REPO_BRANCH"
-  chown -R 1000:1000 /workspace
+  cd ` + ws + ` && git checkout "$REPO_BRANCH"
+  chown -R 1000:1000 ` + ws + `
 fi
-mkdir -p /workspace/.koolna && chown 1000:1000 /workspace/.koolna`
+mkdir -p ` + ws + `/.koolna && chown 1000:1000 ` + ws + `/.koolna`
 	} else {
-		script = `if [ ! -d /workspace/.git ]; then
-  rm -rf /workspace/* /workspace/.[!.]* /workspace/..?*
-  git clone "$REPO_URL" /workspace
-  cd /workspace && git checkout "$REPO_BRANCH"
-  chown -R 1000:1000 /workspace
+		script = `chown 1000:1000 ` + homeMountPath + `
+if [ ! -d ` + ws + `/.git ]; then
+  rm -rf ` + ws + `
+  git clone "$REPO_URL" ` + ws + `
+  cd ` + ws + ` && git checkout "$REPO_BRANCH"
+  chown -R 1000:1000 ` + ws + `
 fi
-mkdir -p /workspace/.koolna && chown 1000:1000 /workspace/.koolna`
+mkdir -p ` + ws + `/.koolna && chown 1000:1000 ` + ws + `/.koolna`
 	}
 
 	repoURL := resolveRepoURL(koolna.Spec.Repo)
@@ -500,8 +507,8 @@ mkdir -p /workspace/.koolna && chown 1000:1000 /workspace/.koolna`
 		Env:  env,
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      workspaceVolumeName,
-				MountPath: "/workspace",
+				Name:      homeVolumeName,
+				MountPath: homeMountPath,
 			},
 		},
 	}
@@ -570,8 +577,6 @@ func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvV
 	return env
 }
 
-const homeVolumeName = "home"
-
 func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig) *corev1.Pod {
 	shareProcessNamespace := true
 
@@ -580,6 +585,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 	}
 	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
+
+	homeMount := corev1.VolumeMount{Name: homeVolumeName, MountPath: homeMountPath}
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -598,14 +605,11 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 			},
 			Containers: []corev1.Container{
 				{
-					Name:       "koolna",
-					Image:      koolna.Spec.Image,
-					WorkingDir: "/workspace",
-					Resources:  koolna.Spec.Resources,
-					VolumeMounts: []corev1.VolumeMount{
-						{Name: workspaceVolumeName, MountPath: "/workspace"},
-						{Name: homeVolumeName, MountPath: "/home/bob"},
-					},
+					Name:         "koolna",
+					Image:        koolna.Spec.Image,
+					WorkingDir:   homeMountPath + "/workspace",
+					Resources:    koolna.Spec.Resources,
+					VolumeMounts: []corev1.VolumeMount{homeMount},
 				},
 				{
 					Name:    "tmux-sidecar",
@@ -617,26 +621,19 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 							Add: []corev1.Capability{"SYS_PTRACE"},
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{
-						{Name: workspaceVolumeName, MountPath: "/workspace"},
-						{Name: homeVolumeName, MountPath: "/home/bob"},
-					},
+					VolumeMounts: []corev1.VolumeMount{homeMount},
 				},
 			},
 			Volumes: []corev1.Volume{
-				buildWorkspaceVolume(pvcName),
-				{
-					Name:         homeVolumeName,
-					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
-				},
+				buildHomeVolume(pvcName),
 			},
 		},
 	}
 }
 
-func buildWorkspaceVolume(pvcName string) corev1.Volume {
+func buildHomeVolume(pvcName string) corev1.Volume {
 	return corev1.Volume{
-		Name: workspaceVolumeName,
+		Name: homeVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: pvcName,
