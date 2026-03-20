@@ -414,14 +414,46 @@ function startClipboardBridge(session, term) {
       const entry = JSON.parse(e.data);
       if (entry.seq <= lastSeq) return;
       lastSeq = entry.seq;
-      await navigator.clipboard.writeText(entry.text);
-      term.showMessage('Copied', 1000);
-    } catch {
-      // clipboard write may require user gesture in some browsers
-    }
+
+      // Try direct clipboard write (works when page is focused + HTTPS)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(entry.text);
+          term.showMessage('\u2705 Copied', 1000);
+          return;
+        } catch {}
+      }
+
+      // Fallback: show clickable toast (user gesture enables clipboard)
+      showCopyToast(entry.text, term);
+    } catch {}
   });
 
   return () => es.close();
+}
+
+function showCopyToast(text, term) {
+  const existing = document.getElementById('copy-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'copy-toast';
+  toast.style.cssText = 'position:fixed;bottom:1rem;right:1rem;background:#1e293b;border:1px solid rgba(255,255,255,0.15);border-radius:0.75rem;padding:0.5rem 1rem;color:#e2e8f0;font-size:0.875rem;cursor:pointer;z-index:9999;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+  const preview = text.length > 40 ? text.slice(0, 40) + '\u2026' : text;
+  toast.textContent = '\u{1f4cb} Click to copy: ' + preview;
+
+  toast.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      term.showMessage('\u2705 Copied', 1000);
+    } catch {
+      term.showMessage('\u274c Copy failed', 1500);
+    }
+    toast.remove();
+  });
+
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 8000);
 }
 
 document.addEventListener('DOMContentLoaded', init);
