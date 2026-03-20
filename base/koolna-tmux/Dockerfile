@@ -1,5 +1,5 @@
 FROM alpine:latest
-RUN apk add --no-cache tmux util-linux
+RUN apk add --no-cache tmux util-linux git curl
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

@@ -32,6 +32,67 @@ while [ -z "$TARGET_PID" ]; do
 done
 echo "found koolna main container process at PID $TARGET_PID"
 
+# Install dotfiles in shared /home/bob if configured
+HOME="/home/bob"
+export HOME
+if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
+  if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
+    repo_host=$(echo "$DOTFILES_REPO" | sed 's|https://\([^/]*\).*|\1|')
+    printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$repo_host" > /tmp/.gitcredentials
+    git config --global credential.helper "store --file=/tmp/.gitcredentials"
+  fi
+
+  echo "installing dotfiles ($DOTFILES_METHOD)..."
+  set +e
+  case "$DOTFILES_METHOD" in
+    bare-git)
+      bare_dir="$HOME/${DOTFILES_BARE_DIR:-.cfg}"
+      cache="$HOME/.dotfiles-cache"
+      if [ ! -d "$bare_dir/HEAD" ]; then
+        if [ ! -d "$cache/HEAD" ]; then
+          rm -rf "$cache"
+          git clone --bare "$DOTFILES_REPO" "$cache"
+        fi
+        cp -a "$cache" "$bare_dir"
+        git --git-dir="$bare_dir" --work-tree="$HOME" config status.showUntrackedFiles no
+        git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>/dev/null || {
+          mkdir -p "$bare_dir/backup"
+          git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>&1 \
+            | grep -E '^\s+' | awk '{print $1}' | while read -r f; do
+              mkdir -p "$bare_dir/backup/$(dirname "$f")"
+              mv "$HOME/$f" "$bare_dir/backup/$f" 2>/dev/null || true
+            done
+          git --git-dir="$bare_dir" --work-tree="$HOME" checkout
+        }
+      else
+        git --git-dir="$bare_dir" --work-tree="$HOME" fetch origin || true
+        git --git-dir="$bare_dir" --work-tree="$HOME" merge --ff-only || true
+      fi
+      git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
+      ;;
+    command)
+      eval "${DOTFILES_COMMAND:-}"
+      ;;
+    clone)
+      if [ ! -d "$HOME/.dotfiles/.git" ]; then
+        git clone "$DOTFILES_REPO" "$HOME/.dotfiles"
+      else
+        git -C "$HOME/.dotfiles" pull --ff-only || true
+      fi
+      ;;
+  esac
+  dotfiles_exit=$?
+  if [ -n "${DOTFILES_INIT:-}" ]; then
+    eval "$DOTFILES_INIT"
+  fi
+  set -e
+  if [ "$dotfiles_exit" -ne 0 ]; then
+    echo "dotfiles installation exited with status $dotfiles_exit (non-fatal)"
+  fi
+  rm -f /tmp/.gitcredentials
+  git config --global --unset credential.helper 2>/dev/null || true
+fi
+
 NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- /bin/sh -l"
 
 echo "starting tmux server and configuring defaults"
