@@ -6,10 +6,7 @@ export class XtermAdapter {
   readonly term: Terminal;
   private fitAddon: FitAddon;
 
-  private container: HTMLElement;
-
   constructor(container: HTMLElement) {
-    this.container = container;
     this.fitAddon = new FitAddon();
     const weblinksAddon = new WebLinksAddon();
 
