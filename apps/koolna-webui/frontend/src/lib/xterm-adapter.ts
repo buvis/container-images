@@ -42,7 +42,8 @@ export class XtermAdapter {
       const b64 = parts.length > 1 ? parts[parts.length - 1] : parts[0];
       if (b64) {
         try {
-          const text = atob(b64);
+          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          const text = new TextDecoder().decode(bytes);
           navigator.clipboard.writeText(text).catch(() => {});
         } catch {
           // invalid base64 — ignore

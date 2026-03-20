@@ -97,6 +97,10 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 	if session == "" {
 		session = "manager"
 	}
+	if session != "manager" && session != "worker" {
+		http.Error(w, "invalid session: must be manager or worker", http.StatusBadRequest)
+		return
+	}
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -138,7 +142,8 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 
 	executor, err := remotecommand.NewSPDYExecutor(h.config, http.MethodPost, req.URL())
 	if err != nil {
-		clientConn.WriteMessage(websocket.TextMessage, []byte(`{"error":"`+err.Error()+`"}`))
+		errJSON, _ := json.Marshal(map[string]string{"error": err.Error()})
+		clientConn.WriteMessage(websocket.TextMessage, errJSON)
 		return
 	}
 
@@ -194,7 +199,8 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		wsMu.Lock()
-		clientConn.WriteMessage(websocket.TextMessage, []byte(`{"error":"`+err.Error()+`"}`))
+		errJSON, _ := json.Marshal(map[string]string{"error": err.Error()})
+		clientConn.WriteMessage(websocket.TextMessage, errJSON)
 		wsMu.Unlock()
 	}
 }

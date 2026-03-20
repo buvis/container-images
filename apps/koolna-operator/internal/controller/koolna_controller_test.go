@@ -123,30 +123,21 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(koolnaContainer.Name).To(Equal("koolna"))
 			Expect(koolnaContainer.Image).To(Equal("ghcr.io/buvis/koolna-base:latest"))
 			Expect(koolnaContainer.Ports).To(BeEmpty())
-			koolnaVolNames := make([]string, len(koolnaContainer.VolumeMounts))
-			for i, vm := range koolnaContainer.VolumeMounts {
-				koolnaVolNames[i] = vm.Name
-			}
-			Expect(koolnaVolNames).To(ContainElement("workspace"))
-			Expect(koolnaVolNames).To(ContainElement("home"))
+			Expect(koolnaContainer.WorkingDir).To(Equal("/home/bob/workspace"))
+			Expect(koolnaContainer.VolumeMounts).To(HaveLen(1))
+			Expect(koolnaContainer.VolumeMounts[0].Name).To(Equal("home"))
+			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/bob"))
 
 			sidecar := pod.Spec.Containers[1]
 			Expect(sidecar.Name).To(Equal("tmux-sidecar"))
 			Expect(sidecar.Image).To(Equal("ghcr.io/buvis/koolna-tmux:latest"))
 			Expect(sidecar.SecurityContext.Capabilities.Add).To(ContainElement(corev1.Capability("SYS_PTRACE")))
-			sidecarVolNames := make([]string, len(sidecar.VolumeMounts))
-			for i, vm := range sidecar.VolumeMounts {
-				sidecarVolNames[i] = vm.Name
-			}
-			Expect(sidecarVolNames).To(ContainElement("workspace"))
-			Expect(sidecarVolNames).To(ContainElement("home"))
+			Expect(sidecar.VolumeMounts).To(HaveLen(1))
+			Expect(sidecar.VolumeMounts[0].Name).To(Equal("home"))
+			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/bob"))
 
 			By("Checking dotfiles env vars are on tmux-sidecar, not koolna")
-			koolnaEnvNames := make([]string, len(koolnaContainer.Env))
-			for i, e := range koolnaContainer.Env {
-				koolnaEnvNames[i] = e.Name
-			}
-			Expect(koolnaEnvNames).NotTo(ContainElement("DOTFILES_METHOD"))
+			Expect(koolnaContainer.Env).To(BeEmpty())
 			sidecarEnvNames := make([]string, len(sidecar.Env))
 			for i, e := range sidecar.Env {
 				sidecarEnvNames[i] = e.Name
@@ -154,17 +145,10 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_AUTH_SECRET"))
 			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_NAMESPACE"))
 
-			By("Checking volumes include home emptyDir")
-			volNames := make([]string, len(pod.Spec.Volumes))
-			for i, v := range pod.Spec.Volumes {
-				volNames[i] = v.Name
-			}
-			Expect(volNames).To(ContainElement("workspace"))
-			Expect(volNames).To(ContainElement("home"))
-			for _, v := range pod.Spec.Volumes {
-				if v.Name == "home" {
-					Expect(v.EmptyDir).NotTo(BeNil())
-				}
+			By("Checking single home volume backed by PVC")
+			Expect(pod.Spec.Volumes).To(HaveLen(1))
+			Expect(pod.Spec.Volumes[0].Name).To(Equal("home"))
+			Expect(pod.Spec.Volumes[0].PersistentVolumeClaim).NotTo(BeNil())
 			}
 
 			By("Checking Service was created")

@@ -361,9 +361,8 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 }
 
 const (
-	workspaceVolumeName = "workspace"
-	homeVolumeName      = "home"
-	homeMountPath       = "/home/bob"
+	homeVolumeName = "home"
+	homeMountPath  = "/home/bob"
 )
 
 type dotfilesConfig struct {
