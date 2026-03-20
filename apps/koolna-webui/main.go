@@ -36,7 +36,7 @@ func main() {
 
 	handlers.RegisterRoutes(router, apiHandler)
 
-	terminalHandler := handlers.NewTerminalHandler("")
+	terminalHandler := handlers.NewTerminalHandler(kubeClient, cfg, "")
 	handlers.RegisterTerminalRoutes(router, terminalHandler)
 
 	distDir := filepath.Join("frontend", "dist")
