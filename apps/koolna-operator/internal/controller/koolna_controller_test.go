@@ -149,7 +149,6 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(pod.Spec.Volumes).To(HaveLen(1))
 			Expect(pod.Spec.Volumes[0].Name).To(Equal("home"))
 			Expect(pod.Spec.Volumes[0].PersistentVolumeClaim).NotTo(BeNil())
-			}
 
 			By("Checking Service was created")
 			svc := &corev1.Service{}

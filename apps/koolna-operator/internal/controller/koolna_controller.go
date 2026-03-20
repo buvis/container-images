@@ -437,12 +437,15 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 	var script string
 	if secretName != "" {
 		script = `chown 1000:1000 ` + homeMountPath + `
-REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
-printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
-git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
+if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
+  REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
+  printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
+  git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
+  chown 1000:1000 ` + cred + `
+fi
 [ -n "$GIT_NAME" ] && git config -f ` + gc + ` user.name "$GIT_NAME"
 [ -n "$GIT_EMAIL" ] && git config -f ` + gc + ` user.email "$GIT_EMAIL"
-chown 1000:1000 ` + cred + ` ` + gc + `
+[ -f ` + gc + ` ] && chown 1000:1000 ` + gc + `
 if [ ! -d ` + ws + `/.git ]; then
   rm -rf ` + ws + `
   git clone "$REPO_URL" ` + ws + `
@@ -483,7 +486,8 @@ mkdir -p ` + ws + `/.koolna && chown 1000:1000 ` + ws + `/.koolna`
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: secretName,
 						},
-						Key: "username",
+						Key:      "username",
+						Optional: boolPtr(true),
 					},
 				},
 			},
@@ -494,7 +498,8 @@ mkdir -p ` + ws + `/.koolna && chown 1000:1000 ` + ws + `/.koolna`
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: secretName,
 						},
-						Key: "token",
+						Key:      "token",
+						Optional: boolPtr(true),
 					},
 				},
 			},

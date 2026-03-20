@@ -307,7 +307,7 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	if req.Storage == "" {
 		req.Storage = "10Gi"
 	}
-	if req.GitUsername != "" && req.GitToken != "" {
+	if req.GitUsername != "" || req.GitToken != "" || req.GitName != "" || req.GitEmail != "" {
 		secretName := req.Name + "-git"
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
