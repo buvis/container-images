@@ -81,7 +81,15 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   else
     log_info "Installing dotfiles ($DOTFILES_METHOD)..."
   fi
+
+  set +e
   install_dotfiles "${DOTFILES_REPO:-}" "$DOTFILES_METHOD"
+  dotfiles_exit=$?
+  set -e
+
+  if [ "$dotfiles_exit" -ne 0 ]; then
+    log_warn "Dotfiles installation exited with status $dotfiles_exit (non-fatal)"
+  fi
 
   rm -f /tmp/.gitcredentials
   git config --global --unset credential.helper 2>/dev/null || true
