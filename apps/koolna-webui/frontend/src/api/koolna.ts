@@ -24,6 +24,8 @@ export interface CreateKoolnaRequest {
   storage?: string | number
   gitUsername?: string
   gitToken?: string
+  gitName?: string
+  gitEmail?: string
 }
 
 export interface DotfilesDefaults {

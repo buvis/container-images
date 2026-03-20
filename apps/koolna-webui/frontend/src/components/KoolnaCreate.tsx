@@ -25,6 +25,8 @@ type FormState = {
   privateRepo: boolean
   gitUsername: string
   gitToken: string
+  gitName: string
+  gitEmail: string
 }
 
 type ValidationError = {
@@ -52,6 +54,8 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     privateRepo: false,
     gitUsername: '',
     gitToken: '',
+    gitName: '',
+    gitEmail: '',
   })
   const [errors, setErrors] = useState<ValidationError>({})
   const [apiError, setApiError] = useState<string | null>(null)
@@ -154,6 +158,8 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     if (formState.privateRepo && formState.gitUsername.trim() && formState.gitToken.trim()) {
       payload.gitUsername = formState.gitUsername.trim()
       payload.gitToken = formState.gitToken.trim()
+      if (formState.gitName.trim()) payload.gitName = formState.gitName.trim()
+      if (formState.gitEmail.trim()) payload.gitEmail = formState.gitEmail.trim()
     }
 
     try {
@@ -254,6 +260,31 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
                 onChange={(event) => handleFieldChange('gitToken', event.target.value)}
                 className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
                 autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-name">
+                Committer name
+              </label>
+              <input
+                id="koolna-git-name"
+                value={formState.gitName}
+                onChange={(event) => handleFieldChange('gitName', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                placeholder="Jane Doe"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-email">
+                Committer email
+              </label>
+              <input
+                id="koolna-git-email"
+                type="email"
+                value={formState.gitEmail}
+                onChange={(event) => handleFieldChange('gitEmail', event.target.value)}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                placeholder="jane@example.com"
               />
             </div>
           </div>

@@ -63,6 +63,8 @@ type createRequest struct {
 	GitSecretRef    string `json:"gitSecretRef,omitempty"`
 	GitUsername     string `json:"gitUsername,omitempty"`
 	GitToken        string `json:"gitToken,omitempty"`
+	GitName         string `json:"gitName,omitempty"`
+	GitEmail        string `json:"gitEmail,omitempty"`
 }
 
 type koolnaResponse struct {
@@ -319,6 +321,8 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 			StringData: map[string]string{
 				"username": req.GitUsername,
 				"token":    req.GitToken,
+				"name":     req.GitName,
+				"email":    req.GitEmail,
 			},
 		}
 		if _, err := h.kube.CoreV1().Secrets(h.ns).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {

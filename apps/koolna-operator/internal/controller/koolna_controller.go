@@ -429,17 +429,23 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
 	secretName := koolna.Spec.GitSecretRef
 
-	const ws = homeMountPath + "/workspace"
+	const (
+		ws   = homeMountPath + "/workspace"
+		cred = homeMountPath + "/.git-credentials"
+		gc   = homeMountPath + "/.gitconfig"
+	)
 	var script string
 	if secretName != "" {
 		script = `chown 1000:1000 ` + homeMountPath + `
+REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
+printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
+git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
+[ -n "$GIT_NAME" ] && git config -f ` + gc + ` user.name "$GIT_NAME"
+[ -n "$GIT_EMAIL" ] && git config -f ` + gc + ` user.email "$GIT_EMAIL"
+chown 1000:1000 ` + cred + ` ` + gc + `
 if [ ! -d ` + ws + `/.git ]; then
   rm -rf ` + ws + `
-  REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
-  printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > /tmp/.gitcredentials
-  git config --global credential.helper "store --file=/tmp/.gitcredentials"
   git clone "$REPO_URL" ` + ws + `
-  rm -f /tmp/.gitcredentials
   cd ` + ws + ` && git checkout "$REPO_BRANCH"
   chown -R 1000:1000 ` + ws + `
 fi
@@ -489,6 +495,30 @@ mkdir -p ` + ws + `/.koolna && chown 1000:1000 ` + ws + `/.koolna`
 							Name: secretName,
 						},
 						Key: "token",
+					},
+				},
+			},
+			corev1.EnvVar{
+				Name: "GIT_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key:      "name",
+						Optional: boolPtr(true),
+					},
+				},
+			},
+			corev1.EnvVar{
+				Name: "GIT_EMAIL",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: secretName,
+						},
+						Key:      "email",
+						Optional: boolPtr(true),
 					},
 				},
 			},
@@ -640,6 +670,8 @@ func buildHomeVolume(pvcName string) corev1.Volume {
 		},
 	}
 }
+
+func boolPtr(b bool) *bool { return &b }
 
 func authSecretName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-auth"
