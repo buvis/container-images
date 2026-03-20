@@ -1,14 +1,5 @@
-FROM golang:1.26-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder
-
-WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
-COPY cmd/ ./cmd/
-RUN CGO_ENABLED=0 go build -o koolna ./cmd/koolna
-
 FROM debian:trixie-slim@sha256:26f98ccd92fd0a44d6928ce8ff8f4921b4d2f535bfa07555ee5d18f61429cf0c
 
-ARG GOTTY_VERSION=1.6.0
 ARG USERNAME=bob
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -16,6 +7,7 @@ ARG USER_GID=$USER_UID
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+  build-essential \
   curl \
   git \
   tmux \
@@ -27,14 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   less \
   lazygit \
   vifm \
-  inotify-tools \
   && rm -rf /var/lib/apt/lists/*
-
-RUN arch="$(dpkg --print-architecture)" \
-  && curl -fsSL -o /tmp/gotty.tar.gz "https://github.com/sorenisanerd/gotty/releases/download/v${GOTTY_VERSION}/gotty_v${GOTTY_VERSION}_linux_${arch}.tar.gz" \
-  && tar -xzf /tmp/gotty.tar.gz -C /tmp \
-  && install -m 0755 /tmp/gotty /usr/local/bin/gotty \
-  && rm -f /tmp/gotty.tar.gz /tmp/gotty
 
 RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
   && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
@@ -75,34 +60,19 @@ RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
 
 USER root
 
-COPY --from=builder /build/koolna /usr/local/bin/koolna
+RUN cp /home/$USERNAME/.local/bin/mise /usr/local/bin/mise
 
 COPY assets/bin/startup.sh /usr/local/bin/startup.sh
-COPY assets/bin/respawn-shell.sh /usr/local/bin/respawn-shell.sh
-COPY assets/bin/start-gotty.sh /usr/local/bin/start-gotty.sh
-COPY assets/bin/tmux-clipboard-server.js /usr/local/bin/tmux-clipboard-server.js
-COPY assets/bin/tmux-clipboard-copy.sh /usr/local/bin/tmux-clipboard-copy.sh
 COPY assets/lib/whatwedo /usr/local/lib/whatwedo
 COPY assets/bin/whatwedo /usr/local/bin/whatwedo
 COPY assets/bin/sync-auth-to-secret.sh /usr/local/bin/sync-auth-to-secret.sh
 
-COPY assets/web/ /usr/share/koolna/web/
-
-RUN chmod +x /usr/local/bin/koolna \
-  && chmod +x /usr/local/bin/startup.sh \
-  && chmod +x /usr/local/bin/respawn-shell.sh \
-  && chmod +x /usr/local/bin/start-gotty.sh \
-  && chmod +x /usr/local/bin/tmux-clipboard-server.js \
-  && chmod +x /usr/local/bin/tmux-clipboard-copy.sh \
+RUN chmod +x /usr/local/bin/startup.sh \
   && chmod +x /usr/local/lib/whatwedo \
   && chmod +x /usr/local/bin/whatwedo \
   && chmod +x /usr/local/bin/sync-auth-to-secret.sh
 
 WORKDIR /workspace
-
-RUN chown -R $USERNAME:$USERNAME /usr/share/koolna
-
-EXPOSE 3000
 
 USER $USERNAME
 
