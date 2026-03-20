@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { WebTTY, ConnectionFactory, GOTTY_PROTOCOLS, type ConnectionStatus } from '../lib/webtty';
+import { RawTerminal, type ConnectionStatus } from '../lib/webtty';
 import { XtermAdapter } from '../lib/xterm-adapter';
 import { Keypad } from './Keypad';
 import 'xterm/css/xterm.css';
@@ -12,7 +12,7 @@ interface TerminalProps {
 
 function buildWebsocketUrl(name: string, session: string): string {
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${scheme}://${location.host}/terminal/${name}/${session}`;
+  return `${scheme}://${location.host}/api/koolnas/${name}/terminal?session=${encodeURIComponent(session)}`;
 }
 
 const statusColors: Record<ConnectionStatus, string> = {
@@ -23,54 +23,50 @@ const statusColors: Record<ConnectionStatus, string> = {
 
 export function Terminal({ name, session, onBack }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const ttyRef = useRef<WebTTY | null>(null);
+  const rawTermRef = useRef<RawTerminal | null>(null);
   const adapterRef = useRef<XtermAdapter | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const adapter = new XtermAdapter(containerRef.current, session);
+    const adapter = new XtermAdapter(containerRef.current);
     adapterRef.current = adapter;
+    adapter.setupOSC52Clipboard();
+
+    const encoder = new TextEncoder();
+    const { columns, rows } = adapter.info();
     const wsUrl = buildWebsocketUrl(name, session);
-    const connectionFactory = new ConnectionFactory(wsUrl, GOTTY_PROTOCOLS);
 
-    const tty = new WebTTY(adapter, connectionFactory, {
+    const rawTerm = new RawTerminal(wsUrl, {
+      onData: (data) => adapter.term.write(data),
       onStatus: setStatus,
+    }, { cols: columns, rows });
+    rawTermRef.current = rawTerm;
+
+    const inputDisposable = adapter.term.onData((input) => {
+      rawTerm.sendInput(encoder.encode(input));
     });
-    ttyRef.current = tty;
 
-    const close = tty.open();
+    const resizeDisposable = adapter.term.onResize(() => {
+      rawTerm.sendResize(adapter.term.cols, adapter.term.rows);
+    });
 
-    // Subscribe to clipboard bridge for tmux copy → browser clipboard sync
-    const clipboardUrl = `/terminal/${name}/clipboard/stream?session=${encodeURIComponent(session)}`;
-    const es = new EventSource(clipboardUrl);
-    let lastSeq = 0;
-    const onClipboard = async (e: MessageEvent) => {
-      try {
-        const entry = JSON.parse(e.data);
-        if (entry.seq <= lastSeq) return;
-        lastSeq = entry.seq;
-        await navigator.clipboard.writeText(entry.text);
-        adapter.showMessage('Copied', 1000);
-      } catch {
-        // clipboard write may require user gesture in some browsers
-      }
-    };
-    es.addEventListener('clipboard', onClipboard);
+    rawTerm.open();
 
     return () => {
-      es.removeEventListener('clipboard', onClipboard);
-      es.close();
-      close();
+      inputDisposable.dispose();
+      resizeDisposable.dispose();
+      rawTerm.close();
       adapter.dispose();
-      ttyRef.current = null;
+      rawTermRef.current = null;
       adapterRef.current = null;
     };
   }, [name, session]);
 
   const handleKeypadKey = useCallback((seq: string) => {
-    ttyRef.current?.sendInput(seq);
+    const encoder = new TextEncoder();
+    rawTermRef.current?.sendInput(encoder.encode(seq));
     adapterRef.current?.term.focus();
   }, []);
 
