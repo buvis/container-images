@@ -570,12 +570,16 @@ func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvV
 	return env
 }
 
+const homeVolumeName = "home"
+
 func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig) *corev1.Pod {
-	env := []corev1.EnvVar{
+	shareProcessNamespace := true
+
+	sidecarEnv := []corev1.EnvVar{
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 	}
-	env = append(env, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
+	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -586,8 +590,9 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 			},
 		},
 		Spec: corev1.PodSpec{
-			RestartPolicy:      corev1.RestartPolicyAlways,
-			ServiceAccountName: "koolna-auth-syncer",
+			RestartPolicy:         corev1.RestartPolicyAlways,
+			ServiceAccountName:    "koolna-auth-syncer",
+			ShareProcessNamespace: &shareProcessNamespace,
 			InitContainers: []corev1.Container{
 				buildGitCloneInitContainer(koolna),
 			},
@@ -596,21 +601,34 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Name:       "koolna",
 					Image:      koolna.Spec.Image,
 					WorkingDir: "/workspace",
-					Ports: []corev1.ContainerPort{
-						{ContainerPort: 3000},
-					},
-					Resources: koolna.Spec.Resources,
-					Env:       env,
+					Resources:  koolna.Spec.Resources,
 					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      workspaceVolumeName,
-							MountPath: "/workspace",
+						{Name: workspaceVolumeName, MountPath: "/workspace"},
+						{Name: homeVolumeName, MountPath: "/home/bob"},
+					},
+				},
+				{
+					Name:    "tmux-sidecar",
+					Image:   "ghcr.io/buvis/koolna-tmux:latest",
+					Command: []string{"/entrypoint.sh"},
+					Env:     sidecarEnv,
+					SecurityContext: &corev1.SecurityContext{
+						Capabilities: &corev1.Capabilities{
+							Add: []corev1.Capability{"SYS_PTRACE"},
 						},
+					},
+					VolumeMounts: []corev1.VolumeMount{
+						{Name: workspaceVolumeName, MountPath: "/workspace"},
+						{Name: homeVolumeName, MountPath: "/home/bob"},
 					},
 				},
 			},
 			Volumes: []corev1.Volume{
 				buildWorkspaceVolume(pvcName),
+				{
+					Name:         homeVolumeName,
+					VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+				},
 			},
 		},
 	}
