@@ -186,7 +186,7 @@ class XtermTerminal {
       },
       cursorBlink: true,
       fontSize: 14,
-      fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
+      fontFamily: "'MesloLGS NF', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
     });
 
     this.term.loadAddon(this.fitAddon);
