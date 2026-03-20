@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "MesloLGS NF";
+  src: url("/fonts/MesloLGSNerdFontMono-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MesloLGS NF";
+  src: url("/fonts/MesloLGSNerdFontMono-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-display: swap;
+}
+
 @theme {
   --color-bg: #05060a;
   --color-surface: #0a0c10;
