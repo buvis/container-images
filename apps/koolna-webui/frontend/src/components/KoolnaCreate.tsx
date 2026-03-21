@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { createKoolna, type CreateKoolnaRequest, type DotfilesMethod, getDefaults, listBranches } from '../api/koolna'
 
 const IMAGE_OPTIONS = [
@@ -22,16 +22,78 @@ type FormState = {
   dotfilesBareDir: string
   dotfilesCommand: string
   dotfilesInit: string
-  privateRepo: boolean
   gitUsername: string
   gitToken: string
   gitName: string
   gitEmail: string
 }
 
-type ValidationError = {
-  name?: string
-  repo?: string
+type ValidatableField = 'name' | 'repo' | 'branch' | 'image' | 'storage'
+  | 'gitName' | 'gitEmail' | 'gitUsername' | 'gitToken' | 'dotfilesBareDir'
+
+const FIELD_HELP: Record<ValidatableField, string> = {
+  name: 'Unique identifier for your environment. Lowercase alphanumeric with hyphens, must start and end with a letter or digit.',
+  repo: 'Git repository to clone into your workspace. Must be a full HTTPS URL.',
+  branch: 'Branch to check out after cloning.',
+  image: 'Container image that runs your development environment.',
+  storage: 'Persistent volume size for your workspace data.',
+  gitName: 'Used as git user.name for commits made in this environment.',
+  gitEmail: 'Used as git user.email for commits made in this environment.',
+  gitUsername: 'Git service username for authenticating repository access.',
+  gitToken: 'Authentication token for pulling and pushing to the repository.',
+  dotfilesBareDir: 'Directory name where the bare git repository is checked out.',
+}
+
+function isFieldInvalid(field: ValidatableField, state: FormState): boolean {
+  switch (field) {
+    case 'name':
+      return !NAME_PATTERN.test(state.name)
+    case 'repo':
+      return !REPO_PATTERN.test(state.repo)
+    case 'dotfilesBareDir':
+      return state.dotfilesMethod === 'bare-git' && !!state.dotfilesRepo.trim() && !state.dotfilesBareDir.trim()
+    default:
+      return !state[field].trim()
+  }
+}
+
+const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
+const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:ring-sky-400'
+const INPUT_ERR = 'border-rose-500/60 bg-rose-500/5 focus:border-rose-400 focus:ring-rose-400'
+
+function FieldHelp({ field }: { field: ValidatableField }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500/20 text-[0.625rem] leading-none text-rose-300 transition hover:bg-rose-500/30 hover:text-rose-200"
+        aria-label={`Help for ${field}`}
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-xs text-white/80 shadow-xl">
+          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-white/10 bg-slate-800" />
+          {FIELD_HELP[field]}
+        </div>
+      )}
+    </div>
+  )
 }
 
 interface KoolnaCreateProps {
@@ -51,13 +113,13 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     dotfilesBareDir: '',
     dotfilesCommand: '',
     dotfilesInit: '',
-    privateRepo: false,
     gitUsername: '',
     gitToken: '',
     gitName: '',
     gitEmail: '',
   })
-  const [errors, setErrors] = useState<ValidationError>({})
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ValidatableField, true>>>({})
+  const [touched, setTouched] = useState<Partial<Record<ValidatableField, true>>>({})
   const [apiError, setApiError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [branches, setBranches] = useState<string[]>([])
@@ -79,53 +141,72 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
   const fetchBranches = useCallback(() => {
     const repo = formState.repo.trim()
     if (!REPO_PATTERN.test(repo)) return
-    const secret = formState.privateRepo && formState.gitToken.trim()
+    const secret = formState.gitToken.trim()
       ? `${formState.name}-git`
       : undefined
     listBranches(repo, secret)
-      .then((result) => {
-        setBranches(result)
-        if (!formState.privateRepo && result.length === 0) return
-      })
-      .catch(() => {
-        setBranches([])
-        if (!formState.privateRepo) {
-          setFormState((prev) => ({ ...prev, privateRepo: true }))
-        }
-      })
-  }, [formState.repo, formState.privateRepo, formState.gitToken, formState.name])
+      .then((result) => setBranches(result))
+      .catch(() => setBranches([]))
+  }, [formState.repo, formState.gitToken, formState.name])
 
-  const handleFieldChange = (field: keyof FormState, value: string | boolean) => {
-    setFormState((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-    if (field === 'name' || field === 'repo') {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: undefined,
-      }))
+  const revalidate = (field: ValidatableField, state: FormState) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      if (isFieldInvalid(field, state)) {
+        next[field] = true
+      } else {
+        delete next[field]
+      }
+      return next
+    })
+  }
+
+  const handleFieldChange = (field: keyof FormState, value: string) => {
+    const newState = { ...formState, [field]: value }
+    setFormState(newState)
+    if (touched[field as ValidatableField]) {
+      revalidate(field as ValidatableField, newState)
+    }
+    if ((field === 'dotfilesRepo' || field === 'dotfilesMethod') && touched.dotfilesBareDir) {
+      revalidate('dotfilesBareDir', newState)
     }
   }
 
+  const handleBlur = (field: ValidatableField) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
+    revalidate(field, formState)
+  }
+
+  const inputClass = (field: ValidatableField) =>
+    `${INPUT_BASE} ${touched[field] && fieldErrors[field] ? INPUT_ERR : INPUT_OK}`
+
+  const showHelp = (field: ValidatableField) =>
+    !!(touched[field] && fieldErrors[field])
+
   const validate = (): boolean => {
-    const newErrors: ValidationError = {}
-    if (!NAME_PATTERN.test(formState.name)) {
-      newErrors.name =
-        'Name must be lowercase, may include hyphens, and start/end with an alphanumeric.'
+    const fields: ValidatableField[] = [
+      'name', 'repo', 'branch', 'image', 'storage',
+      'gitName', 'gitEmail', 'gitUsername', 'gitToken',
+    ]
+    if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesRepo.trim()) {
+      fields.push('dotfilesBareDir')
     }
-    if (!REPO_PATTERN.test(formState.repo)) {
-      newErrors.repo = 'Repo must be a full HTTPS URL (e.g. https://github.com/owner/repo).'
+    const newErrors: Partial<Record<ValidatableField, true>> = {}
+    const newTouched: Partial<Record<ValidatableField, true>> = {}
+    for (const field of fields) {
+      newTouched[field] = true
+      if (isFieldInvalid(field, formState)) {
+        newErrors[field] = true
+      }
     }
-    setErrors(newErrors)
+    setTouched((prev) => ({ ...prev, ...newTouched }))
+    setFieldErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!validate()) {
-      return
-    }
+    if (!validate()) return
     setLoading(true)
     setApiError(null)
 
@@ -189,98 +270,103 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-name">
-            Name
-          </label>
+          <div className="flex items-center">
+            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-name">
+              Name
+            </label>
+            {showHelp('name') && <FieldHelp field="name" />}
+          </div>
           <input
             id="koolna-name"
             value={formState.name}
             onChange={(event) => handleFieldChange('name', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+            onBlur={() => handleBlur('name')}
+            className={inputClass('name')}
             placeholder="e.g. my-koolna"
           />
-          {errors.name && (
-            <p className="mt-1 text-xs text-rose-400">{errors.name}</p>
-          )}
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-repo">
-            Repository
-          </label>
+          <div className="flex items-center">
+            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-repo">
+              Repository
+            </label>
+            {showHelp('repo') && <FieldHelp field="repo" />}
+          </div>
           <input
             id="koolna-repo"
             value={formState.repo}
             onChange={(event) => handleFieldChange('repo', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+            onBlur={() => { handleBlur('repo'); fetchBranches() }}
+            className={inputClass('repo')}
             placeholder="https://github.com/owner/repo"
-            onBlur={fetchBranches}
           />
-          {errors.repo && (
-            <p className="mt-1 text-xs text-rose-400">{errors.repo}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formState.privateRepo}
-              onChange={(event) => handleFieldChange('privateRepo', event.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-slate-900/60 text-sky-500 focus:ring-sky-400"
-            />
-            <span className="text-sm font-semibold text-white/80">Private repository</span>
-          </label>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-name">
-              Committer name
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-name">
+                Committer name
+              </label>
+              {showHelp('gitName') && <FieldHelp field="gitName" />}
+            </div>
             <input
               id="koolna-git-name"
               value={formState.gitName}
               onChange={(event) => handleFieldChange('gitName', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('gitName')}
+              className={inputClass('gitName')}
               placeholder="Jane Doe"
             />
           </div>
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-email">
-              Committer email
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-email">
+                Committer email
+              </label>
+              {showHelp('gitEmail') && <FieldHelp field="gitEmail" />}
+            </div>
             <input
               id="koolna-git-email"
               type="email"
               value={formState.gitEmail}
               onChange={(event) => handleFieldChange('gitEmail', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('gitEmail')}
+              className={inputClass('gitEmail')}
               placeholder="jane@example.com"
             />
           </div>
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
-              Username
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
+                Username
+              </label>
+              {showHelp('gitUsername') && <FieldHelp field="gitUsername" />}
+            </div>
             <input
               id="koolna-git-username"
               value={formState.gitUsername}
               onChange={(event) => handleFieldChange('gitUsername', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('gitUsername')}
+              className={inputClass('gitUsername')}
               autoComplete="username"
             />
           </div>
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-token">
-              Personal access token
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-token">
+                Personal access token
+              </label>
+              {showHelp('gitToken') && <FieldHelp field="gitToken" />}
+            </div>
             <input
               id="koolna-git-token"
               type="password"
               value={formState.gitToken}
               onChange={(event) => handleFieldChange('gitToken', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('gitToken')}
+              className={inputClass('gitToken')}
               autoComplete="off"
             />
           </div>
@@ -288,15 +374,19 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-branch">
-              Branch
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-branch">
+                Branch
+              </label>
+              {showHelp('branch') && <FieldHelp field="branch" />}
+            </div>
             <input
               id="koolna-branch"
               list="branch-options"
               value={formState.branch}
               onChange={(event) => handleFieldChange('branch', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('branch')}
+              className={inputClass('branch')}
             />
             {branches.length > 0 && (
               <datalist id="branch-options">
@@ -308,29 +398,37 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-storage">
-              Storage
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-storage">
+                Storage
+              </label>
+              {showHelp('storage') && <FieldHelp field="storage" />}
+            </div>
             <input
               id="koolna-storage"
               value={formState.storage}
               onChange={(event) => handleFieldChange('storage', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('storage')}
+              className={inputClass('storage')}
             />
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-image">
-            Image
-          </label>
+          <div className="flex items-center">
+            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-image">
+              Image
+            </label>
+            {showHelp('image') && <FieldHelp field="image" />}
+          </div>
           <>
             <input
               id="koolna-image"
               list="image-options"
               value={formState.image}
               onChange={(event) => handleFieldChange('image', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              onBlur={() => handleBlur('image')}
+              className={inputClass('image')}
               placeholder="ghcr.io/buvis/koolna-base:latest"
             />
             <datalist id="image-options">
@@ -349,7 +447,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             id="koolna-dotfiles-method"
             value={formState.dotfilesMethod}
             onChange={(event) => handleFieldChange('dotfilesMethod', event.target.value)}
-            className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+            className={`${INPUT_BASE} ${INPUT_OK}`}
           >
             {DOTFILES_METHODS.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -367,21 +465,25 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
                 id="koolna-dotfiles-repo"
                 value={formState.dotfilesRepo}
                 onChange={(event) => handleFieldChange('dotfilesRepo', event.target.value)}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                className={`${INPUT_BASE} ${INPUT_OK}`}
                 placeholder="https://github.com/owner/dotfiles"
               />
             </div>
 
             {formState.dotfilesMethod === 'bare-git' && (
               <div>
-                <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-baredir">
-                  Bare repo dir
-                </label>
+                <div className="flex items-center">
+                  <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-baredir">
+                    Bare repo dir
+                  </label>
+                  {showHelp('dotfilesBareDir') && <FieldHelp field="dotfilesBareDir" />}
+                </div>
                 <input
                   id="koolna-dotfiles-baredir"
                   value={formState.dotfilesBareDir}
                   onChange={(event) => handleFieldChange('dotfilesBareDir', event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+                  onBlur={() => handleBlur('dotfilesBareDir')}
+                  className={inputClass('dotfilesBareDir')}
                   placeholder=".cfg"
                 />
               </div>
@@ -398,7 +500,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
               id="koolna-dotfiles-command"
               value={formState.dotfilesCommand}
               onChange={(event) => handleFieldChange('dotfilesCommand', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              className={`${INPUT_BASE} ${INPUT_OK}`}
               placeholder="curl -Ls https://example.com/setup | bash"
             />
           </div>
@@ -413,7 +515,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
               id="koolna-dotfiles-init"
               value={formState.dotfilesInit}
               onChange={(event) => handleFieldChange('dotfilesInit', event.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              className={`${INPUT_BASE} ${INPUT_OK}`}
               placeholder="~/.dotfiles/install.sh"
             />
           </div>
