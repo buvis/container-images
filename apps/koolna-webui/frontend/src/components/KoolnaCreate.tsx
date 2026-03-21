@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { createKoolna, type CreateKoolnaRequest, type DotfilesMethod, getDefaults, listBranches } from '../api/koolna'
 
 const IMAGE_OPTIONS = [
@@ -62,36 +62,18 @@ const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:rin
 const INPUT_ERR = 'border-rose-500/60 bg-rose-500/5 focus:border-rose-400 focus:ring-rose-400'
 
 function FieldHelp({ field }: { field: ValidatableField }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
   return (
-    <div className="relative inline-block" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500/20 text-[0.625rem] leading-none text-rose-300 transition hover:bg-rose-500/30 hover:text-rose-200"
+    <div className="group relative inline-block">
+      <span
+        className="ml-1.5 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-rose-500/20 text-[0.625rem] font-bold leading-none text-rose-300"
         aria-label={`Help for ${field}`}
       >
-        ?
-      </button>
-      {open && (
-        <div className="absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-xs text-white/80 shadow-xl">
-          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-white/10 bg-slate-800" />
-          {FIELD_HELP[field]}
-        </div>
-      )}
+        !
+      </span>
+      <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-xs text-white/80 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+        <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-white/10 bg-slate-800" />
+        {FIELD_HELP[field]}
+      </div>
     </div>
   )
 }
