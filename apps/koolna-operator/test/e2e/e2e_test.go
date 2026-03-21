@@ -34,7 +34,7 @@ import (
 )
 
 // namespace where the project is deployed in
-const namespace = "koolna-operator-system"
+const namespace = "koolna"
 
 // serviceAccountName created for the project
 const serviceAccountName = "koolna-operator-controller-manager"
