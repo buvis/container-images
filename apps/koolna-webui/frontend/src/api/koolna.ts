@@ -20,6 +20,7 @@ export interface CreateKoolnaRequest {
   dotfilesBareDir?: string
   dotfilesCommand?: string
   initCommand?: string
+  shell?: string
   image?: string
   storage?: string | number
   username?: string

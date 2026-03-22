@@ -649,12 +649,18 @@ func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvV
 func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig, uc userConfig) *corev1.Pod {
 	shareProcessNamespace := true
 
+	shell := koolna.Spec.Shell
+	if shell == "" {
+		shell = "/bin/bash"
+	}
+
 	sidecarEnv := []corev1.EnvVar{
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 		{Name: "KOOLNA_HOME", Value: uc.HomePath},
 		{Name: "KOOLNA_UID", Value: fmt.Sprintf("%d", uc.UID)},
 		{Name: "KOOLNA_USERNAME", Value: uc.Username},
+		{Name: "KOOLNA_SHELL", Value: shell},
 	}
 	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
 	if koolna.Spec.InitCommand != "" {

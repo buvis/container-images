@@ -25,6 +25,7 @@ type FormState = {
   dotfilesBareDir: string
   dotfilesCommand: string
   initCommand: string
+  shell: string
   gitUsername: string
   gitToken: string
   gitName: string
@@ -112,6 +113,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     dotfilesBareDir: '',
     dotfilesCommand: '',
     initCommand: '',
+    shell: '/bin/bash',
     gitUsername: '',
     gitToken: '',
     gitName: '',
@@ -239,6 +241,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     }
     if (formState.homePath && formState.homePath !== deriveHomePath(formState.username)) {
       payload.homePath = formState.homePath
+    }
+
+    if (formState.shell && formState.shell !== '/bin/bash') {
+      payload.shell = formState.shell
     }
 
     if (formState.dotfilesMethod !== 'none') {
@@ -462,7 +468,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center">
               <label className="text-sm font-semibold text-white/80" htmlFor="koolna-username">
@@ -509,6 +515,18 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
               onBlur={() => handleBlur('homePath')}
               className={inputClass('homePath')}
               placeholder={deriveHomePath(formState.username)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-shell">
+              Shell
+            </label>
+            <input
+              id="koolna-shell"
+              value={formState.shell}
+              onChange={(event) => handleFieldChange('shell', event.target.value)}
+              className={`${INPUT_BASE} ${INPUT_OK}`}
+              placeholder="/bin/bash"
             />
           </div>
         </div>
