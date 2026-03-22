@@ -472,7 +472,7 @@ func (h *APIHandler) GetBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if branch, _, err := unstructured.NestedString(obj.Object, "status", "branch"); err == nil && branch != "" {
+	if branch, _, err := unstructured.NestedString(obj.Object, "status", "currentBranch"); err == nil && branch != "" {
 		respondJSON(w, http.StatusOK, map[string]string{"branch": branch})
 		return
 	}

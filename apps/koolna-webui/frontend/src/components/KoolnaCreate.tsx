@@ -196,7 +196,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     const fields: ValidatableField[] = [
       'name', 'repo', 'branch', 'image', 'storage',
       'username', 'uid',
-      'gitName', 'gitEmail', 'gitUsername', 'gitToken',
     ]
     if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesRepo.trim()) {
       fields.push('dotfilesBareDir')
