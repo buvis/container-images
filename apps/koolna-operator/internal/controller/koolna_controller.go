@@ -360,10 +360,35 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	return pod, nil
 }
 
-const (
-	homeVolumeName = "home"
-	homeMountPath  = "/home/bob"
-)
+const homeVolumeName = "home"
+
+type userConfig struct {
+	Username string
+	UID      int64
+	HomePath string
+}
+
+func userConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) userConfig {
+	uc := userConfig{
+		Username: spec.Username,
+		UID:      spec.UID,
+		HomePath: spec.HomePath,
+	}
+	if uc.Username == "" {
+		uc.Username = "bob"
+	}
+	if uc.UID == 0 {
+		uc.UID = 1000
+	}
+	if uc.HomePath == "" {
+		if uc.Username == "root" {
+			uc.HomePath = "/root"
+		} else {
+			uc.HomePath = "/home/" + uc.Username
+		}
+	}
+	return uc
+}
 
 type dotfilesConfig struct {
 	Repo    string
@@ -386,9 +411,10 @@ func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
 }
 
 var (
-	validURLPattern    = regexp.MustCompile(`^https://[^/]+/.+$`)
-	validLegacyPattern = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
-	validBranchPattern = regexp.MustCompile(`^[\w./-]+$`)
+	validURLPattern      = regexp.MustCompile(`^https://[^/]+/.+$`)
+	validLegacyPattern   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+	validBranchPattern   = regexp.MustCompile(`^[\w./-]+$`)
+	validUsernamePattern = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
 )
 
 func resolveRepoURL(raw string) string {
@@ -407,6 +433,20 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 	}
 	if spec.DotfilesRepo != "" && !validURLPattern.MatchString(spec.DotfilesRepo) && !validLegacyPattern.MatchString(spec.DotfilesRepo) {
 		return fmt.Errorf("invalid dotfilesRepo format %q: use https://host/owner/repo or owner/repo", spec.DotfilesRepo)
+	}
+	if spec.Username != "" && !validUsernamePattern.MatchString(spec.Username) {
+		return fmt.Errorf("invalid username %q: must match [a-z_][a-z0-9_-]*", spec.Username)
+	}
+	if spec.UID < 0 {
+		return fmt.Errorf("invalid uid %d: must be >= 0", spec.UID)
+	}
+	if spec.HomePath != "" {
+		if !strings.HasPrefix(spec.HomePath, "/") {
+			return fmt.Errorf("invalid homePath %q: must be an absolute path", spec.HomePath)
+		}
+		if spec.HomePath == "/" {
+			return fmt.Errorf("invalid homePath %q: must not be /", spec.HomePath)
+		}
 	}
 	switch spec.DotfilesMethod {
 	case "", "none":

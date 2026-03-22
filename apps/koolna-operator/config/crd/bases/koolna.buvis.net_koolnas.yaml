@@ -70,6 +70,8 @@ spec:
                 type: string
               gitSecretRef:
                 type: string
+              homePath:
+                type: string
               image:
                 type: string
               repo:
@@ -139,6 +141,11 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              uid:
+                format: int64
+                type: integer
+              username:
+                type: string
               suspended:
                 type: boolean
             required:
