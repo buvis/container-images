@@ -164,7 +164,7 @@ else
   echo "KOOLNA_AUTH_SECRET not set, skipping credential sync"
 fi
 
-NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- /bin/sh -l"
+NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- /bin/bash -l"
 
 echo "creating tmux sessions"
 tmux new-session -d -s manager "$NSENTER_CMD"
