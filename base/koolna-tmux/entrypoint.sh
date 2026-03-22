@@ -11,7 +11,7 @@ find_koolna_pid() {
     if [ -f "$pid_dir/cmdline" ]; then
       cmd=$(tr '\0' ' ' < "$pid_dir/cmdline" 2>/dev/null) || continue
       case "$cmd" in
-        *startup.sh*|*"sleep infinity"*) echo "$pid"; return 0;;
+        *"sleep infinity"*) echo "$pid"; return 0;;
       esac
     fi
   done
@@ -32,8 +32,8 @@ while [ -z "$TARGET_PID" ]; do
 done
 echo "found koolna main container process at PID $TARGET_PID"
 
-# Install dotfiles in shared /home/bob if configured
-HOME="/home/bob"
+# Use dynamic home from operator env, default to /home/bob
+HOME="${KOOLNA_HOME:-/home/bob}"
 export HOME
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then

@@ -35,19 +35,22 @@ const (
 
 // KoolnaSpec defines the desired state of Koolna
 type KoolnaSpec struct {
-	Repo           string                      `json:"repo"`
-	Branch         string                      `json:"branch"`
-	GitSecretRef   string                      `json:"gitSecretRef,omitempty"`
+	Repo            string                      `json:"repo"`
+	Branch          string                      `json:"branch"`
+	GitSecretRef    string                      `json:"gitSecretRef,omitempty"`
 	DotfilesRepo    string                      `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string                      `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string                      `json:"dotfilesBareDir,omitempty"`
 	DotfilesCommand string                      `json:"dotfilesCommand,omitempty"`
 	InitCommand     string                      `json:"initCommand,omitempty"`
 	Image           string                      `json:"image"`
-	Storage        resource.Quantity           `json:"storage"`
-	Resources      corev1.ResourceRequirements `json:"resources,omitempty"`
-	Suspended      bool                        `json:"suspended,omitempty"`
-	DeletionPolicy DeletionPolicy              `json:"deletionPolicy,omitempty"`
+	Username        string                      `json:"username,omitempty"`
+	UID             int64                       `json:"uid,omitempty"`
+	HomePath        string                      `json:"homePath,omitempty"`
+	Storage         resource.Quantity           `json:"storage"`
+	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
+	Suspended       bool                        `json:"suspended,omitempty"`
+	DeletionPolicy  DeletionPolicy              `json:"deletionPolicy,omitempty"`
 }
 
 // KoolnaPhase indicates the current lifecycle phase of a Koolna.
