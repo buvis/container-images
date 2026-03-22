@@ -95,6 +95,67 @@ if [ -n "${INIT_COMMAND:-}" ]; then
   eval "$INIT_COMMAND"
 fi
 
+# --- credential sync ---
+sync_credentials() {
+  ns="${KOOLNA_NAMESPACE:-default}"
+  secret_name="$KOOLNA_AUTH_SECRET"
+  claude_creds="$HOME/.claude/credentials.json"
+  codex_dir="$HOME/.codex"
+
+  TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+  CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  API_SERVER="https://kubernetes.default.svc"
+
+  data_fields=""
+
+  if [ -f "$claude_creds" ]; then
+    encoded=$(base64 < "$claude_creds" | tr -d '\n')
+    data_fields="\"claude-credentials\": \"$encoded\""
+  fi
+
+  if [ -d "$codex_dir" ]; then
+    for codex_file in "$codex_dir"/*; do
+      [ -f "$codex_file" ] || continue
+      fname=$(basename "$codex_file")
+      encoded=$(base64 < "$codex_file" | tr -d '\n')
+      entry="\"codex-$fname\": \"$encoded\""
+      if [ -n "$data_fields" ]; then
+        data_fields="$data_fields, $entry"
+      else
+        data_fields="$entry"
+      fi
+    done
+  fi
+
+  if [ -z "$data_fields" ]; then
+    echo "credential-sync: no credential files found, skipping"
+    return
+  fi
+
+  payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\"}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
+
+  echo "credential-sync: syncing to $ns/$secret_name"
+  resp=$(curl -s -o /dev/stderr -w "%{http_code}" -X PUT \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    --cacert "$CA_CERT" \
+    "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name" \
+    -d "$payload" 2>&1)
+  echo "credential-sync: api responded $resp"
+}
+
+if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
+  echo "starting credential sync (30s polling)"
+  (
+    while true; do
+      sync_credentials
+      sleep 30
+    done
+  ) &
+else
+  echo "KOOLNA_AUTH_SECRET not set, skipping credential sync"
+fi
+
 NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- /bin/sh -l"
 
 echo "starting tmux server and configuring defaults"
