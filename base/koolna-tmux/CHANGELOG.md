@@ -14,11 +14,14 @@
 
 ### Fixed
 
+- use bash instead of sh for nsenter login shell
 - create sessions before setting global tmux options
 - credential sync create-or-update, frontend homePath validation
 
 ### Documentation
 
+- document SYS_ADMIN capability requirement
+- update changelog [ci-skip]
 - backfill changelogs for all images [ci-skip]
 
 ## 2026-03-20
