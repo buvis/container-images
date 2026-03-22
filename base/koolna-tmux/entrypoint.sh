@@ -82,15 +82,17 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
       ;;
   esac
   dotfiles_exit=$?
-  if [ -n "${DOTFILES_INIT:-}" ]; then
-    eval "$DOTFILES_INIT"
-  fi
   set -e
   if [ "$dotfiles_exit" -ne 0 ]; then
     echo "dotfiles installation exited with status $dotfiles_exit (non-fatal)"
   fi
   rm -f /tmp/.gitcredentials
   git config --global --unset credential.helper 2>/dev/null || true
+fi
+
+if [ -n "${INIT_COMMAND:-}" ]; then
+  echo "running init command..."
+  eval "$INIT_COMMAND"
 fi
 
 NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- /bin/sh -l"

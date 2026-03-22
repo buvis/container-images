@@ -21,7 +21,7 @@ type FormState = {
   dotfilesRepo: string
   dotfilesBareDir: string
   dotfilesCommand: string
-  dotfilesInit: string
+  initCommand: string
   gitUsername: string
   gitToken: string
   gitName: string
@@ -94,7 +94,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     dotfilesRepo: '',
     dotfilesBareDir: '',
     dotfilesCommand: '',
-    dotfilesInit: '',
+    initCommand: '',
     gitUsername: '',
     gitToken: '',
     gitName: '',
@@ -115,7 +115,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         dotfilesRepo: defaults.dotfilesRepo ?? prev.dotfilesRepo,
         dotfilesBareDir: defaults.dotfilesBareDir ?? prev.dotfilesBareDir,
         dotfilesCommand: defaults.dotfilesCommand ?? prev.dotfilesCommand,
-        dotfilesInit: defaults.dotfilesInit ?? prev.dotfilesInit,
+        initCommand: defaults.initCommand ?? prev.initCommand,
       }))
     }).catch(() => {})
   }, [])
@@ -214,9 +214,9 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           payload.dotfilesBareDir = formState.dotfilesBareDir.trim()
         }
       }
-      if (formState.dotfilesInit.trim()) {
-        payload.dotfilesInit = formState.dotfilesInit.trim()
-      }
+    }
+    if (formState.initCommand.trim()) {
+      payload.initCommand = formState.initCommand.trim()
     }
     if (formState.gitName.trim()) payload.gitName = formState.gitName.trim()
     if (formState.gitEmail.trim()) payload.gitEmail = formState.gitEmail.trim()
@@ -488,20 +488,18 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </div>
         )}
 
-        {formState.dotfilesMethod !== 'none' && (
-          <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-init">
-              Init command (optional)
-            </label>
-            <input
-              id="koolna-dotfiles-init"
-              value={formState.dotfilesInit}
-              onChange={(event) => handleFieldChange('dotfilesInit', event.target.value)}
-              className={`${INPUT_BASE} ${INPUT_OK}`}
-              placeholder="~/.dotfiles/install.sh"
-            />
-          </div>
-        )}
+        <div>
+          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-init">
+            Init command (optional)
+          </label>
+          <input
+            id="koolna-dotfiles-init"
+            value={formState.initCommand}
+            onChange={(event) => handleFieldChange('initCommand', event.target.value)}
+            className={`${INPUT_BASE} ${INPUT_OK}`}
+            placeholder="~/.dotfiles/install.sh"
+          />
+        </div>
 
         <div className="flex flex-wrap gap-3 pt-2">
           <button

@@ -62,7 +62,7 @@ spec:
                 type: string
               dotfilesCommand:
                 type: string
-              dotfilesInit:
+              initCommand:
                 type: string
               dotfilesMethod:
                 type: string

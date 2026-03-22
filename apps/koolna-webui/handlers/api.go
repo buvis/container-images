@@ -57,7 +57,7 @@ type createRequest struct {
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
-	DotfilesInit    string `json:"dotfilesInit,omitempty"`
+	InitCommand    string `json:"initCommand,omitempty"`
 	Image           string `json:"image"`
 	Storage         string `json:"storage"`
 	GitSecretRef    string `json:"gitSecretRef,omitempty"`
@@ -108,7 +108,7 @@ type defaultsResponse struct {
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
-	DotfilesInit    string `json:"dotfilesInit,omitempty"`
+	InitCommand    string `json:"initCommand,omitempty"`
 	DefaultBranch   string `json:"defaultBranch,omitempty"`
 }
 
@@ -128,7 +128,7 @@ func (h *APIHandler) GetDefaults(w http.ResponseWriter, _ *http.Request) {
 		DotfilesMethod:  cm.Data["dotfilesMethod"],
 		DotfilesBareDir: cm.Data["dotfilesBareDir"],
 		DotfilesCommand: cm.Data["dotfilesCommand"],
-		DotfilesInit:    cm.Data["dotfilesInit"],
+		InitCommand:    cm.Data["initCommand"],
 		DefaultBranch:   cm.Data["defaultBranch"],
 	})
 }
@@ -154,8 +154,8 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 	if req.DotfilesCommand != "" {
 		data["dotfilesCommand"] = req.DotfilesCommand
 	}
-	if req.DotfilesInit != "" {
-		data["dotfilesInit"] = req.DotfilesInit
+	if req.InitCommand != "" {
+		data["initCommand"] = req.InitCommand
 	}
 	if req.DefaultBranch != "" {
 		data["defaultBranch"] = req.DefaultBranch
@@ -352,8 +352,8 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	if req.DotfilesCommand != "" {
 		spec["dotfilesCommand"] = req.DotfilesCommand
 	}
-	if req.DotfilesInit != "" {
-		spec["dotfilesInit"] = req.DotfilesInit
+	if req.InitCommand != "" {
+		spec["initCommand"] = req.InitCommand
 	}
 
 	obj := &unstructured.Unstructured{

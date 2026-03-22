@@ -370,7 +370,6 @@ type dotfilesConfig struct {
 	Method  string
 	BareDir string
 	Command string
-	Init    string
 }
 
 func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
@@ -383,7 +382,6 @@ func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
 		Method:  spec.DotfilesMethod,
 		BareDir: spec.DotfilesBareDir,
 		Command: spec.DotfilesCommand,
-		Init:    spec.DotfilesInit,
 	}
 }
 
@@ -581,10 +579,6 @@ func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvV
 		env = append(env, corev1.EnvVar{Name: "DOTFILES_COMMAND", Value: cfg.Command})
 	}
 
-	if cfg.Init != "" {
-		env = append(env, corev1.EnvVar{Name: "DOTFILES_INIT", Value: cfg.Init})
-	}
-
 	if gitSecretRef != "" {
 		env = append(env,
 			corev1.EnvVar{
@@ -619,6 +613,9 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 	}
 	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
+	if koolna.Spec.InitCommand != "" {
+		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
+	}
 
 	homeMount := corev1.VolumeMount{Name: homeVolumeName, MountPath: homeMountPath}
 

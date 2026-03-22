@@ -19,7 +19,7 @@ spec:
   dotfilesRepo: https://github.com/owner/dots  # URL for bare-git/clone
   dotfilesBareDir: .cfg      # bare-git only, default: .cfg
   dotfilesCommand: ""        # command method: shell command to run
-  dotfilesInit: ""           # optional post-setup command (any method)
+  initCommand: ""            # optional init script, independent of dotfiles
   suspended: false           # true = delete pod, keep PVC
   deletionPolicy: Retain     # Retain or Delete PVC on CR deletion
 ```
@@ -38,7 +38,7 @@ data:
   dotfilesRepo: https://github.com/owner/dotfiles
   dotfilesMethod: bare-git       # none | bare-git | clone | command
   dotfilesBareDir: .cfg          # bare-git only
-  dotfilesInit: ""               # optional post-setup command
+  initCommand: ""                # optional init script, independent of dotfiles
   defaultBranch: master          # pre-filled in create form
 ```
 
@@ -53,7 +53,7 @@ Repo fields accept full HTTPS URLs (any git host). Legacy `owner/repo` format is
 | `clone` | Clone to `$HOME/.dotfiles` |
 | `command` | Run an arbitrary shell command (e.g., `curl -Ls https://example.com/setup \| bash`) |
 
-All methods except `none` support an optional `dotfilesInit` command that runs after the main method completes.
+The `initCommand` field runs an arbitrary shell command after dotfiles setup (or on its own if dotfiles are not configured).
 
 Dotfiles are installed by `startup.sh` in the main container (as the correct user with `$HOME` access). Clones are cached in `/workspace/.dotfiles-cache` across pod restarts.
 

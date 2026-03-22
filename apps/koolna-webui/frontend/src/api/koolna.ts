@@ -19,7 +19,7 @@ export interface CreateKoolnaRequest {
   dotfilesMethod?: DotfilesMethod
   dotfilesBareDir?: string
   dotfilesCommand?: string
-  dotfilesInit?: string
+  initCommand?: string
   image?: string
   storage?: string | number
   gitUsername?: string
@@ -33,7 +33,7 @@ export interface DotfilesDefaults {
   dotfilesMethod?: DotfilesMethod
   dotfilesBareDir?: string
   dotfilesCommand?: string
-  dotfilesInit?: string
+  initCommand?: string
   defaultBranch?: string
 }
 

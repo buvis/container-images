@@ -569,18 +569,8 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(names).NotTo(ContainElement("DOTFILES_REPO"))
 		})
 
-		It("should include DOTFILES_INIT when set", func() {
-			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles", Init: "~/.dotfiles/install.sh"}
-			envVars := buildDotfilesEnvVars(cfg, "")
-			names := make([]string, len(envVars))
-			for i, e := range envVars {
-				names[i] = e.Name
-			}
-			Expect(names).To(ContainElement("DOTFILES_INIT"))
-		})
-
-		It("should support command method with init command", func() {
-			cfg := dotfilesConfig{Method: "command", Command: "curl -Ls https://example.com | bash", Init: "~/.setup/post.sh"}
+		It("should support command method", func() {
+			cfg := dotfilesConfig{Method: "command", Command: "curl -Ls https://example.com | bash"}
 			envVars := buildDotfilesEnvVars(cfg, "")
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
@@ -588,7 +578,6 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(names).To(ContainElement("DOTFILES_METHOD"))
 			Expect(names).To(ContainElement("DOTFILES_COMMAND"))
-			Expect(names).To(ContainElement("DOTFILES_INIT"))
 			Expect(names).NotTo(ContainElement("DOTFILES_REPO"))
 		})
 
