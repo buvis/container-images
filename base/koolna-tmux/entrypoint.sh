@@ -135,12 +135,20 @@ sync_credentials() {
   payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\"}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
 
   echo "credential-sync: syncing to $ns/$secret_name"
-  resp=$(curl -s -o /dev/stderr -w "%{http_code}" -X PUT \
+  resp=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     --cacert "$CA_CERT" \
     "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name" \
-    -d "$payload" 2>&1)
+    -d "$payload")
+  if [ "$resp" = "404" ]; then
+    resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json" \
+      --cacert "$CA_CERT" \
+      "$API_SERVER/api/v1/namespaces/$ns/secrets" \
+      -d "$payload")
+  fi
   echo "credential-sync: api responded $resp"
 }
 

@@ -32,7 +32,7 @@ type FormState = {
 }
 
 type ValidatableField = 'name' | 'repo' | 'branch' | 'image' | 'storage'
-  | 'username' | 'uid'
+  | 'username' | 'uid' | 'homePath'
   | 'gitName' | 'gitEmail' | 'gitUsername' | 'gitToken' | 'dotfilesBareDir'
 
 const FIELD_HELP: Record<ValidatableField, string> = {
@@ -47,6 +47,7 @@ const FIELD_HELP: Record<ValidatableField, string> = {
   gitEmail: 'Used as git user.email for commits made in this environment.',
   gitUsername: 'Git service username for authenticating repository access.',
   gitToken: 'Authentication token for pulling and pushing to the repository.',
+  homePath: 'Absolute path to the user home directory inside the container.',
   dotfilesBareDir: 'Directory name where the bare git repository is checked out.',
 }
 
@@ -60,6 +61,9 @@ function isFieldInvalid(field: ValidatableField, state: FormState): boolean {
       return !/^[a-z_][a-z0-9_-]*$/.test(state.username)
     case 'uid':
       return !/^\d+$/.test(state.uid)
+    case 'homePath':
+      if (!state.homePath.trim()) return false
+      return !state.homePath.startsWith('/') || state.homePath.trim() === '/'
     case 'dotfilesBareDir':
       return state.dotfilesMethod === 'bare-git' && !!state.dotfilesRepo.trim() && !state.dotfilesBareDir.trim()
     default:
@@ -196,6 +200,9 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     ]
     if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesRepo.trim()) {
       fields.push('dotfilesBareDir')
+    }
+    if (formState.homePath.trim()) {
+      fields.push('homePath')
     }
     const newErrors: Partial<Record<ValidatableField, true>> = {}
     const newTouched: Partial<Record<ValidatableField, true>> = {}
@@ -489,14 +496,18 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             />
           </div>
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-home-path">
-              Home path
-            </label>
+            <div className="flex items-center">
+              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-home-path">
+                Home path
+              </label>
+              {showHelp('homePath') && <FieldHelp field="homePath" />}
+            </div>
             <input
               id="koolna-home-path"
               value={formState.homePath}
               onChange={(event) => handleFieldChange('homePath', event.target.value)}
-              className={`${INPUT_BASE} ${INPUT_OK}`}
+              onBlur={() => handleBlur('homePath')}
+              className={inputClass('homePath')}
               placeholder={deriveHomePath(formState.username)}
             />
           </div>
