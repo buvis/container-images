@@ -15,7 +15,12 @@
 
 ### Fixed
 
+- add SYS_ADMIN capability for sidecar nsenter
 - harden HomePath validation, fix UID=0 pointer bug
+
+### Documentation
+
+- backfill changelogs for all images [ci-skip]
 
 ## 2026-03-21
 
