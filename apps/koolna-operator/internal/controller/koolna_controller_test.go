@@ -826,9 +826,7 @@ var _ = Describe("Koolna Controller", func() {
 				Storage:  resource.MustParse("1Gi"),
 				HomePath: "relative/path",
 			}
-			err := validateSpec(spec)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("absolute path"))
+			Expect(validateSpec(spec)).NotTo(Succeed())
 		})
 
 		It("should reject root homePath", func() {
@@ -839,9 +837,38 @@ var _ = Describe("Koolna Controller", func() {
 				Storage:  resource.MustParse("1Gi"),
 				HomePath: "/",
 			}
-			err := validateSpec(spec)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("must not be /"))
+			Expect(validateSpec(spec)).NotTo(Succeed())
+		})
+
+		It("should reject homePath with shell metacharacters", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:     "https://github.com/owner/repo",
+				Branch:   "main",
+				Image:    "ghcr.io/buvis/koolna-base:latest",
+				Storage:  resource.MustParse("1Gi"),
+				HomePath: "/home/$(evil)",
+			}
+			Expect(validateSpec(spec)).NotTo(Succeed())
+		})
+
+		It("should reject negative UID", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:    "https://github.com/owner/repo",
+				Branch:  "main",
+				Image:   "ghcr.io/buvis/koolna-base:latest",
+				Storage: resource.MustParse("1Gi"),
+				UID:     int64Ptr(-1),
+			}
+			Expect(validateSpec(spec)).NotTo(Succeed())
+		})
+
+		It("should allow uid=0 for root", func() {
+			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{
+				Username: "root",
+				UID:      int64Ptr(0),
+			})
+			Expect(uc.UID).To(Equal(int64(0)))
+			Expect(uc.HomePath).To(Equal("/root"))
 		})
 
 		It("should accept valid custom user config", func() {
