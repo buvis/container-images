@@ -45,7 +45,7 @@ type KoolnaSpec struct {
 	InitCommand     string                      `json:"initCommand,omitempty"`
 	Image           string                      `json:"image"`
 	Username        string                      `json:"username,omitempty"`
-	UID             int64                       `json:"uid,omitempty"`
+	UID             *int64                      `json:"uid,omitempty"`
 	HomePath        string                      `json:"homePath,omitempty"`
 	Storage         resource.Quantity           `json:"storage"`
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`

@@ -739,7 +739,7 @@ var _ = Describe("Koolna Controller", func() {
 					Image:        "python:3.12",
 					Storage:      resource.MustParse("1Gi"),
 					Username:     "dev",
-					UID:          2000,
+					UID:          int64Ptr(2000),
 					HomePath:     "/home/dev",
 				},
 			}
@@ -851,7 +851,7 @@ var _ = Describe("Koolna Controller", func() {
 				Image:    "python:3.12",
 				Storage:  resource.MustParse("1Gi"),
 				Username: "dev",
-				UID:      2000,
+				UID:      int64Ptr(2000),
 				HomePath: "/home/dev",
 			}
 			Expect(validateSpec(spec)).To(Succeed())

@@ -372,13 +372,14 @@ type userConfig struct {
 func userConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) userConfig {
 	uc := userConfig{
 		Username: spec.Username,
-		UID:      spec.UID,
 		HomePath: spec.HomePath,
 	}
 	if uc.Username == "" {
 		uc.Username = "bob"
 	}
-	if uc.UID == 0 {
+	if spec.UID != nil {
+		uc.UID = *spec.UID
+	} else {
 		uc.UID = 1000
 	}
 	if uc.HomePath == "" {
@@ -415,7 +416,8 @@ var (
 	validURLPattern      = regexp.MustCompile(`^https://[^/]+/.+$`)
 	validLegacyPattern   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
 	validBranchPattern   = regexp.MustCompile(`^[\w./-]+$`)
-	validUsernamePattern = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
+	validUsernamePattern = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
+	validHomePathPattern = regexp.MustCompile(`^/[a-zA-Z0-9._/-]+$`)
 )
 
 func resolveRepoURL(raw string) string {
@@ -436,17 +438,14 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 		return fmt.Errorf("invalid dotfilesRepo format %q: use https://host/owner/repo or owner/repo", spec.DotfilesRepo)
 	}
 	if spec.Username != "" && !validUsernamePattern.MatchString(spec.Username) {
-		return fmt.Errorf("invalid username %q: must match [a-z_][a-z0-9_-]*", spec.Username)
+		return fmt.Errorf("invalid username %q: must be 1-32 lowercase chars matching [a-z_][a-z0-9_-]*", spec.Username)
 	}
-	if spec.UID < 0 {
-		return fmt.Errorf("invalid uid %d: must be >= 0", spec.UID)
+	if spec.UID != nil && *spec.UID < 0 {
+		return fmt.Errorf("invalid uid %d: must be >= 0", *spec.UID)
 	}
 	if spec.HomePath != "" {
-		if !strings.HasPrefix(spec.HomePath, "/") {
-			return fmt.Errorf("invalid homePath %q: must be an absolute path", spec.HomePath)
-		}
-		if spec.HomePath == "/" {
-			return fmt.Errorf("invalid homePath %q: must not be /", spec.HomePath)
+		if !validHomePathPattern.MatchString(spec.HomePath) {
+			return fmt.Errorf("invalid homePath %q: must be an absolute path with safe characters", spec.HomePath)
 		}
 	}
 	switch spec.DotfilesMethod {
@@ -723,7 +722,8 @@ func buildHomeVolume(pvcName string) corev1.Volume {
 	}
 }
 
-func boolPtr(b bool) *bool { return &b }
+func boolPtr(b bool) *bool   { return &b }
+func int64Ptr(i int64) *int64 { return &i }
 
 func authSecretName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-auth"
