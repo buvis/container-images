@@ -166,17 +166,14 @@ fi
 
 NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- /bin/sh -l"
 
-echo "starting tmux server and configuring defaults"
-tmux start-server
+echo "creating tmux sessions"
+tmux new-session -d -s manager "$NSENTER_CMD"
+tmux new-session -d -s worker "$NSENTER_CMD"
+
+echo "configuring tmux defaults"
 tmux set -g remain-on-exit on
 tmux set-hook -g pane-died 'respawn-pane'
 tmux set -g set-clipboard on
-
-echo "creating tmux session: manager"
-tmux new-session -d -s manager "$NSENTER_CMD"
-
-echo "creating tmux session: worker"
-tmux new-session -d -s worker "$NSENTER_CMD"
 
 echo "tmux sidecar ready"
 exec sleep infinity
