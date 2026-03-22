@@ -698,7 +698,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Env:     sidecarEnv,
 					SecurityContext: &corev1.SecurityContext{
 						Capabilities: &corev1.Capabilities{
-							Add: []corev1.Capability{"SYS_PTRACE"},
+							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
 						},
 					},
 					VolumeMounts: []corev1.VolumeMount{homeMount},
