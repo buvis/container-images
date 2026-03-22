@@ -5,6 +5,7 @@
 
 ### Added
 
+- add configurable shell field
 - parameterize pod spec and init container with user config
 - add user config resolution, validation, CRD yaml
 - add username/uid/homePath CRD fields, dynamic sidecar HOME
@@ -20,6 +21,7 @@
 
 ### Documentation
 
+- update changelog [ci-skip]
 - backfill changelogs for all images [ci-skip]
 
 ## 2026-03-21
