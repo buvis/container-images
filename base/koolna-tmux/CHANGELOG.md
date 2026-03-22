@@ -14,7 +14,12 @@
 
 ### Fixed
 
+- create sessions before setting global tmux options
 - credential sync create-or-update, frontend homePath validation
+
+### Documentation
+
+- backfill changelogs for all images [ci-skip]
 
 ## 2026-03-20
 
