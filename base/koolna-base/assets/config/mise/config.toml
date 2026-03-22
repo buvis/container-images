@@ -4,3 +4,4 @@ python = "3.14.3"
 
 [settings]
 experimental = true
+python_compile = true

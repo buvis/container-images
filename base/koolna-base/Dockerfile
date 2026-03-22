@@ -19,6 +19,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   less \
   lazygit \
   vifm \
+  libssl-dev \
+  zlib1g-dev \
+  libbz2-dev \
+  libreadline-dev \
+  libsqlite3-dev \
+  libffi-dev \
+  liblzma-dev \
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
