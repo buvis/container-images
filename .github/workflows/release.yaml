@@ -12,6 +12,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+  packages: write
+
 env:
   GOSS_SLEEP: 30
 
@@ -144,3 +148,64 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
           cache-from: "type=local,src=/tmp/.buildx-cache"
           cache-to: "type=local,dest=/tmp/.buildx-cache,mode=max"
+
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-24.04
+    needs: [changes, build]
+    if: "!contains(github.event.head_commit.message, '[ci-skip]')"
+    strategy:
+      matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
+      fail-fast: false
+      max-parallel: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Prepare
+        id: prep
+        run: |
+          if test -f "./apps/${{ matrix.container }}/Dockerfile"; then
+            CATEGORY="apps"
+          else
+            CATEGORY="base"
+          fi
+          echo "category=${CATEGORY}" >> $GITHUB_OUTPUT
+          VERSION=$(cat ./${CATEGORY}/${{ matrix.container }}/VERSION)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        run: |
+          bash .github/scripts/generate-changelog.sh \
+            "${{ steps.prep.outputs.category }}" \
+            "${{ matrix.container }}" \
+            > "./${{ steps.prep.outputs.category }}/${{ matrix.container }}/CHANGELOG.md"
+
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "./${{ steps.prep.outputs.category }}/${{ matrix.container }}/CHANGELOG.md"
+          git diff --staged --quiet && exit 0
+          git commit -m "docs(${{ matrix.container }}): update changelog [ci-skip]"
+          git pull --rebase origin master
+          git push origin master
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ matrix.container }}/v${{ steps.prep.outputs.version }}"
+          DIR="./${{ steps.prep.outputs.category }}/${{ matrix.container }}"
+          NOTES=$(awk '/^## [0-9]/{if(n++)exit}n' "${DIR}/CHANGELOG.md")
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release edit "${TAG}" --notes "${NOTES}"
+          else
+            git tag "${TAG}"
+            git push origin "${TAG}"
+            gh release create "${TAG}" \
+              --title "${{ matrix.container }} v${{ steps.prep.outputs.version }}" \
+              --notes "${NOTES}"
+          fi
