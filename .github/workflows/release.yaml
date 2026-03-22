@@ -163,6 +163,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
+          token: ${{ secrets.BOT_TOKEN }}
 
       - name: Prepare
         id: prep
@@ -195,7 +196,7 @@ jobs:
 
       - name: Create or update GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           TAG="${{ matrix.container }}/v${{ steps.prep.outputs.version }}"
           DIR="./${{ steps.prep.outputs.category }}/${{ matrix.container }}"
