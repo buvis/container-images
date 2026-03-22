@@ -122,11 +122,14 @@ var _ = Describe("Koolna Controller", func() {
 			koolnaContainer := pod.Spec.Containers[0]
 			Expect(koolnaContainer.Name).To(Equal("koolna"))
 			Expect(koolnaContainer.Image).To(Equal("ghcr.io/buvis/koolna-base:latest"))
+			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
 			Expect(koolnaContainer.Ports).To(BeEmpty())
 			Expect(koolnaContainer.WorkingDir).To(Equal("/home/bob/workspace"))
 			Expect(koolnaContainer.VolumeMounts).To(HaveLen(1))
 			Expect(koolnaContainer.VolumeMounts[0].Name).To(Equal("home"))
 			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/bob"))
+			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(1000)))
+			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(1000)))
 
 			sidecar := pod.Spec.Containers[1]
 			Expect(sidecar.Name).To(Equal("tmux-sidecar"))
@@ -136,7 +139,7 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecar.VolumeMounts[0].Name).To(Equal("home"))
 			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/bob"))
 
-			By("Checking dotfiles env vars are on tmux-sidecar, not koolna")
+			By("Checking env vars are on tmux-sidecar, not koolna")
 			Expect(koolnaContainer.Env).To(BeEmpty())
 			sidecarEnvNames := make([]string, len(sidecar.Env))
 			for i, e := range sidecar.Env {
@@ -144,6 +147,9 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_AUTH_SECRET"))
 			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_NAMESPACE"))
+			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_HOME"))
+			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_UID"))
+			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_USERNAME"))
 
 			By("Checking single home volume backed by PVC")
 			Expect(pod.Spec.Volumes).To(HaveLen(1))
@@ -484,7 +490,8 @@ var _ = Describe("Koolna Controller", func() {
 					Storage:      resource.MustParse("1Gi"),
 				},
 			}
-			c := buildGitCloneInitContainer(koolna)
+			uc := userConfigFromSpec(koolna.Spec)
+			c := buildGitCloneInitContainer(koolna, uc)
 			script := c.Args[0]
 			Expect(script).NotTo(ContainSubstring("$GIT_USERNAME:$GIT_TOKEN@"))
 			Expect(script).To(ContainSubstring("credential.helper"))
@@ -501,7 +508,8 @@ var _ = Describe("Koolna Controller", func() {
 					Storage:      resource.MustParse("1Gi"),
 				},
 			}
-			c := buildGitCloneInitContainer(koolna)
+			uc := userConfigFromSpec(koolna.Spec)
+			c := buildGitCloneInitContainer(koolna, uc)
 			script := c.Args[0]
 			Expect(script).To(ContainSubstring(`"$REPO_BRANCH"`))
 		})
@@ -708,6 +716,145 @@ var _ = Describe("Koolna Controller", func() {
 			updated := &koolnav1alpha1.Koolna{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, updated)).To(Succeed())
 			Expect(updated.Status.Phase).To(Equal(koolnav1alpha1.KoolnaPhaseRunning))
+		})
+	})
+
+	Context("When creating Koolna with custom user config", func() {
+		const resourceName = "test-custom-user"
+
+		AfterEach(func() {
+			cleanupKoolna(resourceName, "default")
+		})
+
+		It("should use custom username/uid/homePath", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "python:3.12",
+					Storage:      resource.MustParse("1Gi"),
+					Username:     "dev",
+					UID:          2000,
+					HomePath:     "/home/dev",
+				},
+			}
+
+			By("Creating the Koolna resource")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking Pod uses custom user config")
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName,
+				Namespace: "default",
+			}, pod)).To(Succeed())
+
+			koolnaContainer := pod.Spec.Containers[0]
+			Expect(koolnaContainer.WorkingDir).To(Equal("/home/dev/workspace"))
+			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev"))
+			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(2000)))
+			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(2000)))
+			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
+
+			sidecar := pod.Spec.Containers[1]
+			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/dev"))
+			sidecarEnvMap := map[string]string{}
+			for _, e := range sidecar.Env {
+				sidecarEnvMap[e.Name] = e.Value
+			}
+			Expect(sidecarEnvMap["KOOLNA_HOME"]).To(Equal("/home/dev"))
+			Expect(sidecarEnvMap["KOOLNA_UID"]).To(Equal("2000"))
+			Expect(sidecarEnvMap["KOOLNA_USERNAME"]).To(Equal("dev"))
+
+			By("Checking init container uses custom uid")
+			initContainer := pod.Spec.InitContainers[0]
+			Expect(initContainer.Args[0]).To(ContainSubstring("2000:2000"))
+			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev"))
+		})
+	})
+
+	Context("When resolving user config defaults", func() {
+		It("should default to bob/1000/home/bob", func() {
+			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{})
+			Expect(uc.Username).To(Equal("bob"))
+			Expect(uc.UID).To(Equal(int64(1000)))
+			Expect(uc.HomePath).To(Equal("/home/bob"))
+		})
+
+		It("should derive /root for root user", func() {
+			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{Username: "root"})
+			Expect(uc.HomePath).To(Equal("/root"))
+		})
+
+		It("should use explicit homePath when provided", func() {
+			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{
+				Username: "dev",
+				HomePath: "/opt/dev",
+			})
+			Expect(uc.HomePath).To(Equal("/opt/dev"))
+		})
+	})
+
+	Context("When validating user config fields", func() {
+		It("should reject invalid username", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:     "https://github.com/owner/repo",
+				Branch:   "main",
+				Image:    "ghcr.io/buvis/koolna-base:latest",
+				Storage:  resource.MustParse("1Gi"),
+				Username: "123invalid",
+			}
+			Expect(validateSpec(spec)).NotTo(Succeed())
+		})
+
+		It("should reject relative homePath", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:     "https://github.com/owner/repo",
+				Branch:   "main",
+				Image:    "ghcr.io/buvis/koolna-base:latest",
+				Storage:  resource.MustParse("1Gi"),
+				HomePath: "relative/path",
+			}
+			err := validateSpec(spec)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("absolute path"))
+		})
+
+		It("should reject root homePath", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:     "https://github.com/owner/repo",
+				Branch:   "main",
+				Image:    "ghcr.io/buvis/koolna-base:latest",
+				Storage:  resource.MustParse("1Gi"),
+				HomePath: "/",
+			}
+			err := validateSpec(spec)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must not be /"))
+		})
+
+		It("should accept valid custom user config", func() {
+			spec := koolnav1alpha1.KoolnaSpec{
+				Repo:     "https://github.com/owner/repo",
+				Branch:   "main",
+				Image:    "python:3.12",
+				Storage:  resource.MustParse("1Gi"),
+				Username: "dev",
+				UID:      2000,
+				HomePath: "/home/dev",
+			}
+			Expect(validateSpec(spec)).To(Succeed())
 		})
 	})
 })
