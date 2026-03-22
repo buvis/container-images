@@ -58,6 +58,9 @@ type createRequest struct {
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
 	InitCommand    string `json:"initCommand,omitempty"`
+	Username        string `json:"username,omitempty"`
+	UID             int64  `json:"uid,omitempty"`
+	HomePath        string `json:"homePath,omitempty"`
 	Image           string `json:"image"`
 	Storage         string `json:"storage"`
 	GitSecretRef    string `json:"gitSecretRef,omitempty"`
@@ -354,6 +357,15 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.InitCommand != "" {
 		spec["initCommand"] = req.InitCommand
+	}
+	if req.Username != "" {
+		spec["username"] = req.Username
+	}
+	if req.UID != 0 {
+		spec["uid"] = req.UID
+	}
+	if req.HomePath != "" {
+		spec["homePath"] = req.HomePath
 	}
 
 	obj := &unstructured.Unstructured{
