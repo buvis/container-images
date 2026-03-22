@@ -62,18 +62,14 @@ USER root
 
 RUN cp /home/$USERNAME/.local/bin/mise /usr/local/bin/mise
 
-COPY assets/bin/startup.sh /usr/local/bin/startup.sh
 COPY assets/lib/whatwedo /usr/local/lib/whatwedo
 COPY assets/bin/whatwedo /usr/local/bin/whatwedo
-COPY assets/bin/sync-auth-to-secret.sh /usr/local/bin/sync-auth-to-secret.sh
 
-RUN chmod +x /usr/local/bin/startup.sh \
-  && chmod +x /usr/local/lib/whatwedo \
-  && chmod +x /usr/local/bin/whatwedo \
-  && chmod +x /usr/local/bin/sync-auth-to-secret.sh
+RUN chmod +x /usr/local/lib/whatwedo \
+  && chmod +x /usr/local/bin/whatwedo
 
 WORKDIR /workspace
 
 USER $USERNAME
 
-CMD ["/usr/local/bin/startup.sh"]
+CMD ["sh", "-c", "exec sleep infinity"]
