@@ -1,6 +1,12 @@
 # Changelog — koolna-operator
 
 
+## 2026-03-23
+
+### Fixed
+
+- recursive chown for .cache/.local/.config in init container
+
 ## 2026-03-22
 
 ### Added
@@ -21,6 +27,7 @@
 
 ### Documentation
 
+- update changelog [ci-skip]
 - update changelog [ci-skip]
 - backfill changelogs for all images [ci-skip]
 
