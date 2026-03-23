@@ -1,6 +1,12 @@
 # Changelog — clara
 
 
+## 2026-03-23
+
+### Documentation
+
+- update changelog [ci-skip]
+
 ## 2026-03-22
 
 ### Documentation
