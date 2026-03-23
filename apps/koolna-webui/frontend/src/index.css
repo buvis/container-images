@@ -17,7 +17,7 @@
 @theme {
   --color-bg: #05060a;
   --color-surface: #0a0c10;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono: "MesloLGS NF", monospace;
 }
 
 body {
