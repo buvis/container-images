@@ -1,6 +1,13 @@
 # Changelog — koolna-base
 
 
+## 2026-03-23
+
+### Fixed
+
+- replace gnupg-curl with dirmngr for keyserver access
+- import Node.js GPG keys at build, add shell fallback, and install zsh/fish
+
 ## 2026-03-22
 
 ### Changed
@@ -11,6 +18,10 @@
 
 - compile python from source, add build deps
 - remove @openai/codex-cli from default npm packages
+
+### Documentation
+
+- backfill changelogs for all images [ci-skip]
 
 ## 2026-03-20
 
