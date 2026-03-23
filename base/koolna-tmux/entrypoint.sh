@@ -95,6 +95,11 @@ if [ -n "${INIT_COMMAND:-}" ]; then
   eval "$INIT_COMMAND"
 fi
 
+# Fix ownership of home directory contents created by root during dotfiles/init
+KOOLNA_UID="${KOOLNA_UID:-1000}"
+echo "fixing home directory ownership (uid=$KOOLNA_UID)..."
+chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
+
 # --- credential sync ---
 sync_credentials() {
   ns="${KOOLNA_NAMESPACE:-default}"
