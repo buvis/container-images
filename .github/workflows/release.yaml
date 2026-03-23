@@ -154,10 +154,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [changes, build]
     if: "!contains(github.event.head_commit.message, '[ci-skip]')"
-    strategy:
-      matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
-      fail-fast: false
-      max-parallel: 1
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -165,48 +161,54 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.BOT_TOKEN }}
 
-      - name: Prepare
-        id: prep
+      - name: Generate changelogs
+        env:
+          MATRIX: ${{ needs.changes.outputs.matrix }}
         run: |
-          if test -f "./apps/${{ matrix.container }}/Dockerfile"; then
-            CATEGORY="apps"
-          else
-            CATEGORY="base"
-          fi
-          echo "category=${CATEGORY}" >> $GITHUB_OUTPUT
-          VERSION=$(cat ./${CATEGORY}/${{ matrix.container }}/VERSION)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          for CONTAINER in $(echo "${MATRIX}" | jq -r '.container[]'); do
+            if test -f "./apps/${CONTAINER}/Dockerfile"; then
+              CATEGORY="apps"
+            else
+              CATEGORY="base"
+            fi
+            bash .github/scripts/generate-changelog.sh \
+              "${CATEGORY}" \
+              "${CONTAINER}" \
+              > "./${CATEGORY}/${CONTAINER}/CHANGELOG.md"
+            git add "./${CATEGORY}/${CONTAINER}/CHANGELOG.md"
+          done
 
-      - name: Generate changelog
-        run: |
-          bash .github/scripts/generate-changelog.sh \
-            "${{ steps.prep.outputs.category }}" \
-            "${{ matrix.container }}" \
-            > "./${{ steps.prep.outputs.category }}/${{ matrix.container }}/CHANGELOG.md"
-
-      - name: Commit changelog
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "./${{ steps.prep.outputs.category }}/${{ matrix.container }}/CHANGELOG.md"
           git diff --staged --quiet && exit 0
-          git commit -m "docs(${{ matrix.container }}): update changelog [ci-skip]"
+          git commit -m "docs: update changelogs [ci-skip]"
           git pull --rebase origin master
           git push origin master
 
-      - name: Create or update GitHub Release
+      - name: Create or update GitHub Releases
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MATRIX: ${{ needs.changes.outputs.matrix }}
         run: |
-          TAG="${{ matrix.container }}/v${{ steps.prep.outputs.version }}"
-          DIR="./${{ steps.prep.outputs.category }}/${{ matrix.container }}"
-          NOTES=$(awk '/^## [0-9]/{if(n++)exit}n' "${DIR}/CHANGELOG.md")
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release edit "${TAG}" --notes "${NOTES}"
-          else
-            git tag "${TAG}"
-            git push origin "${TAG}"
-            gh release create "${TAG}" \
-              --title "${{ matrix.container }} v${{ steps.prep.outputs.version }}" \
-              --notes "${NOTES}"
-          fi
+          for CONTAINER in $(echo "${MATRIX}" | jq -r '.container[]'); do
+            if test -f "./apps/${CONTAINER}/Dockerfile"; then
+              CATEGORY="apps"
+            else
+              CATEGORY="base"
+            fi
+            VERSION=$(cat "./${CATEGORY}/${CONTAINER}/VERSION")
+            TAG="${CONTAINER}/v${VERSION}"
+            DIR="./${CATEGORY}/${CONTAINER}"
+            NOTES=$(awk '/^## [0-9]/{if(n++)exit}n' "${DIR}/CHANGELOG.md")
+            if gh release view "${TAG}" >/dev/null 2>&1; then
+              gh release edit "${TAG}" --notes "${NOTES}"
+            else
+              git tag "${TAG}"
+              git push origin "${TAG}"
+              gh release create "${TAG}" \
+                --title "${CONTAINER} v${VERSION}" \
+                --notes "${NOTES}"
+            fi
+          done
