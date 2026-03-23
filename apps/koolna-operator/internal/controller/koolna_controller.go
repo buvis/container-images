@@ -473,9 +473,14 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, uc userConfig) co
 	cred := home + "/.git-credentials"
 	gc := home + "/.gitconfig"
 
+	fixOwnership := `chown ` + own + ` ` + home + `
+[ -d ` + home + `/.cache ] && chown -R ` + own + ` ` + home + `/.cache
+[ -d ` + home + `/.local ] && chown -R ` + own + ` ` + home + `/.local
+[ -d ` + home + `/.config ] && chown -R ` + own + ` ` + home + `/.config`
+
 	var script string
 	if secretName != "" {
-		script = `chown ` + own + ` ` + home + `
+		script = fixOwnership + `
 if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
   REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
@@ -493,7 +498,7 @@ if [ ! -d ` + ws + `/.git ]; then
 fi
 mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
 	} else {
-		script = `chown ` + own + ` ` + home + `
+		script = fixOwnership + `
 if [ ! -d ` + ws + `/.git ]; then
   rm -rf ` + ws + `
   git clone "$REPO_URL" ` + ws + `
