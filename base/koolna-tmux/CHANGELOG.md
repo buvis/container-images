@@ -1,10 +1,17 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-23
+
+### Fixed
+
+- nsenter as target user, wait for font before terminal init
+
 ## 2026-03-22
 
 ### Added
 
+- add configurable shell field
 - move credential sync to sidecar with POSIX sh + curl
 - add username/uid/homePath CRD fields, dynamic sidecar HOME
 
@@ -20,6 +27,7 @@
 
 ### Documentation
 
+- update changelog [ci-skip]
 - document SYS_ADMIN capability requirement
 - update changelog [ci-skip]
 - backfill changelogs for all images [ci-skip]

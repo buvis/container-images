@@ -1,10 +1,17 @@
 # Changelog — koolna-webui
 
 
+## 2026-03-23
+
+### Fixed
+
+- nsenter as target user, wait for font before terminal init
+
 ## 2026-03-22
 
 ### Added
 
+- add configurable shell field
 - add username/uid/homePath to create form and API
 
 ### Changed
@@ -17,6 +24,10 @@
 - make git fields optional, fix status.currentBranch path
 - credential sync create-or-update, frontend homePath validation
 - harden HomePath validation, fix UID=0 pointer bug
+
+### Documentation
+
+- backfill changelogs for all images [ci-skip]
 
 ## 2026-03-21
 
