@@ -172,12 +172,24 @@ fi
 KOOLNA_SHELL="${KOOLNA_SHELL:-/bin/bash}"
 KOOLNA_UID="${KOOLNA_UID:-1000}"
 NSENTER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
+
+# Verify requested shell exists, fallback to bash if not
+if ! $NSENTER command -v "$KOOLNA_SHELL" >/dev/null 2>&1; then
+  echo "warning: $KOOLNA_SHELL not found in main container, falling back to /bin/bash"
+  KOOLNA_SHELL="/bin/bash"
+fi
+
 NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
 
 # Bootstrap mise tools inside the main container
 if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
+  echo "importing Node.js GPG keys..."
+  # Node.js EDDSA signing key (v24+)
+  $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 2>/dev/null || true'
+  # Node.js RSA signing key (legacy)
+  $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 2>/dev/null || true'
   echo "running mise install in main container..."
-  $NSENTER sh -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
+  $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
 fi
 
 echo "creating tmux sessions"

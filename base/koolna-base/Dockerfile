@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   tmux \
   ca-certificates \
   gnupg \
+  gnupg-curl \
   lsb-release \
   sudo \
   vim \
@@ -26,6 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libsqlite3-dev \
   libffi-dev \
   liblzma-dev \
+  zsh \
+  fish \
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
@@ -62,8 +65,13 @@ RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
   && MISE_VERSION="2025.5.6" \
   && curl -fsSL "https://mise.jdx.dev/v${MISE_VERSION}/install.sh" -o /tmp/mise-install.sh \
   && sh /tmp/mise-install.sh \
-  && rm /tmp/mise-install.sh \
-  && bash -c 'eval "$(mise activate bash)" && mise install'
+  && rm /tmp/mise-install.sh
+
+# Import Node.js release signing keys for GPG verification
+RUN gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 \
+  && gpg --batch --export 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 | gpg --import
+
+RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 USER root
 
