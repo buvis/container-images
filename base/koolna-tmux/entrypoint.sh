@@ -171,7 +171,14 @@ fi
 
 KOOLNA_SHELL="${KOOLNA_SHELL:-/bin/bash}"
 KOOLNA_UID="${KOOLNA_UID:-1000}"
-NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID -- $KOOLNA_SHELL -l"
+NSENTER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
+NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
+
+# Bootstrap mise tools inside the main container
+if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
+  echo "running mise install in main container..."
+  $NSENTER sh -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
+fi
 
 echo "creating tmux sessions"
 tmux new-session -d -s manager "$NSENTER_CMD"
