@@ -5,11 +5,13 @@
 
 ### Fixed
 
+- run mise install via nsenter into main container
 - chown home dir after dotfiles install
 - nsenter as target user, wait for font before terminal init
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-22
