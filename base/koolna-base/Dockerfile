@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   tmux \
   ca-certificates \
   gnupg \
-  gnupg-curl \
+  dirmngr \
   lsb-release \
   sudo \
   vim \
