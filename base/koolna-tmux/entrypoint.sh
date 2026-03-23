@@ -165,7 +165,8 @@ else
 fi
 
 KOOLNA_SHELL="${KOOLNA_SHELL:-/bin/bash}"
-NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid -- $KOOLNA_SHELL -l"
+KOOLNA_UID="${KOOLNA_UID:-1000}"
+NSENTER_CMD="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID -- $KOOLNA_SHELL -l"
 
 echo "creating tmux sessions"
 tmux new-session -d -s manager "$NSENTER_CMD"

@@ -6,7 +6,7 @@ export class XtermAdapter {
   readonly term: Terminal;
   private fitAddon: FitAddon;
 
-  constructor(container: HTMLElement) {
+  private constructor(container: HTMLElement) {
     this.fitAddon = new FitAddon();
     const weblinksAddon = new WebLinksAddon();
 
@@ -31,6 +31,11 @@ export class XtermAdapter {
     this.term.focus();
 
     window.addEventListener('resize', this.handleResize);
+  }
+
+  static async create(container: HTMLElement): Promise<XtermAdapter> {
+    await document.fonts.ready;
+    return new XtermAdapter(container);
   }
 
   setupOSC52Clipboard(): void {

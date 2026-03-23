@@ -29,36 +29,42 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
 
   useEffect(() => {
     if (!containerRef.current) return;
+    let cancelled = false;
+    let inputDisposable: { dispose(): void } | undefined;
+    let resizeDisposable: { dispose(): void } | undefined;
 
-    const adapter = new XtermAdapter(containerRef.current);
-    adapterRef.current = adapter;
-    adapter.setupOSC52Clipboard();
+    XtermAdapter.create(containerRef.current).then((adapter) => {
+      if (cancelled) { adapter.dispose(); return; }
+      adapterRef.current = adapter;
+      adapter.setupOSC52Clipboard();
 
-    const encoder = new TextEncoder();
-    const { columns, rows } = adapter.info();
-    const wsUrl = buildWebsocketUrl(name, session);
+      const encoder = new TextEncoder();
+      const { columns, rows } = adapter.info();
+      const wsUrl = buildWebsocketUrl(name, session);
 
-    const rawTerm = new RawTerminal(wsUrl, {
-      onData: (data) => adapter.term.write(data),
-      onStatus: setStatus,
-    }, { cols: columns, rows });
-    rawTermRef.current = rawTerm;
+      const rawTerm = new RawTerminal(wsUrl, {
+        onData: (data) => adapter.term.write(data),
+        onStatus: setStatus,
+      }, { cols: columns, rows });
+      rawTermRef.current = rawTerm;
 
-    const inputDisposable = adapter.term.onData((input) => {
-      rawTerm.sendInput(encoder.encode(input));
+      inputDisposable = adapter.term.onData((input) => {
+        rawTerm.sendInput(encoder.encode(input));
+      });
+
+      resizeDisposable = adapter.term.onResize(() => {
+        rawTerm.sendResize(adapter.term.cols, adapter.term.rows);
+      });
+
+      rawTerm.open();
     });
-
-    const resizeDisposable = adapter.term.onResize(() => {
-      rawTerm.sendResize(adapter.term.cols, adapter.term.rows);
-    });
-
-    rawTerm.open();
 
     return () => {
-      inputDisposable.dispose();
-      resizeDisposable.dispose();
-      rawTerm.close();
-      adapter.dispose();
+      cancelled = true;
+      inputDisposable?.dispose();
+      resizeDisposable?.dispose();
+      rawTermRef.current?.close();
+      adapterRef.current?.dispose();
       rawTermRef.current = null;
       adapterRef.current = null;
     };
