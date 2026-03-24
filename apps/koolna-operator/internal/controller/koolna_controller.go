@@ -473,7 +473,8 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, uc userConfig) co
 	cred := home + "/.git-credentials"
 	gc := home + "/.gitconfig"
 
-	fixOwnership := `chown ` + own + ` ` + home + `
+	fixOwnership := `mkdir -p ` + home + `
+chown ` + own + ` ` + home + `
 [ -d ` + home + `/.cache ] && chown -R ` + own + ` ` + home + `/.cache
 [ -d ` + home + `/.local ] && chown -R ` + own + ` ` + home + `/.local
 [ -d ` + home + `/.config ] && chown -R ` + own + ` ` + home + `/.config`
