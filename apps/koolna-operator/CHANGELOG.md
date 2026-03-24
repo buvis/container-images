@@ -1,11 +1,21 @@
 # Changelog — koolna-operator
 
 
+## 2026-03-24
+
+### Fixed
+
+- create home dir before clone in init container
+
 ## 2026-03-23
 
 ### Fixed
 
 - recursive chown for .cache/.local/.config in init container
+
+### Documentation
+
+- update changelog [ci-skip]
 
 ## 2026-03-22
 
