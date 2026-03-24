@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- set HOME in git-clone init container
 - create home dir before clone in init container
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-23
 
