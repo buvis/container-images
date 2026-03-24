@@ -513,6 +513,10 @@ mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
 
 	env := []corev1.EnvVar{
 		{
+			Name:  "HOME",
+			Value: home,
+		},
+		{
 			Name:  "REPO_URL",
 			Value: repoURL,
 		},
