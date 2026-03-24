@@ -5,6 +5,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelog [ci-skip]
 - update changelog [ci-skip]
 
