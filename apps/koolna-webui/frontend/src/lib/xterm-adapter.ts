@@ -25,10 +25,10 @@ export class XtermAdapter {
     });
 
     this.term.loadAddon(this.fitAddon);
-    this.term.loadAddon(new CanvasAddon());
     this.term.loadAddon(weblinksAddon);
 
     this.term.open(container);
+    this.term.loadAddon(new CanvasAddon());
     this.fitAddon.fit();
     this.term.focus();
 
