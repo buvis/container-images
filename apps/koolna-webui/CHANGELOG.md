@@ -5,6 +5,7 @@
 
 ### Fixed
 
+- use WebGL renderer with explicit customGlyphs for powerline
 - remove canvas addon, rely on built-in custom glyph rendering
 - add unicode11 addon for proper glyph width calculation
 - load canvas addon after terminal is attached to DOM
@@ -12,6 +13,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
