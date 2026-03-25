@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- wrap shell check in sh for nsenter compatibility
 - fall back to /bin/sh instead of /bin/bash
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-23
 
