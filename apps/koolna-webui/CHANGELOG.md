@@ -5,6 +5,8 @@
 
 ### Fixed
 
+- update all non-major dependencies (#339)
+- upgrade to @xterm/ packages for proper customGlyphs support
 - add renderer diagnostics logging to console
 - fall back to canvas renderer when WebGL unavailable
 - use WebGL renderer with explicit customGlyphs for powerline
@@ -15,6 +17,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
