@@ -2,6 +2,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { Unicode11Addon } from 'xterm-addon-unicode11';
 import { WebLinksAddon } from 'xterm-addon-web-links';
+import { WebglAddon } from 'xterm-addon-webgl';
 
 export class XtermAdapter {
   readonly term: Terminal;
@@ -13,6 +14,8 @@ export class XtermAdapter {
 
     this.term = new Terminal({
       allowProposedApi: true,
+      allowTransparency: true,
+      customGlyphs: true,
       theme: {
         background: '#05060a',
         foreground: '#f5f5f5',
@@ -31,6 +34,13 @@ export class XtermAdapter {
     this.term.loadAddon(weblinksAddon);
 
     this.term.open(container);
+
+    try {
+      this.term.loadAddon(new WebglAddon());
+    } catch {
+      // WebGL not available, fall back to DOM renderer
+    }
+
     this.fitAddon.fit();
     this.term.focus();
 
