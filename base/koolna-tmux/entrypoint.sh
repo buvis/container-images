@@ -173,8 +173,8 @@ KOOLNA_SHELL="${KOOLNA_SHELL:-/bin/bash}"
 KOOLNA_UID="${KOOLNA_UID:-1000}"
 NSENTER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
 
-# Verify requested shell exists, fallback to bash if not
-if ! $NSENTER command -v "$KOOLNA_SHELL" >/dev/null 2>&1; then
+# Verify requested shell exists, fallback to /bin/sh if not
+if ! $NSENTER sh -c "command -v $KOOLNA_SHELL" >/dev/null 2>&1; then
   echo "warning: $KOOLNA_SHELL not found in main container, falling back to /bin/sh"
   KOOLNA_SHELL="/bin/sh"
 fi
