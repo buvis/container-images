@@ -1,6 +1,7 @@
 import { Terminal } from 'xterm';
 import { CanvasAddon } from 'xterm-addon-canvas';
 import { FitAddon } from 'xterm-addon-fit';
+import { Unicode11Addon } from 'xterm-addon-unicode11';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 
 export class XtermAdapter {
@@ -24,7 +25,10 @@ export class XtermAdapter {
       fontFamily: "'MesloLGS NF', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     });
 
+    const unicode11Addon = new Unicode11Addon();
     this.term.loadAddon(this.fitAddon);
+    this.term.loadAddon(unicode11Addon);
+    this.term.unicode.activeVersion = '11';
     this.term.loadAddon(weblinksAddon);
 
     this.term.open(container);
