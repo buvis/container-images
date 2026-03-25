@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- remove PEP 668 marker and add pipx
 - use system python3 + pip instead of mise-compiled python
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-23
 
