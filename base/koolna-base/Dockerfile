@@ -20,13 +20,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   less \
   lazygit \
   vifm \
-  libssl-dev \
-  zlib1g-dev \
-  libbz2-dev \
-  libreadline-dev \
-  libsqlite3-dev \
-  libffi-dev \
-  liblzma-dev \
+  python3 \
+  python3-pip \
+  python3-venv \
   zsh \
   fish \
   && rm -rf /var/lib/apt/lists/*
