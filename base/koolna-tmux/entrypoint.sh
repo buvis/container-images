@@ -175,8 +175,8 @@ NSENTER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $
 
 # Verify requested shell exists, fallback to bash if not
 if ! $NSENTER command -v "$KOOLNA_SHELL" >/dev/null 2>&1; then
-  echo "warning: $KOOLNA_SHELL not found in main container, falling back to /bin/bash"
-  KOOLNA_SHELL="/bin/bash"
+  echo "warning: $KOOLNA_SHELL not found in main container, falling back to /bin/sh"
+  KOOLNA_SHELL="/bin/sh"
 fi
 
 NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
