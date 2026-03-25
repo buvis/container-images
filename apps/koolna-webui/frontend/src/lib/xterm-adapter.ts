@@ -38,11 +38,30 @@ export class XtermAdapter {
 
     // customGlyphs only works with canvas/webgl, not DOM renderer
     // Try WebGL first, fall back to canvas
+    let renderer = 'dom';
     try {
       this.term.loadAddon(new WebglAddon());
-    } catch {
-      this.term.loadAddon(new CanvasAddon());
+      renderer = 'webgl';
+    } catch (e) {
+      console.warn('[koolna] WebGL failed, trying canvas:', e);
+      try {
+        this.term.loadAddon(new CanvasAddon());
+        renderer = 'canvas';
+      } catch (e2) {
+        console.warn('[koolna] Canvas failed, using DOM:', e2);
+      }
     }
+
+    const opts = this.term.options;
+    console.log('[koolna] terminal diagnostics:', {
+      renderer,
+      customGlyphs: opts.customGlyphs,
+      allowTransparency: opts.allowTransparency,
+      fontFamily: opts.fontFamily,
+      fontSize: opts.fontSize,
+      cols: this.term.cols,
+      rows: this.term.rows,
+    });
 
     this.fitAddon.fit();
     this.term.focus();
