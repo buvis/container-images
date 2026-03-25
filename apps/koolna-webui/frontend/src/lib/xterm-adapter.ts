@@ -1,9 +1,9 @@
-import { Terminal } from 'xterm';
-import { CanvasAddon } from 'xterm-addon-canvas';
-import { FitAddon } from 'xterm-addon-fit';
-import { Unicode11Addon } from 'xterm-addon-unicode11';
-import { WebLinksAddon } from 'xterm-addon-web-links';
-import { WebglAddon } from 'xterm-addon-webgl';
+import { Terminal } from '@xterm/xterm';
+import { CanvasAddon } from '@xterm/addon-canvas';
+import { FitAddon } from '@xterm/addon-fit';
+import { Unicode11Addon } from '@xterm/addon-unicode11';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { WebglAddon } from '@xterm/addon-webgl';
 
 export class XtermAdapter {
   readonly term: Terminal;

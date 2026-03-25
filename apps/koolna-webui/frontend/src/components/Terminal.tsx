@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { RawTerminal, type ConnectionStatus } from '../lib/webtty';
 import { XtermAdapter } from '../lib/xterm-adapter';
 import { Keypad } from './Keypad';
-import 'xterm/css/xterm.css';
+import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
   name: string;
