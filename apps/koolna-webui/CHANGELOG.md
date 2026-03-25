@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-03-25
+
+### Fixed
+
+- use canvas renderer for proper nerd font glyph rendering
+
 ## 2026-03-23
 
 ### Fixed
@@ -10,6 +16,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-22

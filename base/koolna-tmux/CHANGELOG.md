@@ -1,16 +1,24 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-25
+
+### Fixed
+
+- fall back to /bin/sh instead of /bin/bash
+
 ## 2026-03-23
 
 ### Fixed
 
+- import Node.js GPG keys at build, add shell fallback, and install zsh/fish
 - run mise install via nsenter into main container
 - chown home dir after dotfiles install
 - nsenter as target user, wait for font before terminal init
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
