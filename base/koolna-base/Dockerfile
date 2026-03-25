@@ -23,9 +23,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   python3 \
   python3-pip \
   python3-venv \
+  pipx \
   zsh \
   fish \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -f /usr/lib/python*/EXTERNALLY-MANAGED
 
 RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
   && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
