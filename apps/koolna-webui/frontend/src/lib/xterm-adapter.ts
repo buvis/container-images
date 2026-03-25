@@ -1,4 +1,5 @@
 import { Terminal } from 'xterm';
+import { CanvasAddon } from 'xterm-addon-canvas';
 import { FitAddon } from 'xterm-addon-fit';
 import { Unicode11Addon } from 'xterm-addon-unicode11';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -35,10 +36,12 @@ export class XtermAdapter {
 
     this.term.open(container);
 
+    // customGlyphs only works with canvas/webgl, not DOM renderer
+    // Try WebGL first, fall back to canvas
     try {
       this.term.loadAddon(new WebglAddon());
     } catch {
-      // WebGL not available, fall back to DOM renderer
+      this.term.loadAddon(new CanvasAddon());
     }
 
     this.fitAddon.fit();
