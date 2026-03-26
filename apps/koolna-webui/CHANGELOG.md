@@ -7,6 +7,10 @@
 
 - add inline powerline render test
 
+### Documentation
+
+- update changelogs [ci-skip]
+
 ## 2026-03-25
 
 ### Fixed
