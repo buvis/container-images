@@ -5,6 +5,7 @@
 
 ### Fixed
 
+- log all websocket messages for debugging
 - dump all high-byte websocket messages for debugging
 - log powerline bytes from websocket for debugging
 - decode websocket binary to string for proper glyph rendering
@@ -12,6 +13,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
