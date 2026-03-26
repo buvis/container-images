@@ -5,11 +5,13 @@
 
 ### Fixed
 
+- log powerline bytes from websocket for debugging
 - decode websocket binary to string for proper glyph rendering
 - add inline powerline render test
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
