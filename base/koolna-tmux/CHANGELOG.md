@@ -1,6 +1,12 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-26
+
+### Fixed
+
+- set UTF-8 locale and powerline codepoint widths for tmux
+
 ## 2026-03-25
 
 ### Fixed
@@ -10,6 +16,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-23
