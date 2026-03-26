@@ -192,6 +192,9 @@ if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
   $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
 fi
 
+export LANG=C.UTF-8
+export LC_CTYPE=C.UTF-8
+
 echo "creating tmux sessions"
 tmux new-session -d -s manager "$NSENTER_CMD"
 tmux new-session -d -s worker "$NSENTER_CMD"
@@ -200,6 +203,7 @@ echo "configuring tmux defaults"
 tmux set -g remain-on-exit on
 tmux set-hook -g pane-died 'respawn-pane'
 tmux set -g set-clipboard on
+tmux set -s codepoint-widths "E0B0-E0D6=1"
 
 echo "tmux sidecar ready"
 exec sleep infinity
