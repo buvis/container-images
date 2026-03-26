@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-03-26
+
+### Fixed
+
+- add inline powerline render test
+
 ## 2026-03-25
 
 ### Fixed
@@ -17,6 +23,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
