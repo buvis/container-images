@@ -44,13 +44,14 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
 
       const rawTerm = new RawTerminal(wsUrl, {
         onData: (data) => {
-          // Log any data containing powerline bytes (0xEE 0x82 0xB0-0xBF)
-          for (let i = 0; i < data.length - 2; i++) {
-            if (data[i] === 0xee && data[i+1] === 0x82 && data[i+2] >= 0xb0 && data[i+2] <= 0xbf) {
-              const ctx = data.slice(Math.max(0, i-10), Math.min(data.length, i+13));
-              console.log('[koolna] powerline char U+E0' + (data[i+2] - 0x80).toString(16).toUpperCase(),
-                'at offset', i, 'context:', [...ctx].map(b => b.toString(16).padStart(2,'0')).join(' '));
-            }
+          // Log messages containing any high bytes (non-ASCII)
+          let hasHigh = false;
+          for (let i = 0; i < data.length; i++) {
+            if (data[i] >= 0x80) { hasHigh = true; break; }
+          }
+          if (hasHigh) {
+            const hex = [...data].map(b => b.toString(16).padStart(2, '0')).join(' ');
+            console.log('[koolna] msg with high bytes (' + data.length + 'B):', hex.substring(0, 300));
           }
           adapter.term.write(data);
         },
