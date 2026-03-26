@@ -5,10 +5,12 @@
 
 ### Fixed
 
+- decode websocket binary to string for proper glyph rendering
 - add inline powerline render test
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-25
