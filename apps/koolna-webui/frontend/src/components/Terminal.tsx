@@ -43,7 +43,7 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
       const wsUrl = buildWebsocketUrl(name, session);
 
       const rawTerm = new RawTerminal(wsUrl, {
-        onData: (data) => adapter.term.write(data),
+        onData: (data) => adapter.term.write(new TextDecoder().decode(data)),
         onStatus: setStatus,
       }, { cols: columns, rows });
       rawTermRef.current = rawTerm;
