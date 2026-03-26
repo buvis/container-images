@@ -52,6 +52,10 @@ export class XtermAdapter {
       }
     }
 
+    // Debug: write a powerline char and inspect how it renders
+    this.term.write('\x1b[42;30m A \x1b[32;40m\ue0b0\x1b[0m B \r\n');
+    console.log('[koolna] wrote powerline test: U+E0B0 char between A and B');
+
     const opts = this.term.options;
     console.log('[koolna] terminal diagnostics:', {
       renderer,
