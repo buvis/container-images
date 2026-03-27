@@ -9,7 +9,12 @@
 
 ### Fixed
 
+- handle Firefox bfcache blank page on back navigation
 - remove debug logging, canvas addon, unicode11 addon
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-26
 
