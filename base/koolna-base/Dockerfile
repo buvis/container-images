@@ -39,9 +39,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
   && echo "$USERNAME ALL=(ALL) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt, /usr/bin/dpkg, /usr/bin/snap, /usr/local/bin/mise, /bin/systemctl, /usr/sbin/service" > /etc/sudoers.d/$USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME
 
-RUN mkdir -p /workspace /home/$USERNAME/.local/bin /home/$USERNAME/.config/mise \
-  && chown -R $USERNAME:$USERNAME /home/$USERNAME \
-  && chown $USERNAME:$USERNAME /workspace
+RUN mkdir -p /home/$USERNAME/.local/bin /home/$USERNAME/.config/mise \
+  && chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 USER $USERNAME
 
@@ -51,7 +50,7 @@ ENV MISE_DATA_DIR="$HOME/.local/share/mise"
 ENV MISE_CONFIG_DIR="$HOME/.config/mise"
 ENV MISE_CACHE_DIR="$HOME/.cache/mise"
 ENV MISE_NODE_DEFAULT_PACKAGES_FILE="$HOME/.default-npm-packages"
-ENV MISE_TRUSTED_CONFIG_PATHS="/workspace"
+ENV MISE_TRUSTED_CONFIG_PATHS="$HOME/workspace"
 ENV MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS="false"
 
 COPY --chown=${USERNAME}:${USERNAME} assets/config/.default-npm-packages /home/$USERNAME/.default-npm-packages
@@ -81,7 +80,7 @@ COPY assets/bin/whatwedo /usr/local/bin/whatwedo
 RUN chmod +x /usr/local/lib/whatwedo \
   && chmod +x /usr/local/bin/whatwedo
 
-WORKDIR /workspace
+WORKDIR $HOME
 
 USER $USERNAME
 
