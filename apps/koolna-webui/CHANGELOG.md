@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- use popstate handler instead of pageshow for Firefox back button
 - reload on Firefox bfcache restore for browser back button
 - use full navigation when leaving terminal to fix Firefox blank page
 - handle Firefox bfcache blank page on back navigation
@@ -16,6 +17,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
