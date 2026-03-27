@@ -6,12 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   git \
   curl \
   ca-certificates \
-  locales \
-  && sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen \
-  && locale-gen \
   && rm -rf /var/lib/apt/lists/*
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

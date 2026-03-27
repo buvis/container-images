@@ -203,7 +203,7 @@ echo "configuring tmux defaults"
 tmux set -g remain-on-exit on
 tmux set-hook -g pane-died 'respawn-pane'
 tmux set -g set-clipboard on
-tmux set -s codepoint-widths "E0B0-E0D6=1"
+tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
 
 echo "tmux sidecar ready"
 exec sleep infinity
