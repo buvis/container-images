@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- use C.UTF-8 locale, make codepoint-widths optional
 - switch from alpine to debian for glibc PUA character support
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-26
 
