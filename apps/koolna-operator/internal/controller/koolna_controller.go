@@ -175,7 +175,18 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 		koolna.Status.IP = pod.Status.PodIP
 		switch pod.Status.Phase {
 		case corev1.PodRunning:
-			koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseRunning
+			allReady := true
+			for _, cs := range pod.Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseRunning
+			} else {
+				koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
+			}
 		case corev1.PodPending:
 			koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
 		case corev1.PodFailed:
@@ -712,6 +723,15 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Image:   "ghcr.io/buvis/koolna-tmux:latest",
 					Command: []string{"/entrypoint.sh"},
 					Env:     sidecarEnv,
+					ReadinessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"tmux", "list-sessions"},
+							},
+						},
+						InitialDelaySeconds: 5,
+						PeriodSeconds:       5,
+					},
 					SecurityContext: &corev1.SecurityContext{
 						Capabilities: &corev1.Capabilities{
 							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
