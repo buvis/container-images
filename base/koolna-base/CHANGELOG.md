@@ -1,6 +1,12 @@
 # Changelog — koolna-base
 
 
+## 2026-03-28
+
+### Fixed
+
+- remove stale /workspace dir, use $HOME paths
+
 ## 2026-03-25
 
 ### Fixed
@@ -10,6 +16,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-23
