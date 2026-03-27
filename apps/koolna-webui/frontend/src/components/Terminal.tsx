@@ -43,21 +43,7 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
       const wsUrl = buildWebsocketUrl(name, session);
 
       const rawTerm = new RawTerminal(wsUrl, {
-        onData: (data) => {
-          // Log first 20 messages and any with high bytes
-          if ((window as any).__koolnaCount === undefined) (window as any).__koolnaCount = 0;
-          (window as any).__koolnaCount++;
-          const count = (window as any).__koolnaCount;
-          let hasHigh = false;
-          for (let i = 0; i < data.length; i++) {
-            if (data[i] >= 0x80) { hasHigh = true; break; }
-          }
-          if (count <= 20 || hasHigh) {
-            const hex = [...data.slice(0, 100)].map(b => b.toString(16).padStart(2, '0')).join(' ');
-            console.log(`[koolna] msg#${count} (${data.length}B) high=${hasHigh}:`, hex);
-          }
-          adapter.term.write(data);
-        },
+        onData: (data) => adapter.term.write(data),
         onStatus: setStatus,
       }, { cols: columns, rows });
       rawTermRef.current = rawTerm;
