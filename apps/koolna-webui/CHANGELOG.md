@@ -9,11 +9,13 @@
 
 ### Fixed
 
+- use full navigation when leaving terminal to fix Firefox blank page
 - handle Firefox bfcache blank page on back navigation
 - remove debug logging, canvas addon, unicode11 addon
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-26
