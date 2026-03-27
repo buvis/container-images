@@ -59,15 +59,15 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
       rawTerm.open();
     });
 
-    // Firefox bfcache: reload when browser back restores a dead WebGL context
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) window.location.reload();
+    // Force full reload on browser back to avoid stale WebGL context (Firefox)
+    const handlePopState = () => {
+      window.location.reload();
     };
-    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       cancelled = true;
-      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handlePopState);
       inputDisposable?.dispose();
       resizeDisposable?.dispose();
       rawTermRef.current?.close();
