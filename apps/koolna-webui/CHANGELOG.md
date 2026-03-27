@@ -1,6 +1,16 @@
 # Changelog — koolna-webui
 
 
+## 2026-03-27
+
+### Added
+
+- disable terminal buttons when pod not ready
+
+### Fixed
+
+- remove debug logging, canvas addon, unicode11 addon
+
 ## 2026-03-26
 
 ### Fixed
@@ -13,6 +23,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]

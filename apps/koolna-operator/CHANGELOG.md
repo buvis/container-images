@@ -1,6 +1,12 @@
 # Changelog — koolna-operator
 
 
+## 2026-03-27
+
+### Added
+
+- add readiness probe and pending state for initializing pods
+
 ## 2026-03-24
 
 ### Fixed
@@ -10,6 +16,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-23
