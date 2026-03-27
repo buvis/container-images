@@ -60,7 +60,6 @@ const CreatePage = () => {
 
 const TerminalPage = () => {
   const { name, session } = useParams<{ name: string; session: string }>()
-  const navigate = useNavigate()
 
   if (!name || !session) {
     return (
@@ -75,7 +74,7 @@ const TerminalPage = () => {
   }
 
   return (
-    <Terminal name={name} session={session} onBack={() => navigate('/')} />
+    <Terminal name={name} session={session} onBack={() => { window.location.href = '/'; }} />
   )
 }
 

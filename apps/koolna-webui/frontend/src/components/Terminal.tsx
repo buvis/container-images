@@ -59,15 +59,8 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
       rawTerm.open();
     });
 
-    // Firefox bfcache: force reload when restoring from cache
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) window.location.reload();
-    };
-    window.addEventListener('pageshow', handlePageShow);
-
     return () => {
       cancelled = true;
-      window.removeEventListener('pageshow', handlePageShow);
       inputDisposable?.dispose();
       resizeDisposable?.dispose();
       rawTermRef.current?.close();
