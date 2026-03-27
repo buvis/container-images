@@ -114,15 +114,17 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white transition hover:border-white/20"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white transition hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10"
                       onClick={() => onTerminal(koolna.name, 'manager')}
+                      disabled={koolna.phase !== 'Running'}
                     >
                       Manager
                     </button>
                     <button
                       type="button"
-                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white transition hover:border-white/20"
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white transition hover:border-white/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10"
                       onClick={() => onTerminal(koolna.name, 'worker')}
+                      disabled={koolna.phase !== 'Running'}
                     >
                       Worker
                     </button>
