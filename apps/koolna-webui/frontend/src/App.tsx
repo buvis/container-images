@@ -27,7 +27,7 @@ const HomePage = () => {
             New Koolna
           </button>
         </header>
-        <KoolnaList onTerminal={(name, session) => navigate(`/terminal/${name}/${session}`)} />
+        <KoolnaList onTerminal={(name, session) => { window.location.href = `/terminal/${name}/${session}`; }} />
       </div>
     </main>
   )

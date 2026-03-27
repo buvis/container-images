@@ -59,15 +59,8 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
       rawTerm.open();
     });
 
-    // Force full reload on browser back to avoid stale WebGL context (Firefox)
-    const handlePopState = () => {
-      window.location.reload();
-    };
-    window.addEventListener('popstate', handlePopState);
-
     return () => {
       cancelled = true;
-      window.removeEventListener('popstate', handlePopState);
       inputDisposable?.dispose();
       resizeDisposable?.dispose();
       rawTermRef.current?.close();
