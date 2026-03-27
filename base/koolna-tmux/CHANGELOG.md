@@ -1,11 +1,21 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-27
+
+### Fixed
+
+- switch from alpine to debian for glibc PUA character support
+
 ## 2026-03-26
 
 ### Fixed
 
 - set UTF-8 locale and powerline codepoint widths for tmux
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-25
 
