@@ -5,7 +5,7 @@
 
 ### Fixed
 
-- trust workspace mise config before install
+- make mise bootstrap conditional on workspace config presence and GPG key import on node usage
 
 ## 2026-03-27
 
