@@ -188,6 +188,8 @@ if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
   $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 2>/dev/null || true'
   # Node.js RSA signing key (legacy)
   $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 2>/dev/null || true'
+  echo "trusting workspace mise config..."
+  $NSENTER "$KOOLNA_SHELL" -lc 'mise trust ~/workspace 2>/dev/null || true'
   echo "running mise install in main container..."
   $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
 fi
