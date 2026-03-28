@@ -183,15 +183,25 @@ NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
 
 # Bootstrap mise tools inside the main container
 if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
-  echo "importing Node.js GPG keys..."
-  # Node.js EDDSA signing key (v24+)
-  $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 2>/dev/null || true'
-  # Node.js RSA signing key (legacy)
-  $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 2>/dev/null || true'
-  echo "trusting workspace mise config..."
-  $NSENTER "$KOOLNA_SHELL" -lc 'mise trust ~/workspace 2>/dev/null || true'
-  echo "running mise install in main container..."
-  $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
+  WS="$HOME/workspace"
+
+  if $NSENTER sh -c "[ -f $WS/mise.toml ] || [ -f $WS/.mise.toml ]"; then
+    # Trust workspace mise config
+    $NSENTER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
+
+    # Import Node.js GPG keys only when node is in mise config
+    if $NSENTER sh -c "grep -q 'node' $WS/mise.toml 2>/dev/null || grep -q 'node' $WS/.mise.toml 2>/dev/null" || \
+       $NSENTER "$KOOLNA_SHELL" -lc 'mise ls --installed node 2>/dev/null | grep -q node'; then
+      echo "importing Node.js GPG keys..."
+      # Node.js EDDSA signing key (v24+)
+      $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 2>/dev/null || true'
+      # Node.js RSA signing key (legacy)
+      $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 2>/dev/null || true'
+    fi
+
+    echo "running mise install in main container..."
+    $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
+  fi
 fi
 
 export LANG=C.UTF-8
