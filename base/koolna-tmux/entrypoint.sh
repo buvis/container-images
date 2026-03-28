@@ -185,9 +185,10 @@ NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
 if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
   WS="$HOME/workspace"
 
-  # Let mise discover its own config files (handles mise.toml, .mise.toml, .config/mise/config.toml, etc.)
+  # Trust first so config detection works even in paranoid mode
+  $NSENTER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
+
   if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
-    $NSENTER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
 
     # Import Node.js GPG keys only when node is a configured tool
     if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise ls --current node 2>/dev/null" | grep -q node; then
