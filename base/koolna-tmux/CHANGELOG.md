@@ -1,6 +1,12 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-29
+
+### Fixed
+
+- only log credential sync on errors
+
 ## 2026-03-28
 
 ### Fixed
@@ -12,6 +18,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - document mise integration and preference
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
