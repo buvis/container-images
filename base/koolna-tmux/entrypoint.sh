@@ -185,13 +185,12 @@ NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
 if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
   WS="$HOME/workspace"
 
-  if $NSENTER sh -c "[ -f $WS/mise.toml ] || [ -f $WS/.mise.toml ]"; then
-    # Trust workspace mise config
+  # Let mise discover its own config files (handles mise.toml, .mise.toml, .config/mise/config.toml, etc.)
+  if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
     $NSENTER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
 
-    # Import Node.js GPG keys only when node is in mise config
-    if $NSENTER sh -c "grep -q 'node' $WS/mise.toml 2>/dev/null || grep -q 'node' $WS/.mise.toml 2>/dev/null" || \
-       $NSENTER "$KOOLNA_SHELL" -lc 'mise ls --installed node 2>/dev/null | grep -q node'; then
+    # Import Node.js GPG keys only when node is a configured tool
+    if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise ls --current node 2>/dev/null" | grep -q node; then
       echo "importing Node.js GPG keys..."
       # Node.js EDDSA signing key (v24+)
       $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 2>/dev/null || true'
