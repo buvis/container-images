@@ -5,7 +5,16 @@
 
 ### Fixed
 
-- make mise bootstrap conditional on workspace config presence and GPG key import on node usage
+- trust workspace before config detection
+- use mise CLI for config and node detection
+- make mise bootstrap conditional on config and node usage
+- trust workspace mise config before install
+
+### Documentation
+
+- document mise integration and preference
+- update changelogs [ci-skip]
+- update changelogs [ci-skip]
 
 ## 2026-03-27
 
