@@ -1,6 +1,12 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-28
+
+### Fixed
+
+- trust workspace mise config before install
+
 ## 2026-03-27
 
 ### Fixed
@@ -10,6 +16,7 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
 ## 2026-03-26
