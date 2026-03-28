@@ -5,6 +5,20 @@
 
 ### Fixed
 
+- update mise to 2026.3.17 for freethreaded python fix
+- remove stale /workspace dir, use $HOME paths
+
+## 2026-03-27
+
+### Documentation
+
+- update changelogs [ci-skip]
+
+## 2026-03-28
+
+### Fixed
+
+- update mise to 2026.3.17 for freethreaded python fix
 - remove stale /workspace dir, use $HOME paths
 
 ## 2026-03-25
