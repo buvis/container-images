@@ -1,13 +1,24 @@
 # koolna-tmux
 
-Lightweight Alpine sidecar that manages tmux sessions for koolna dev pods. Runs alongside the main `koolna-base` container, sharing the PID namespace.
+Lightweight sidecar that manages tmux sessions for koolna dev pods. Runs alongside the main container, sharing the PID namespace.
 
 ## What it does
 
 1. Discovers the main container's process via `/proc`
 2. Installs user dotfiles into the shared home volume
-3. Creates `manager` and `worker` tmux sessions using `nsenter` into the main container's mount namespace
-4. Syncs credentials (Claude, Codex) to a Kubernetes Secret on a 30s polling loop
+3. Bootstraps [mise](https://mise.jdx.dev) tools when a mise config exists in the workspace
+4. Creates `manager` and `worker` tmux sessions using `nsenter` into the main container's mount namespace
+5. Syncs credentials (Claude, Codex) to a Kubernetes Secret on a 30s polling loop
+
+## Mise integration
+
+Koolna prefers mise for tooling management. When the sidecar detects mise in the main container and a mise config in the workspace, it automatically:
+
+- Trusts the workspace mise config
+- Imports Node.js GPG signing keys (only when node is a configured tool)
+- Runs `mise install` to provision all configured tools
+
+No env vars or flags needed. If mise is absent or no config exists, these steps are silently skipped. Other dependency management tools work fine but have no special integration.
 
 ## Required capabilities
 
