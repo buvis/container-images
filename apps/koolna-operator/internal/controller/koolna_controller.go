@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -801,12 +802,12 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 	}
 
 	sort.Slice(secrets.Items, func(i, j int) bool {
-		ti := secrets.Items[i].CreationTimestamp.Time
-		tj := secrets.Items[j].CreationTimestamp.Time
-		if ti.Equal(tj) {
+		ri, _ := strconv.ParseInt(secrets.Items[i].ResourceVersion, 10, 64)
+		rj, _ := strconv.ParseInt(secrets.Items[j].ResourceVersion, 10, 64)
+		if ri == rj {
 			return secrets.Items[i].Name < secrets.Items[j].Name
 		}
-		return ti.Before(tj)
+		return ri < rj
 	})
 
 	merged := make(map[string][]byte)

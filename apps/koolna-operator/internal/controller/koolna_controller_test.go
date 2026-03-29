@@ -963,45 +963,50 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(secret.Data).To(HaveKeyWithValue("codex", []byte("token2")))
 		})
 
-		It("should use last-write-wins for duplicate keys by creation time", func() {
-			// Create first secret (older)
-			older := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "dup-older",
-					Namespace:         "default",
-					CreationTimestamp: metav1.NewTime(time.Now().Add(-10 * time.Second)),
-					Labels: map[string]string{
-						"koolna.buvis.net/type": "credentials",
-					},
-				},
-				Data: map[string][]byte{
-					"claude": []byte("old-value"),
-				},
-			}
-			Expect(k8sClient.Create(ctx, older)).To(Succeed())
+		It("should use last-write-wins for duplicate keys by resource version", func() {
+			// Create first secret (lower ResourceVersion)
+			createCredentialSecret("dup-first", map[string][]byte{
+				"claude": []byte("old-value"),
+			})
 
-			// Create second secret (newer)
-			newer := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dup-newer",
-					Namespace: "default",
-					Labels: map[string]string{
-						"koolna.buvis.net/type": "credentials",
-					},
-				},
-				Data: map[string][]byte{
-					"claude": []byte("new-value"),
-				},
-			}
-			Expect(k8sClient.Create(ctx, newer)).To(Succeed())
-			defer cleanupSecrets("dup-older", "dup-newer")
+			// Create second secret (higher ResourceVersion, since envtest increments)
+			createCredentialSecret("dup-second", map[string][]byte{
+				"claude": []byte("new-value"),
+			})
+			defer cleanupSecrets("dup-first", "dup-second")
 
 			err := reconciler.reconcileCredentials(ctx, "default")
 			Expect(err).NotTo(HaveOccurred())
 
 			secret := &corev1.Secret{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			// Second secret has higher ResourceVersion, so its value wins
 			Expect(secret.Data).To(HaveKeyWithValue("claude", []byte("new-value")))
+		})
+
+		It("should pick most recently updated secret for duplicate keys", func() {
+			// Create two secrets
+			createCredentialSecret("upd-a", map[string][]byte{
+				"claude": []byte("initial-a"),
+			})
+			createCredentialSecret("upd-b", map[string][]byte{
+				"claude": []byte("initial-b"),
+			})
+
+			// Update the first secret (now has higher ResourceVersion than upd-b)
+			updA := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "upd-a", Namespace: "default"}, updA)).To(Succeed())
+			updA.Data["claude"] = []byte("updated-a")
+			Expect(k8sClient.Update(ctx, updA)).To(Succeed())
+			defer cleanupSecrets("upd-a", "upd-b")
+
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			// upd-a was updated after upd-b was created, so upd-a has higher ResourceVersion
+			Expect(secret.Data).To(HaveKeyWithValue("claude", []byte("updated-a")))
 		})
 
 		It("should update existing koolna-credentials", func() {
