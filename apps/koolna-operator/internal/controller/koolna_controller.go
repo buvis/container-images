@@ -39,7 +39,10 @@ import (
 	koolnav1alpha1 "github.com/buvis/koolna-operator/api/v1alpha1"
 )
 
-const finalizerName = "koolna.buvis.net/finalizer"
+const (
+	finalizerName    = "koolna.buvis.net/finalizer"
+	sharedSecretName = "koolna-credentials"
+)
 
 // KoolnaReconciler reconciles a Koolna object
 type KoolnaReconciler struct {
@@ -682,7 +685,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 
 	sidecarEnv := []corev1.EnvVar{
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
-		{Name: "KOOLNA_SHARED_SECRET", Value: "koolna-credentials"},
+		{Name: "KOOLNA_SHARED_SECRET", Value: sharedSecretName},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 		{Name: "KOOLNA_HOME", Value: uc.HomePath},
 		{Name: "KOOLNA_UID", Value: fmt.Sprintf("%d", uc.UID)},
@@ -787,7 +790,7 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 
 	if len(secrets.Items) == 0 {
 		existing := &corev1.Secret{}
-		err := r.Get(ctx, types.NamespacedName{Name: "koolna-credentials", Namespace: namespace}, existing)
+		err := r.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: namespace}, existing)
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
@@ -814,11 +817,11 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 	}
 
 	existing := &corev1.Secret{}
-	err := r.Get(ctx, types.NamespacedName{Name: "koolna-credentials", Namespace: namespace}, existing)
+	err := r.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: namespace}, existing)
 	if apierrors.IsNotFound(err) {
 		shared := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "koolna-credentials",
+				Name:      sharedSecretName,
 				Namespace: namespace,
 				Labels: map[string]string{
 					"koolna.buvis.net/type": "shared-credentials",
@@ -833,6 +836,10 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 	}
 
 	existing.Data = merged
+	if existing.Labels == nil {
+		existing.Labels = make(map[string]string)
+	}
+	existing.Labels["koolna.buvis.net/type"] = "shared-credentials"
 	return r.Update(ctx, existing)
 }
 
