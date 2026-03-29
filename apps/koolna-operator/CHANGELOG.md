@@ -1,6 +1,12 @@
 # Changelog — koolna-operator
 
 
+## 2026-03-29
+
+### Changed
+
+- use shared credential secret name (koolna-credentials) instead of per-pod
+
 ## 2026-03-27
 
 ### Added

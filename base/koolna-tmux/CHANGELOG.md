@@ -1,6 +1,16 @@
 # Changelog — koolna-tmux
 
 
+## 2026-03-29
+
+### Added
+
+- restore credentials from shared secret on pod startup and each sync cycle
+
+### Changed
+
+- sync credentials to shared secret (koolna-credentials) instead of per-pod secret
+
 ## 2026-03-28
 
 ### Fixed
