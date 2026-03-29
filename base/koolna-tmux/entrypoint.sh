@@ -215,7 +215,7 @@ sync_credentials() {
     return
   fi
 
-  payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\"}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
+  payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\", \"labels\": {\"koolna.buvis.net/type\": \"credentials\"}}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
 
   resp=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
     -H "Authorization: Bearer $TOKEN" \
