@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -769,6 +770,53 @@ func authSecretName(koolna *koolnav1alpha1.Koolna) string {
 
 func workspacePVCName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-workspace"
+}
+
+func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace string) error {
+	secrets := &corev1.SecretList{}
+	if err := r.List(ctx, secrets,
+		client.InNamespace(namespace),
+		client.MatchingLabels{"koolna.buvis.net/type": "credentials"},
+	); err != nil {
+		return err
+	}
+
+	if len(secrets.Items) == 0 {
+		return nil
+	}
+
+	sort.Slice(secrets.Items, func(i, j int) bool {
+		return secrets.Items[i].Name < secrets.Items[j].Name
+	})
+
+	merged := make(map[string][]byte)
+	for _, s := range secrets.Items {
+		for k, v := range s.Data {
+			merged[k] = v
+		}
+	}
+
+	existing := &corev1.Secret{}
+	err := r.Get(ctx, types.NamespacedName{Name: "koolna-credentials", Namespace: namespace}, existing)
+	if apierrors.IsNotFound(err) {
+		shared := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "koolna-credentials",
+				Namespace: namespace,
+				Labels: map[string]string{
+					"koolna.buvis.net/type": "shared-credentials",
+				},
+			},
+			Data: merged,
+		}
+		return r.Create(ctx, shared)
+	}
+	if err != nil {
+		return err
+	}
+
+	existing.Data = merged
+	return r.Update(ctx, existing)
 }
 
 // SetupWithManager sets up the controller with the Manager.
