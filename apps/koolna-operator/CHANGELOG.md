@@ -1,5 +1,10 @@
 # Changelog — koolna-operator
 
+## [Unreleased]
+
+### Added
+
+- pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
 
 ## 2026-03-29
 

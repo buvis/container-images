@@ -1,5 +1,10 @@
 # Changelog — koolna-tmux
 
+## [Unreleased]
+
+### Added
+
+- configurable credential paths via KOOLNA_CREDENTIAL_PATHS env var
 
 ## 2026-03-29
 
