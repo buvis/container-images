@@ -101,6 +101,58 @@ echo "fixing home directory ownership (uid=$KOOLNA_UID)..."
 chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
 
 # --- credential sync ---
+extract_field() {
+  echo "$1" | sed -n 's/.*"'"$2"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+}
+
+restore_credentials() {
+  ns="${KOOLNA_NAMESPACE:-default}"
+  secret_name="$KOOLNA_AUTH_SECRET"
+
+  TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+  CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  API_SERVER="https://kubernetes.default.svc"
+
+  resp=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $TOKEN" \
+    --cacert "$CA_CERT" \
+    "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name")
+  http_code=$(echo "$resp" | tail -n1)
+  body=$(echo "$resp" | sed '$d')
+
+  # 404 means secret doesn't exist yet - skip silently
+  [ "$http_code" = "404" ] && return
+  if [ "$http_code" != "200" ]; then
+    echo "credential-restore: failed ($http_code) reading $ns/$secret_name"
+    return
+  fi
+
+  # Restore claude credentials
+  claude_val=$(extract_field "$body" "claude-credentials")
+  if [ -n "$claude_val" ]; then
+    mkdir -p "$HOME/.claude"
+    if ! echo "$claude_val" | base64 -d > "$HOME/.claude/credentials.json" 2>/dev/null; then
+      echo "credential-restore: failed decoding claude-credentials"
+    else
+      chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.claude/credentials.json"
+    fi
+  fi
+
+  # Restore codex credentials
+  # Extract all codex-* keys from the data block
+  codex_keys=$(echo "$body" | grep -o '"codex-[^"]*"' | tr -d '"')
+  for key in $codex_keys; do
+    val=$(extract_field "$body" "$key")
+    [ -z "$val" ] && continue
+    fname=$(echo "$key" | sed 's/^codex-//')
+    mkdir -p "$HOME/.codex"
+    if ! echo "$val" | base64 -d > "$HOME/.codex/$fname" 2>/dev/null; then
+      echo "credential-restore: failed decoding $key"
+    else
+      chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.codex/$fname"
+    fi
+  done
+}
+
 sync_credentials() {
   ns="${KOOLNA_NAMESPACE:-default}"
   secret_name="$KOOLNA_AUTH_SECRET"
@@ -160,8 +212,10 @@ sync_credentials() {
 
 if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
   echo "starting credential sync (30s polling)"
+  restore_credentials
   (
     while true; do
+      restore_credentials
       sync_credentials
       sleep 30
     done
