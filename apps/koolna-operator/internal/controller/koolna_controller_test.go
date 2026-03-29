@@ -146,7 +146,9 @@ var _ = Describe("Koolna Controller", func() {
 				sidecarEnvMap[e.Name] = e.Value
 			}
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_AUTH_SECRET"))
-			Expect(sidecarEnvMap["KOOLNA_AUTH_SECRET"]).To(Equal("koolna-credentials"))
+			Expect(sidecarEnvMap["KOOLNA_AUTH_SECRET"]).To(Equal("test-create-auth"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_SHARED_SECRET"))
+			Expect(sidecarEnvMap["KOOLNA_SHARED_SECRET"]).To(Equal("koolna-credentials"))
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_NAMESPACE"))
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_HOME"))
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_UID"))
