@@ -889,4 +889,141 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(validateSpec(spec)).To(Succeed())
 		})
 	})
+
+	Context("When reconciling credentials", func() {
+		const sharedSecretName = "koolna-credentials"
+
+		// Helper to create a per-pod credential secret
+		createCredentialSecret := func(name string, data map[string][]byte) {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: "default",
+					Labels: map[string]string{
+						"koolna.buvis.net/type": "credentials",
+					},
+				},
+				Data: data,
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+		}
+
+		// Helper to clean up secrets created during tests
+		cleanupSecrets := func(names ...string) {
+			for _, name := range names {
+				secret := &corev1.Secret{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: "default"}, secret); err == nil {
+					_ = k8sClient.Delete(ctx, secret)
+				}
+			}
+		}
+
+		AfterEach(func() {
+			cleanupSecrets(sharedSecretName)
+		})
+
+		It("should not create koolna-credentials when no credential secrets exist", func() {
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+		})
+
+		It("should create koolna-credentials from single per-pod secret", func() {
+			createCredentialSecret("pod-a-creds", map[string][]byte{
+				"claude": []byte("token1"),
+			})
+			defer cleanupSecrets("pod-a-creds")
+
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			Expect(secret.Data).To(HaveKeyWithValue("claude", []byte("token1")))
+		})
+
+		It("should merge data from multiple per-pod secrets", func() {
+			createCredentialSecret("pod-b-creds", map[string][]byte{
+				"claude": []byte("token1"),
+			})
+			createCredentialSecret("pod-c-creds", map[string][]byte{
+				"codex": []byte("token2"),
+			})
+			defer cleanupSecrets("pod-b-creds", "pod-c-creds")
+
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			Expect(secret.Data).To(HaveKeyWithValue("claude", []byte("token1")))
+			Expect(secret.Data).To(HaveKeyWithValue("codex", []byte("token2")))
+		})
+
+		It("should use last-write-wins for duplicate keys", func() {
+			// Names sorted alphabetically: "dup-a-creds" < "dup-b-creds"
+			// The alphabetically last name should win
+			createCredentialSecret("dup-a-creds", map[string][]byte{
+				"claude": []byte("old-value"),
+			})
+			createCredentialSecret("dup-b-creds", map[string][]byte{
+				"claude": []byte("new-value"),
+			})
+			defer cleanupSecrets("dup-a-creds", "dup-b-creds")
+
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			Expect(secret.Data).To(HaveKeyWithValue("claude", []byte("new-value")))
+		})
+
+		It("should update existing koolna-credentials", func() {
+			// Pre-create koolna-credentials with old data
+			oldSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      sharedSecretName,
+					Namespace: "default",
+					Labels: map[string]string{
+						"koolna.buvis.net/type": "shared-credentials",
+					},
+				},
+				Data: map[string][]byte{
+					"stale": []byte("old-data"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, oldSecret)).To(Succeed())
+
+			createCredentialSecret("pod-d-creds", map[string][]byte{
+				"claude": []byte("fresh-token"),
+			})
+			defer cleanupSecrets("pod-d-creds")
+
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			Expect(secret.Data).To(HaveKeyWithValue("claude", []byte("fresh-token")))
+			Expect(secret.Data).NotTo(HaveKey("stale"))
+		})
+
+		It("should label koolna-credentials as shared-credentials", func() {
+			createCredentialSecret("pod-e-creds", map[string][]byte{
+				"claude": []byte("token1"),
+			})
+			defer cleanupSecrets("pod-e-creds")
+
+			err := reconciler.reconcileCredentials(ctx, "default")
+			Expect(err).NotTo(HaveOccurred())
+
+			secret := &corev1.Secret{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: sharedSecretName, Namespace: "default"}, secret)).To(Succeed())
+			Expect(secret.Labels).To(HaveKeyWithValue("koolna.buvis.net/type", "shared-credentials"))
+		})
+	})
 })
