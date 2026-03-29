@@ -127,6 +127,7 @@ restore_credential_file() {
 }
 
 restore_credentials() {
+  [ -z "${KOOLNA_SHARED_SECRET:-}" ] && return
   ns="${KOOLNA_NAMESPACE:-default}"
   secret_name="$KOOLNA_SHARED_SECRET"
 
