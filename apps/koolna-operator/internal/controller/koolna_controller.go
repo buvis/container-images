@@ -677,6 +677,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 
 	sidecarEnv := []corev1.EnvVar{
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
+		{Name: "KOOLNA_SHARED_SECRET", Value: "koolna-credentials"},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 		{Name: "KOOLNA_HOME", Value: uc.HomePath},
 		{Name: "KOOLNA_UID", Value: fmt.Sprintf("%d", uc.UID)},
