@@ -141,15 +141,16 @@ var _ = Describe("Koolna Controller", func() {
 
 			By("Checking env vars are on tmux-sidecar, not koolna")
 			Expect(koolnaContainer.Env).To(BeEmpty())
-			sidecarEnvNames := make([]string, len(sidecar.Env))
-			for i, e := range sidecar.Env {
-				sidecarEnvNames[i] = e.Name
+			sidecarEnvMap := map[string]string{}
+			for _, e := range sidecar.Env {
+				sidecarEnvMap[e.Name] = e.Value
 			}
-			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_AUTH_SECRET"))
-			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_NAMESPACE"))
-			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_HOME"))
-			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_UID"))
-			Expect(sidecarEnvNames).To(ContainElement("KOOLNA_USERNAME"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_AUTH_SECRET"))
+			Expect(sidecarEnvMap["KOOLNA_AUTH_SECRET"]).To(Equal("koolna-credentials"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_NAMESPACE"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_HOME"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_UID"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_USERNAME"))
 
 			By("Checking single home volume backed by PVC")
 			Expect(pod.Spec.Volumes).To(HaveLen(1))
