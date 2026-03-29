@@ -113,10 +113,8 @@ path_to_key() {
   echo "$1" | sed 's|^\./||; s|^\.|/|; s|/\.|/|g; s|^/||; s|/|---|g'
 }
 
-
 restore_credential_file() {
-  body="$1" key="$2" dest="$3"
-  val=$(extract_field "$body" "$key")
+  val="$1" key="$2" dest="$3"
   [ -z "$val" ] && return
   dir=$(dirname "$dest")
   mkdir -p "$dir"
@@ -156,7 +154,7 @@ restore_credentials() {
     # Try exact key match (file entry)
     val=$(extract_field "$body" "$key")
     if [ -n "$val" ]; then
-      restore_credential_file "$body" "$key" "$HOME/$cred_path"
+      restore_credential_file "$val" "$key" "$HOME/$cred_path"
       continue
     fi
 
@@ -164,7 +162,8 @@ restore_credentials() {
     dir_keys=$(echo "$body" | grep -o "\"${key}---[^\"]*\"" | tr -d '"')
     for dk in $dir_keys; do
       suffix=$(echo "$dk" | sed "s|^${key}---||")
-      restore_credential_file "$body" "$dk" "$HOME/$cred_path/$suffix"
+      val=$(extract_field "$body" "$dk")
+      restore_credential_file "$val" "$dk" "$HOME/$cred_path/$suffix"
     done
   done
   unset IFS
