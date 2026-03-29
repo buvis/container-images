@@ -790,7 +790,12 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 	}
 
 	sort.Slice(secrets.Items, func(i, j int) bool {
-		return secrets.Items[i].Name < secrets.Items[j].Name
+		ti := secrets.Items[i].CreationTimestamp.Time
+		tj := secrets.Items[j].CreationTimestamp.Time
+		if ti.Equal(tj) {
+			return secrets.Items[i].Name < secrets.Items[j].Name
+		}
+		return ti.Before(tj)
 	})
 
 	merged := make(map[string][]byte)
