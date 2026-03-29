@@ -4,6 +4,7 @@
 
 ### Added
 
+- aggregate per-pod credential secrets into shared koolna-credentials secret
 - pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
 - pass KOOLNA_SHARED_SECRET env var to tmux-sidecar for shared credential reads
 
