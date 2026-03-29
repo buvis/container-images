@@ -151,6 +151,8 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_HOME"))
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_UID"))
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_USERNAME"))
+			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_CREDENTIAL_PATHS"))
+			Expect(sidecarEnvMap["KOOLNA_CREDENTIAL_PATHS"]).To(Equal(".claude/.credentials.json,.codex"))
 
 			By("Checking single home volume backed by PVC")
 			Expect(pod.Spec.Volumes).To(HaveLen(1))
