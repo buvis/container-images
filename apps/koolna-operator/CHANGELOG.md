@@ -5,6 +5,11 @@
 ### Added
 
 - pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
+- pass KOOLNA_SHARED_SECRET env var to tmux-sidecar for shared credential reads
+
+### Changed
+
+- revert auth secret to per-pod naming (`<name>-auth`) instead of shared
 
 ## 2026-03-29
 

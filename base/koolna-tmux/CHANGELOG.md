@@ -5,6 +5,12 @@
 ### Added
 
 - configurable credential paths via KOOLNA_CREDENTIAL_PATHS env var
+- `koolna.buvis.net/type: credentials` label on per-pod secrets
+
+### Changed
+
+- restore credentials from shared secret (KOOLNA_SHARED_SECRET) instead of per-pod
+- sync credentials writes to per-pod secret (KOOLNA_AUTH_SECRET)
 
 ## 2026-03-29
 
