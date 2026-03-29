@@ -682,6 +682,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		{Name: "KOOLNA_UID", Value: fmt.Sprintf("%d", uc.UID)},
 		{Name: "KOOLNA_USERNAME", Value: uc.Username},
 		{Name: "KOOLNA_SHELL", Value: shell},
+		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.codex"},
 	}
 	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
 	if koolna.Spec.InitCommand != "" {
