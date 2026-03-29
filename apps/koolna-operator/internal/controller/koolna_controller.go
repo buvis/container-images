@@ -786,7 +786,15 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 	}
 
 	if len(secrets.Items) == 0 {
-		return nil
+		existing := &corev1.Secret{}
+		err := r.Get(ctx, types.NamespacedName{Name: "koolna-credentials", Namespace: namespace}, existing)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return r.Delete(ctx, existing)
 	}
 
 	sort.Slice(secrets.Items, func(i, j int) bool {
