@@ -139,6 +139,10 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return ctrl.Result{}, err
 	}
 
+	if credErr := r.reconcileCredentials(ctx, koolna.Namespace); credErr != nil {
+		log.Error(credErr, "unable to reconcile credentials")
+	}
+
 	result = ctrl.Result{RequeueAfter: 60 * time.Second}
 	return result, nil
 }
