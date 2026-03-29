@@ -126,9 +126,9 @@ restore_credentials() {
     return
   fi
 
-  # Restore claude credentials (skip if local file already exists - local is authoritative)
+  # Restore claude credentials (always overwrite - sync runs first to push local changes)
   claude_val=$(extract_field "$body" "claude-credentials")
-  if [ -n "$claude_val" ] && [ ! -f "$HOME/.claude/credentials.json" ]; then
+  if [ -n "$claude_val" ]; then
     mkdir -p "$HOME/.claude"
     chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.claude"
     if ! echo "$claude_val" | base64 -d > "$HOME/.claude/credentials.json" 2>/dev/null; then
@@ -138,13 +138,12 @@ restore_credentials() {
     fi
   fi
 
-  # Restore codex credentials (skip files that already exist locally)
+  # Restore codex credentials (always overwrite)
   codex_keys=$(echo "$body" | grep -o '"codex-[^"]*"' | tr -d '"')
   for key in $codex_keys; do
     val=$(extract_field "$body" "$key")
     [ -z "$val" ] && continue
     fname=$(echo "$key" | sed 's/^codex-//')
-    [ -f "$HOME/.codex/$fname" ] && continue
     mkdir -p "$HOME/.codex"
     chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.codex"
     if ! echo "$val" | base64 -d > "$HOME/.codex/$fname" 2>/dev/null; then
@@ -217,9 +216,9 @@ if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
   restore_credentials
   (
     while true; do
-      restore_credentials
       sync_credentials
       sleep 30
+      restore_credentials
     done
   ) &
 else
