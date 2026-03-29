@@ -101,9 +101,18 @@ echo "fixing home directory ownership (uid=$KOOLNA_UID)..."
 chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
 
 # --- credential sync ---
+KOOLNA_CREDENTIAL_PATHS="${KOOLNA_CREDENTIAL_PATHS:-.claude/.credentials.json,.codex}"
+
 extract_field() {
   echo "$1" | sed -n 's/.*"'"$2"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
 }
+
+# Encode a relative path to a secret key: strip leading dots from segments, replace / with ---
+# .claude/.credentials.json -> claude---credentials.json
+path_to_key() {
+  echo "$1" | sed 's|^\./||; s|^\.|/|; s|/\.|/|g; s|^/||; s|/|---|g'
+}
+
 
 restore_credentials() {
   ns="${KOOLNA_NAMESPACE:-default}"
@@ -157,8 +166,6 @@ restore_credentials() {
 sync_credentials() {
   ns="${KOOLNA_NAMESPACE:-default}"
   secret_name="$KOOLNA_AUTH_SECRET"
-  claude_creds="$HOME/.claude/credentials.json"
-  codex_dir="$HOME/.codex"
 
   TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
   CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -166,24 +173,36 @@ sync_credentials() {
 
   data_fields=""
 
-  if [ -f "$claude_creds" ]; then
-    encoded=$(base64 < "$claude_creds" | tr -d '\n')
-    data_fields="\"claude-credentials\": \"$encoded\""
-  fi
+  IFS=','
+  for cred_path in $KOOLNA_CREDENTIAL_PATHS; do
+    unset IFS
+    full_path="$HOME/$cred_path"
 
-  if [ -d "$codex_dir" ]; then
-    for codex_file in "$codex_dir"/*; do
-      [ -f "$codex_file" ] || continue
-      fname=$(basename "$codex_file")
-      encoded=$(base64 < "$codex_file" | tr -d '\n')
-      entry="\"codex-$fname\": \"$encoded\""
+    if [ -f "$full_path" ]; then
+      key=$(path_to_key "$cred_path")
+      encoded=$(base64 < "$full_path" | tr -d '\n')
+      entry="\"$key\": \"$encoded\""
       if [ -n "$data_fields" ]; then
         data_fields="$data_fields, $entry"
       else
         data_fields="$entry"
       fi
-    done
-  fi
+    elif [ -d "$full_path" ]; then
+      for file in "$full_path"/*; do
+        [ -f "$file" ] || continue
+        fname=$(basename "$file")
+        key=$(path_to_key "$cred_path/$fname")
+        encoded=$(base64 < "$file" | tr -d '\n')
+        entry="\"$key\": \"$encoded\""
+        if [ -n "$data_fields" ]; then
+          data_fields="$data_fields, $entry"
+        else
+          data_fields="$entry"
+        fi
+      done
+    fi
+  done
+  unset IFS
 
   if [ -z "$data_fields" ]; then
     echo "credential-sync: no credential files found, skipping"
