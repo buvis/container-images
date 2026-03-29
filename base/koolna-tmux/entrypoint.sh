@@ -126,10 +126,11 @@ restore_credentials() {
     return
   fi
 
-  # Restore claude credentials
+  # Restore claude credentials (skip if local file already exists - local is authoritative)
   claude_val=$(extract_field "$body" "claude-credentials")
-  if [ -n "$claude_val" ]; then
+  if [ -n "$claude_val" ] && [ ! -f "$HOME/.claude/credentials.json" ]; then
     mkdir -p "$HOME/.claude"
+    chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.claude"
     if ! echo "$claude_val" | base64 -d > "$HOME/.claude/credentials.json" 2>/dev/null; then
       echo "credential-restore: failed decoding claude-credentials"
     else
@@ -137,14 +138,15 @@ restore_credentials() {
     fi
   fi
 
-  # Restore codex credentials
-  # Extract all codex-* keys from the data block
+  # Restore codex credentials (skip files that already exist locally)
   codex_keys=$(echo "$body" | grep -o '"codex-[^"]*"' | tr -d '"')
   for key in $codex_keys; do
     val=$(extract_field "$body" "$key")
     [ -z "$val" ] && continue
     fname=$(echo "$key" | sed 's/^codex-//')
+    [ -f "$HOME/.codex/$fname" ] && continue
     mkdir -p "$HOME/.codex"
+    chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.codex"
     if ! echo "$val" | base64 -d > "$HOME/.codex/$fname" 2>/dev/null; then
       echo "credential-restore: failed decoding $key"
     else
