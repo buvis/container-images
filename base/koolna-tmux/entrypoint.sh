@@ -128,7 +128,7 @@ restore_credential_file() {
 
 restore_credentials() {
   ns="${KOOLNA_NAMESPACE:-default}"
-  secret_name="$KOOLNA_AUTH_SECRET"
+  secret_name="$KOOLNA_SHARED_SECRET"
 
   TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
   CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
