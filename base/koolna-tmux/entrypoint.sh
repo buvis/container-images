@@ -114,6 +114,20 @@ path_to_key() {
 }
 
 
+restore_credential_file() {
+  body="$1" key="$2" dest="$3"
+  val=$(extract_field "$body" "$key")
+  [ -z "$val" ] && return
+  dir=$(dirname "$dest")
+  mkdir -p "$dir"
+  chown "$KOOLNA_UID:$KOOLNA_UID" "$dir"
+  if ! echo "$val" | base64 -d > "$dest" 2>/dev/null; then
+    echo "credential-restore: failed decoding $key"
+  else
+    chown "$KOOLNA_UID:$KOOLNA_UID" "$dest"
+  fi
+}
+
 restore_credentials() {
   ns="${KOOLNA_NAMESPACE:-default}"
   secret_name="$KOOLNA_AUTH_SECRET"
@@ -128,39 +142,32 @@ restore_credentials() {
   http_code=$(echo "$resp" | tail -n1)
   body=$(echo "$resp" | sed '$d')
 
-  # 404 means secret doesn't exist yet - skip silently
   [ "$http_code" = "404" ] && return
   if [ "$http_code" != "200" ]; then
     echo "credential-restore: failed ($http_code) reading $ns/$secret_name"
     return
   fi
 
-  # Restore claude credentials (always overwrite - sync runs first to push local changes)
-  claude_val=$(extract_field "$body" "claude-credentials")
-  if [ -n "$claude_val" ]; then
-    mkdir -p "$HOME/.claude"
-    chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.claude"
-    if ! echo "$claude_val" | base64 -d > "$HOME/.claude/credentials.json" 2>/dev/null; then
-      echo "credential-restore: failed decoding claude-credentials"
-    else
-      chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.claude/credentials.json"
-    fi
-  fi
+  IFS=','
+  for cred_path in $KOOLNA_CREDENTIAL_PATHS; do
+    unset IFS
+    key=$(path_to_key "$cred_path")
 
-  # Restore codex credentials (always overwrite)
-  codex_keys=$(echo "$body" | grep -o '"codex-[^"]*"' | tr -d '"')
-  for key in $codex_keys; do
+    # Try exact key match (file entry)
     val=$(extract_field "$body" "$key")
-    [ -z "$val" ] && continue
-    fname=$(echo "$key" | sed 's/^codex-//')
-    mkdir -p "$HOME/.codex"
-    chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.codex"
-    if ! echo "$val" | base64 -d > "$HOME/.codex/$fname" 2>/dev/null; then
-      echo "credential-restore: failed decoding $key"
-    else
-      chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.codex/$fname"
+    if [ -n "$val" ]; then
+      restore_credential_file "$body" "$key" "$HOME/$cred_path"
+      continue
     fi
+
+    # Try prefix match (directory entry)
+    dir_keys=$(echo "$body" | grep -o "\"${key}---[^\"]*\"" | tr -d '"')
+    for dk in $dir_keys; do
+      suffix=$(echo "$dk" | sed "s|^${key}---||")
+      restore_credential_file "$body" "$dk" "$HOME/$cred_path/$suffix"
+    done
   done
+  unset IFS
 }
 
 sync_credentials() {
