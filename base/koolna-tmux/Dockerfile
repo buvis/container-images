@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   git \
   curl \
   ca-certificates \
+  openssh-server \
   && rm -rf /var/lib/apt/lists/*
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
