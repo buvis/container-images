@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -1329,10 +1330,14 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(envMap).To(HaveKey("HTTP_PROXY"))
 			Expect(envMap).To(HaveKey("HTTPS_PROXY"))
 			Expect(envMap).To(HaveKey("NO_PROXY"))
+			Expect(envMap).To(HaveKey("http_proxy"))
+			Expect(envMap).To(HaveKey("https_proxy"))
+			Expect(envMap).To(HaveKey("no_proxy"))
 			Expect(envMap["NO_PROXY"]).To(ContainSubstring("kubernetes.default.svc"))
 			Expect(envMap["NO_PROXY"]).To(ContainSubstring(".svc"))
 			Expect(envMap["NO_PROXY"]).To(ContainSubstring(".cluster.local"))
 			Expect(envMap["NO_PROXY"]).To(ContainSubstring("10.0.0.0/8"))
+			Expect(envMap["HTTP_PROXY"]).To(Equal(envMap["http_proxy"]))
 		})
 
 		It("should include proxy env vars on sidecar", func() {
@@ -1415,6 +1420,24 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(caMount).NotTo(BeNil(), "expected volume mount named 'proxy-ca' on sidecar")
 			Expect(caMount.MountPath).To(Equal("/usr/local/share/ca-certificates/koolna-cache.crt"))
 			Expect(caMount.ReadOnly).To(BeTrue())
+		})
+
+		It("should use custom proxy address from KOOLNA_PROXY_ADDRESS env", func() {
+			os.Setenv("KOOLNA_PROXY_ADDRESS", "custom-proxy.example.com:8080")
+			defer os.Unsetenv("KOOLNA_PROXY_ADDRESS")
+
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy-custom", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var httpProxy string
+			for _, e := range koolnaC.Env {
+				if e.Name == "HTTP_PROXY" {
+					httpProxy = e.Value
+					break
+				}
+			}
+			Expect(httpProxy).To(Equal("http://custom-proxy.example.com:8080"))
 		})
 	})
 

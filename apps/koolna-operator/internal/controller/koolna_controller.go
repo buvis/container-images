@@ -719,10 +719,15 @@ func proxyAddress(namespace string) string {
 
 func buildProxyEnvVars(namespace string) []corev1.EnvVar {
 	addr := proxyAddress(namespace)
+	proxyURL := "http://" + addr
+	noProxy := "kubernetes.default.svc,.svc,.cluster.local,10.0.0.0/8,127.0.0.1,localhost"
 	return []corev1.EnvVar{
-		{Name: "HTTP_PROXY", Value: "http://" + addr},
-		{Name: "HTTPS_PROXY", Value: "http://" + addr},
-		{Name: "NO_PROXY", Value: "kubernetes.default.svc,.svc,.cluster.local,10.0.0.0/8,127.0.0.1,localhost"},
+		{Name: "HTTP_PROXY", Value: proxyURL},
+		{Name: "HTTPS_PROXY", Value: proxyURL},
+		{Name: "NO_PROXY", Value: noProxy},
+		{Name: "http_proxy", Value: proxyURL},
+		{Name: "https_proxy", Value: proxyURL},
+		{Name: "no_proxy", Value: noProxy},
 	}
 }
 

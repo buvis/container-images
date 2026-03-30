@@ -24,9 +24,9 @@ export_ca_configmap() {
   CA_BUNDLE=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
   API_SERVER="https://kubernetes.default.svc"
 
-  cert_data=$(cat "$CA_CERT" | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}')
+  cert_b64=$(base64 < "$CA_CERT" | tr -d '\n')
 
-  payload="{\"apiVersion\": \"v1\", \"kind\": \"ConfigMap\", \"metadata\": {\"name\": \"$CONFIGMAP_NAME\", \"namespace\": \"$NAMESPACE\"}, \"data\": {\"ca.crt\": \"$cert_data\"}}"
+  payload="{\"apiVersion\": \"v1\", \"kind\": \"ConfigMap\", \"metadata\": {\"name\": \"$CONFIGMAP_NAME\", \"namespace\": \"$NAMESPACE\"}, \"binaryData\": {\"ca.crt\": \"$cert_b64\"}}"
 
   http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
     -H "Authorization: Bearer $TOKEN" \
@@ -58,16 +58,16 @@ else
   echo "not running in Kubernetes, skipping ConfigMap export"
 fi
 
-# Initialize squid cache directories
-echo "initializing cache directories..."
-squid -z --foreground -f /etc/squid/squid.conf 2>&1
-
-# Initialize SSL certificate database
+# Initialize SSL certificate database (before squid -z which references it)
 if [ ! -d "$SSL_DB" ]; then
   echo "initializing SSL certificate database..."
   /usr/lib/squid/security_file_certgen -c -s "$SSL_DB" -M 64MB
   chown -R proxy:proxy "$SSL_DB"
 fi
+
+# Initialize squid cache directories
+echo "initializing cache directories..."
+squid -z --foreground -f /etc/squid/squid.conf 2>&1
 
 echo "starting squid..."
 exec squid -N -f /etc/squid/squid.conf
