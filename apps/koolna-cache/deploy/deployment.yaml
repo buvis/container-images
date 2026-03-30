@@ -16,6 +16,8 @@ spec:
         app: koolna-cache
     spec:
       serviceAccountName: koolna-cache
+      securityContext:
+        fsGroup: 13
       containers:
         - name: squid
           image: ghcr.io/buvis/koolna-cache:latest
