@@ -887,7 +887,7 @@ func buildWorkspaceVolume(pvcName string) corev1.Volume {
 	}
 }
 
-func boolPtr(b bool) *bool   { return &b }
+func boolPtr(b bool) *bool    { return &b }
 func int64Ptr(i int64) *int64 { return &i }
 
 func authSecretName(koolna *koolnav1alpha1.Koolna) string {
