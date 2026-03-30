@@ -251,6 +251,46 @@ else
   echo "KOOLNA_AUTH_SECRET not set, skipping credential sync"
 fi
 
+# --- sshd setup ---
+setup_sshd() {
+  [ -z "${KOOLNA_SSH_PUBKEY:-}" ] && return
+
+  KOOLNA_USERNAME="${KOOLNA_USERNAME:-bob}"
+  SSH_HOST_KEY_DIR="$HOME/.ssh/host_keys"
+  SSH_DIR="$HOME/.ssh"
+
+  mkdir -p "$SSH_HOST_KEY_DIR"
+  if [ ! -f "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key" ]; then
+    echo "generating SSH host key..."
+    ssh-keygen -t ed25519 -f "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key" -N "" -q
+  fi
+
+  mkdir -p "$SSH_DIR"
+  echo "$KOOLNA_SSH_PUBKEY" > "$SSH_DIR/authorized_keys"
+  chmod 700 "$SSH_DIR"
+  chmod 600 "$SSH_DIR/authorized_keys"
+  chown -R "$KOOLNA_UID:$KOOLNA_UID" "$SSH_DIR"
+
+  # sshd requires /run/sshd
+  mkdir -p /run/sshd
+
+  cat > /tmp/sshd_config <<SSHD
+Port 2222
+HostKey $SSH_HOST_KEY_DIR/ssh_host_ed25519_key
+AuthorizedKeysFile $SSH_DIR/authorized_keys
+PasswordAuthentication no
+PubkeyAuthentication yes
+AllowUsers $KOOLNA_USERNAME
+PermitRootLogin no
+Subsystem sftp /usr/lib/openssh/sftp-server
+SSHD
+
+  echo "starting sshd on port 2222"
+  /usr/sbin/sshd -D -f /tmp/sshd_config &
+}
+
+setup_sshd
+
 KOOLNA_SHELL="${KOOLNA_SHELL:-/bin/bash}"
 KOOLNA_UID="${KOOLNA_UID:-1000}"
 NSENTER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
