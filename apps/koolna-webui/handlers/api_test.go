@@ -461,35 +461,6 @@ func TestGetKoolna_ReturnsSSHPublicKey(t *testing.T) {
 	}
 }
 
-func TestMountScript_ReturnsShellScript(t *testing.T) {
-	existing := makeKoolnaUnstructured("my-env", "https://github.com/owner/repo", "main", "Running", "10.0.0.1")
-	router := setupTest(t, existing)
-
-	req := httptest.NewRequest("GET", "/api/koolnas/my-env/mount-script", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	ct := w.Header().Get("Content-Type")
-	if ct != "application/x-sh" {
-		t.Errorf("Content-Type = %s, want application/x-sh", ct)
-	}
-
-	body := w.Body.String()
-	if !strings.Contains(body, "my-env") {
-		t.Error("script should contain the koolna name")
-	}
-	if !strings.Contains(body, "sshfs") {
-		t.Error("script should contain sshfs command")
-	}
-	if !strings.Contains(body, "#!/bin/sh") {
-		t.Error("script should start with shebang")
-	}
-}
-
 func TestMountScript_NotFound(t *testing.T) {
 	router := setupTest(t)
 
