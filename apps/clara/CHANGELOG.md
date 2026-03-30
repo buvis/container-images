@@ -9,6 +9,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 
@@ -32,6 +33,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [ci-skip]
 - update changelogs [ci-skip]
 

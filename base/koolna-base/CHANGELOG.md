@@ -1,10 +1,11 @@
 # Changelog — koolna-base
 
-## [Unreleased]
 
-### Removed
+## 2026-03-30
 
-- claude-code from default npm packages (install method changed)
+### Fixed
+
+- remove claude-code from default npm packages
 
 ## 2026-03-28
 
@@ -12,6 +13,10 @@
 
 - update mise to 2026.3.17 for freethreaded python fix
 - remove stale /workspace dir, use $HOME paths
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-27
 
@@ -25,6 +30,10 @@
 
 - update mise to 2026.3.17 for freethreaded python fix
 - remove stale /workspace dir, use $HOME paths
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-25
 

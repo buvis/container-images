@@ -5,23 +5,25 @@
 
 ### Added
 
-- `sshPublicKey` field in KoolnaSpec CRD for SSH access
-- pass KOOLNA_SSH_PUBKEY env var to sidecar when sshPublicKey is set
-- SSH port 2222 on service and sidecar container
-- aggregate per-pod credential secrets into shared koolna-credentials secret
-- pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
-- pass KOOLNA_SHARED_SECRET env var to tmux-sidecar for shared credential reads
-- emptyDir cache volume mounted at `$HOME/.cache` for disposable storage
-- GIT_CONFIG_GLOBAL env var on main container for git credential discovery
-- git credential env vars (GIT_USERNAME, GIT_TOKEN, GIT_NAME, GIT_EMAIL) passed to sidecar unconditionally
-- proxy env var injection (HTTP_PROXY, HTTPS_PROXY, NO_PROXY) on main container and sidecar
-- proxy CA ConfigMap mount (`koolna-cache-ca`) for cache proxy trust, optional so pods start without proxy
-- configurable proxy address via KOOLNA_PROXY_ADDRESS env var on operator
-- `envSecretRef` field in KoolnaSpec CRD for per-koolna environment variable injection
-- EnvFrom SecretRef injection on both koolna and tmux-sidecar containers when envSecretRef is set
+- inject env vars from envSecretRef via EnvFrom
+- add EnvSecretRef field to KoolnaSpec CRD
+- inject proxy env vars and CA mount into pods
+- pass git credential env vars to sidecar unconditionally
+- add emptyDir cache volume for disposable storage
+- mount PVC at workspace subPath instead of entire home
+- add SSH port 2222 to service and sidecar
+- pass KOOLNA_SSH_PUBKEY env to sidecar
+- add sshPublicKey field to KoolnaSpec CRD
+
+### Changed
+
+- align whitespace in helper functions
+- regenerate CRD manifests for EnvSecretRef
 
 ### Fixed
 
+- use operator namespace for proxy address, not CR namespace
+- review fixes - lowercase proxy vars, JSON encoding, squid config
 - set GIT_CONFIG_GLOBAL on main container for credential discovery
 - chmod 600 on .git-credentials in init container
 - pass REPO_URL to sidecar for correct credential host
@@ -30,6 +32,9 @@
 
 ### Documentation
 
+- update changelogs for env var config feature
+- update changelogs for proxy injection
+- update changelogs [ci-skip]
 - update changelogs for storage split and git config fix
 - fix stale dotfiles-cache path in README
 - document storage layout and update changelogs

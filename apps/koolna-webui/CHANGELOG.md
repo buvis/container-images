@@ -35,6 +35,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs for env var config feature
 - update changelogs [ci-skip]
 - update changelogs for SSHFS mount feature
