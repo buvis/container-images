@@ -793,6 +793,18 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 	proxyEnv := buildProxyEnvVars()
 	sidecarEnv = append(sidecarEnv, proxyEnv...)
 
+	var envFrom []corev1.EnvFromSource
+	if koolna.Spec.EnvSecretRef != "" {
+		envFrom = []corev1.EnvFromSource{
+			{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: koolna.Spec.EnvSecretRef},
+					Optional:             boolPtr(true),
+				},
+			},
+		}
+	}
+
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: uc.HomePath + "/workspace", SubPath: "workspace"}
 	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: uc.HomePath + "/.cache"}
 	caMount := proxyCAVolumeMount()
@@ -819,6 +831,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Command:    []string{"sh", "-c", "exec sleep infinity"},
 					WorkingDir: uc.HomePath + "/workspace",
 					Resources:  koolna.Spec.Resources,
+					EnvFrom:    envFrom,
 					Env: append([]corev1.EnvVar{
 						{Name: "GIT_CONFIG_GLOBAL", Value: uc.HomePath + "/workspace/.koolna/.gitconfig"},
 					}, proxyEnv...),
@@ -832,6 +845,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Name:    "tmux-sidecar",
 					Image:   "ghcr.io/buvis/koolna-tmux:latest",
 					Command: []string{"/entrypoint.sh"},
+					EnvFrom: envFrom,
 					Env:     sidecarEnv,
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 2222, Protocol: corev1.ProtocolTCP},
