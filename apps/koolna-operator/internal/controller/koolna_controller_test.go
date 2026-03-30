@@ -1258,6 +1258,49 @@ var _ = Describe("Koolna Controller", func() {
 				Expect(vm.Name).NotTo(Equal("cache"), "init container should not have cache volume mount")
 			}
 		})
+
+		It("should pass git credential env vars to sidecar when gitSecretRef set", func() {
+			koolna.Spec.GitSecretRef = "git-creds"
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-creds", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			envNames := map[string]bool{}
+			for _, e := range sidecar.Env {
+				envNames[e.Name] = true
+			}
+			Expect(envNames).To(HaveKey("GIT_USERNAME"))
+			Expect(envNames).To(HaveKey("GIT_TOKEN"))
+			Expect(envNames).To(HaveKey("GIT_NAME"))
+			Expect(envNames).To(HaveKey("GIT_EMAIL"))
+		})
+
+		It("should not pass git credential env vars to sidecar when gitSecretRef empty", func() {
+			koolna.Spec.GitSecretRef = ""
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-no-creds", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			for _, e := range sidecar.Env {
+				Expect(e.Name).NotTo(Equal("GIT_USERNAME"), "sidecar should not have GIT_USERNAME without gitSecretRef")
+				Expect(e.Name).NotTo(Equal("GIT_TOKEN"), "sidecar should not have GIT_TOKEN without gitSecretRef")
+			}
+		})
+
+		It("should pass REPO_URL to sidecar", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-repo-url", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			var repoURL string
+			for _, e := range sidecar.Env {
+				if e.Name == "REPO_URL" {
+					repoURL = e.Value
+					break
+				}
+			}
+			Expect(repoURL).To(Equal("https://github.com/owner/repo"))
+		})
 	})
 
 	Context("SSH public key wiring", func() {
