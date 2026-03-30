@@ -10,10 +10,12 @@
 - aggregate per-pod credential secrets into shared koolna-credentials secret
 - pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
 - pass KOOLNA_SHARED_SECRET env var to tmux-sidecar for shared credential reads
+- emptyDir cache volume mounted at `$HOME/.cache` for disposable storage
 
 ### Changed
 
 - revert auth secret to per-pod naming (`<name>-auth`) instead of shared
+- PVC mounted at `$HOME/workspace` with subPath instead of entire home directory
 
 ## 2026-03-29
 

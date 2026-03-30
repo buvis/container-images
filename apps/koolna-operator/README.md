@@ -57,6 +57,31 @@ The `initCommand` field runs an arbitrary shell command after dotfiles setup (or
 
 Dotfiles are installed by `startup.sh` in the main container (as the correct user with `$HOME` access). Clones are cached in `/workspace/.dotfiles-cache` across pod restarts.
 
+## Storage Layout
+
+Each Koolna pod uses two volumes:
+
+| Volume | Type | Mount | Contents |
+|--------|------|-------|----------|
+| `workspace` | PVC | `$HOME/workspace` (subPath) | repo checkout, `.koolna/` (git credentials, SSH host keys) |
+| `cache` | emptyDir | `$HOME/.cache` | disposable caches, build artifacts, temp files |
+
+Everything else under `$HOME` lives on the container filesystem and is rebuilt on pod restart (dotfiles, tool installs via mise, shell config).
+
+**Persistent paths** (survive pod restart via PVC):
+- `$HOME/workspace/` - repo checkout, uncommitted work
+- `$HOME/workspace/.koolna/.git-credentials` - git credential store
+- `$HOME/workspace/.koolna/.gitconfig` - git user identity
+- `$HOME/workspace/.koolna/ssh/` - SSH host keys (root-owned)
+
+**Disposable paths** (emptyDir, lost on pod restart):
+- `$HOME/.cache/` - package manager caches, build artifacts
+
+**Ephemeral paths** (container filesystem, rebuilt on startup):
+- `$HOME/.cfg` or `$HOME/.dotfiles` - dotfiles (re-applied by sidecar)
+- `$HOME/.local/share/mise/` - tool installs (reinstalled by mise)
+- `$HOME/.ssh/authorized_keys` - written from KOOLNA_SSH_PUBKEY env var
+
 ## Lifecycle
 
 | Phase     | Meaning                          |

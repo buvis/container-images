@@ -6,14 +6,16 @@
 
 - openssh-server in sidecar image for SSHFS mount support
 - `setup_sshd()` function: starts sshd on port 2222 when KOOLNA_SSH_PUBKEY is set
-- host key persistence on PVC at `$HOME/.ssh/host_keys/`
 - configurable credential paths via KOOLNA_CREDENTIAL_PATHS env var
 - `koolna.buvis.net/type: credentials` label on per-pod secrets
+- persistent git credentials at `workspace/.koolna/.git-credentials`
+- git config include for `workspace/.koolna/.gitconfig`
 
 ### Changed
 
 - restore credentials from shared secret (KOOLNA_SHARED_SECRET) instead of per-pod
 - sync credentials writes to per-pod secret (KOOLNA_AUTH_SECRET)
+- SSH host keys moved to `workspace/.koolna/ssh/` for PVC persistence
 
 ## 2026-03-29
 
