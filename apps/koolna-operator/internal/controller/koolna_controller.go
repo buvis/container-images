@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -43,6 +44,8 @@ import (
 const (
 	finalizerName    = "koolna.buvis.net/finalizer"
 	sharedSecretName = "koolna-credentials"
+	proxyCACMName    = "koolna-cache-ca"
+	proxyCAVolName   = "proxy-ca"
 )
 
 // KoolnaReconciler reconciles a Koolna object
@@ -707,6 +710,47 @@ func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
 	}
 }
 
+func proxyAddress(namespace string) string {
+	if addr := os.Getenv("KOOLNA_PROXY_ADDRESS"); addr != "" {
+		return addr
+	}
+	return "koolna-cache." + namespace + ".svc:3128"
+}
+
+func buildProxyEnvVars(namespace string) []corev1.EnvVar {
+	addr := proxyAddress(namespace)
+	return []corev1.EnvVar{
+		{Name: "HTTP_PROXY", Value: "http://" + addr},
+		{Name: "HTTPS_PROXY", Value: "http://" + addr},
+		{Name: "NO_PROXY", Value: "kubernetes.default.svc,.svc,.cluster.local,10.0.0.0/8,127.0.0.1,localhost"},
+	}
+}
+
+func buildProxyCAVolume() corev1.Volume {
+	optional := true
+	return corev1.Volume{
+		Name: proxyCAVolName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: proxyCACMName},
+				Items: []corev1.KeyToPath{
+					{Key: "ca.crt", Path: "koolna-cache.crt"},
+				},
+				Optional: &optional,
+			},
+		},
+	}
+}
+
+func proxyCAVolumeMount() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      proxyCAVolName,
+		MountPath: "/usr/local/share/ca-certificates/koolna-cache.crt",
+		SubPath:   "koolna-cache.crt",
+		ReadOnly:  true,
+	}
+}
+
 func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig, uc userConfig) *corev1.Pod {
 	shareProcessNamespace := true
 
@@ -737,8 +781,12 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
 	}
 
+	proxyEnv := buildProxyEnvVars(koolna.Namespace)
+	sidecarEnv = append(sidecarEnv, proxyEnv...)
+
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: uc.HomePath + "/workspace", SubPath: "workspace"}
 	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: uc.HomePath + "/.cache"}
+	caMount := proxyCAVolumeMount()
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -762,14 +810,14 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Command:    []string{"sh", "-c", "exec sleep infinity"},
 					WorkingDir: uc.HomePath + "/workspace",
 					Resources:  koolna.Spec.Resources,
-					Env: []corev1.EnvVar{
+					Env: append([]corev1.EnvVar{
 						{Name: "GIT_CONFIG_GLOBAL", Value: uc.HomePath + "/workspace/.koolna/.gitconfig"},
-					},
+					}, proxyEnv...),
 					SecurityContext: &corev1.SecurityContext{
 						RunAsUser:  &uc.UID,
 						RunAsGroup: &uc.UID,
 					},
-					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
 				{
 					Name:    "tmux-sidecar",
@@ -793,12 +841,13 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
 			},
 			Volumes: []corev1.Volume{
 				buildWorkspaceVolume(pvcName),
 				{Name: cacheVolumeName, VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+				buildProxyCAVolume(),
 			},
 		},
 	}
