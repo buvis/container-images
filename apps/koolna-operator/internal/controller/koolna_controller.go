@@ -487,6 +487,9 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 	default:
 		return fmt.Errorf("invalid dotfilesMethod %q: must be none, bare-git, clone, or command", spec.DotfilesMethod)
 	}
+	if spec.SSHPublicKey != "" && strings.ContainsAny(spec.SSHPublicKey, "\n\r") {
+		return fmt.Errorf("invalid sshPublicKey: must not contain newlines")
+	}
 	return nil
 }
 
