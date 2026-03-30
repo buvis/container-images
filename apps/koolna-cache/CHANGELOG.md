@@ -9,4 +9,9 @@
 
 ### Fixed
 
+- set fsGroup for squid proxy user
 - add missing VERSION and PLATFORM files
+
+### Documentation
+
+- update changelogs [ci-skip]
