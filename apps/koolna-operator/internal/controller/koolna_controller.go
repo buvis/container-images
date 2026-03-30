@@ -328,6 +328,12 @@ func (r *KoolnaReconciler) reconcileService(ctx context.Context, koolna *koolnav
 					TargetPort: intstr.FromInt(3000),
 					Protocol:   corev1.ProtocolTCP,
 				},
+				{
+					Name:       "ssh",
+					Port:       2222,
+					TargetPort: intstr.FromInt(2222),
+					Protocol:   corev1.ProtocolTCP,
+				},
 			},
 		},
 	}
@@ -737,6 +743,9 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Image:   "ghcr.io/buvis/koolna-tmux:latest",
 					Command: []string{"/entrypoint.sh"},
 					Env:     sidecarEnv,
+					Ports: []corev1.ContainerPort{
+						{ContainerPort: 2222, Protocol: corev1.ProtocolTCP},
+					},
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
