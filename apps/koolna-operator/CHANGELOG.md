@@ -22,15 +22,23 @@
 
 ## 2026-03-29
 
-### Changed
+### Added
 
-- use shared credential secret name (koolna-credentials) instead of per-pod
+- use shared credential secret across all pods
+
+### Documentation
+
+- update changelogs for shared credential secret
 
 ## 2026-03-27
 
 ### Added
 
 - add readiness probe and pending state for initializing pods
+
+### Documentation
+
+- update changelogs [ci-skip]
 
 ## 2026-03-24
 

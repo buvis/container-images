@@ -9,6 +9,12 @@
 - SSH public key textarea in create form with defaults pre-fill
 - Mount button in KoolnaList with download/usage modal
 
+## 2026-03-29
+
+### Documentation
+
+- update changelogs [ci-skip]
+
 ## 2026-03-27
 
 ### Added
