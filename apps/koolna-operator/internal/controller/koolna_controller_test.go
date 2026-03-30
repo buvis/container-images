@@ -1316,6 +1316,106 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(gitConfigGlobal).To(Equal(uc.HomePath + "/workspace/.koolna/.gitconfig"))
 		})
+
+		It("should include proxy env vars on main container", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			envMap := map[string]string{}
+			for _, e := range koolnaC.Env {
+				envMap[e.Name] = e.Value
+			}
+			Expect(envMap).To(HaveKey("HTTP_PROXY"))
+			Expect(envMap).To(HaveKey("HTTPS_PROXY"))
+			Expect(envMap).To(HaveKey("NO_PROXY"))
+			Expect(envMap["NO_PROXY"]).To(ContainSubstring("kubernetes.default.svc"))
+			Expect(envMap["NO_PROXY"]).To(ContainSubstring(".svc"))
+			Expect(envMap["NO_PROXY"]).To(ContainSubstring(".cluster.local"))
+			Expect(envMap["NO_PROXY"]).To(ContainSubstring("10.0.0.0/8"))
+		})
+
+		It("should include proxy env vars on sidecar", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			envMap := map[string]string{}
+			for _, e := range sidecar.Env {
+				envMap[e.Name] = e.Value
+			}
+			Expect(envMap).To(HaveKey("HTTP_PROXY"))
+			Expect(envMap).To(HaveKey("HTTPS_PROXY"))
+			Expect(envMap).To(HaveKey("NO_PROXY"))
+		})
+
+		It("should use koolna namespace in default proxy address", func() {
+			koolna.Namespace = "koolna"
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ns", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var httpProxy string
+			for _, e := range koolnaC.Env {
+				if e.Name == "HTTP_PROXY" {
+					httpProxy = e.Value
+					break
+				}
+			}
+			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna.svc:3128"))
+		})
+
+		It("should include proxy-ca volume with optional ConfigMap", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles, uc)
+
+			var caVol *corev1.Volume
+			for i := range pod.Spec.Volumes {
+				if pod.Spec.Volumes[i].Name == "proxy-ca" {
+					caVol = &pod.Spec.Volumes[i]
+					break
+				}
+			}
+			Expect(caVol).NotTo(BeNil(), "expected volume named 'proxy-ca'")
+			Expect(caVol.VolumeSource.ConfigMap).NotTo(BeNil())
+			Expect(caVol.VolumeSource.ConfigMap.Name).To(Equal("koolna-cache-ca"))
+			Expect(caVol.VolumeSource.ConfigMap.Optional).NotTo(BeNil())
+			Expect(*caVol.VolumeSource.ConfigMap.Optional).To(BeTrue())
+		})
+
+		It("should mount proxy CA cert in main container", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var caMount *corev1.VolumeMount
+			for i := range koolnaC.VolumeMounts {
+				if koolnaC.VolumeMounts[i].Name == "proxy-ca" {
+					caMount = &koolnaC.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(caMount).NotTo(BeNil(), "expected volume mount named 'proxy-ca' on main container")
+			Expect(caMount.MountPath).To(Equal("/usr/local/share/ca-certificates/koolna-cache.crt"))
+			Expect(caMount.ReadOnly).To(BeTrue())
+		})
+
+		It("should mount proxy CA cert in sidecar", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			var caMount *corev1.VolumeMount
+			for i := range sidecar.VolumeMounts {
+				if sidecar.VolumeMounts[i].Name == "proxy-ca" {
+					caMount = &sidecar.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(caMount).NotTo(BeNil(), "expected volume mount named 'proxy-ca' on sidecar")
+			Expect(caMount.MountPath).To(Equal("/usr/local/share/ca-certificates/koolna-cache.crt"))
+			Expect(caMount.ReadOnly).To(BeTrue())
+		})
 	})
 
 	Context("SSH public key wiring", func() {
