@@ -95,6 +95,29 @@ if [ -n "${INIT_COMMAND:-}" ]; then
   eval "$INIT_COMMAND"
 fi
 
+# Set up persistent git credentials from workspace/.koolna/
+WS="$HOME/workspace"
+KOOLNA_DIR="$WS/.koolna"
+KOOLNA_CRED="$KOOLNA_DIR/.git-credentials"
+KOOLNA_GC="$KOOLNA_DIR/.gitconfig"
+if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ] && [ ! -f "$KOOLNA_CRED" ]; then
+  mkdir -p "$KOOLNA_DIR"
+  REPO_HOST=$(echo "${REPO_URL:-github.com}" | sed 's|https://\([^/]*\).*|\1|')
+  printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > "$KOOLNA_CRED"
+  git config -f "$KOOLNA_GC" credential.helper "store --file=$KOOLNA_CRED"
+fi
+if [ -n "${GIT_NAME:-}" ] && ! git config -f "$KOOLNA_GC" user.name >/dev/null 2>&1; then
+  mkdir -p "$KOOLNA_DIR"
+  git config -f "$KOOLNA_GC" user.name "$GIT_NAME"
+fi
+if [ -n "${GIT_EMAIL:-}" ] && ! git config -f "$KOOLNA_GC" user.email >/dev/null 2>&1; then
+  mkdir -p "$KOOLNA_DIR"
+  git config -f "$KOOLNA_GC" user.email "$GIT_EMAIL"
+fi
+if [ -f "$KOOLNA_GC" ]; then
+  git config --global include.path "$KOOLNA_GC"
+fi
+
 # Fix ownership of home directory contents created by root during dotfiles/init
 KOOLNA_UID="${KOOLNA_UID:-1000}"
 echo "fixing home directory ownership (uid=$KOOLNA_UID)..."
