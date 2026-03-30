@@ -66,6 +66,8 @@ spec:
                 type: string
               dotfilesRepo:
                 type: string
+              envSecretRef:
+                type: string
               gitSecretRef:
                 type: string
               homePath:
