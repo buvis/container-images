@@ -339,6 +339,13 @@ fi
 
 NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
 
+# Update CA certificates in main container if proxy CA is mounted
+NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
+if $NSENTER_ROOT test -f /usr/local/share/ca-certificates/koolna-cache.crt; then
+  echo "updating CA certificates in main container..."
+  $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed (non-fatal)"
+fi
+
 # Bootstrap mise tools inside the main container
 if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
   WS="$HOME/workspace"
@@ -347,15 +354,6 @@ if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
   $NSENTER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
 
   if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
-
-    # Import Node.js GPG keys only when node is a configured tool
-    if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise ls --current node 2>/dev/null" | grep -q node; then
-      echo "importing Node.js GPG keys..."
-      # Node.js EDDSA signing key (v24+)
-      $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 2>/dev/null || true'
-      # Node.js RSA signing key (legacy)
-      $NSENTER "$KOOLNA_SHELL" -lc 'gpg --keyserver hkps://keys.openpgp.org --recv-keys C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 2>/dev/null || true'
-    fi
 
     echo "running mise install in main container..."
     $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
