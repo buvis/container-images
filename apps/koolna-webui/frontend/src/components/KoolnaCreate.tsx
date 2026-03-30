@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import { createKoolna, type CreateKoolnaRequest, type DotfilesMethod, getDefaults, listBranches } from '../api/koolna'
+import { createKoolna, type CreateKoolnaRequest, type DotfilesMethod, type EnvVar, getDefaults, getEnvDefaults, listBranches } from '../api/koolna'
+import { EnvVarEditor } from './EnvVarEditor'
 
 const IMAGE_OPTIONS = [
   'ghcr.io/buvis/koolna-base:latest',
@@ -127,6 +128,8 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
   const [apiError, setApiError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [branches, setBranches] = useState<string[]>([])
+  const [envVars, setEnvVars] = useState<EnvVar[]>([])
+  const [envDefaults, setEnvDefaults] = useState<EnvVar[]>([])
 
   useEffect(() => {
     getDefaults().then((defaults) => {
@@ -140,6 +143,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         initCommand: defaults.initCommand ?? prev.initCommand,
         sshPublicKey: defaults.sshPublicKey ?? prev.sshPublicKey,
       }))
+    }).catch(() => {})
+    getEnvDefaults().then((payload) => {
+      setEnvVars(payload.vars)
+      setEnvDefaults(payload.vars)
     }).catch(() => {})
   }, [])
 
@@ -273,6 +280,9 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     if (formState.gitUsername.trim()) payload.gitUsername = formState.gitUsername.trim()
     if (formState.gitToken.trim()) payload.gitToken = formState.gitToken.trim()
     if (formState.sshPublicKey.trim()) payload.sshPublicKey = formState.sshPublicKey.trim()
+    if (envVars.length > 0) {
+      payload.envVars = envVars.filter((v) => v.name.trim() && v.value.trim())
+    }
 
     try {
       await createKoolna(payload)
@@ -547,6 +557,15 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             placeholder="Paste contents of ~/.ssh/id_ed25519.pub"
             rows={2}
           />
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-white/80">
+            Environment variables
+          </label>
+          <div className="mt-2">
+            <EnvVarEditor vars={envVars} onChange={setEnvVars} defaults={envDefaults} />
+          </div>
         </div>
 
         {(formState.username !== 'bob' || formState.uid !== '1000') && (
