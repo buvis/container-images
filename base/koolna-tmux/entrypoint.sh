@@ -269,7 +269,7 @@ setup_sshd() {
   echo "$KOOLNA_SSH_PUBKEY" > "$SSH_DIR/authorized_keys"
   chmod 700 "$SSH_DIR"
   chmod 600 "$SSH_DIR/authorized_keys"
-  chown -R "$KOOLNA_UID:$KOOLNA_UID" "$SSH_DIR"
+  chown "$KOOLNA_UID:$KOOLNA_UID" "$SSH_DIR" "$SSH_DIR/authorized_keys"
 
   # sshd requires /run/sshd
   mkdir -p /run/sshd
