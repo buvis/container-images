@@ -102,7 +102,7 @@ KOOLNA_CRED="$KOOLNA_DIR/.git-credentials"
 KOOLNA_GC="$KOOLNA_DIR/.gitconfig"
 if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ] && [ ! -f "$KOOLNA_CRED" ]; then
   mkdir -p "$KOOLNA_DIR"
-  REPO_HOST=$(echo "${REPO_URL:-github.com}" | sed 's|https://\([^/]*\).*|\1|')
+  REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > "$KOOLNA_CRED"
   git config -f "$KOOLNA_GC" credential.helper "store --file=$KOOLNA_CRED"
 fi

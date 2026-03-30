@@ -714,6 +714,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		shell = "/bin/bash"
 	}
 
+	repoURL := resolveRepoURL(koolna.Spec.Repo)
+
 	sidecarEnv := []corev1.EnvVar{
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
 		{Name: "KOOLNA_SHARED_SECRET", Value: sharedSecretName},
@@ -723,6 +725,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		{Name: "KOOLNA_USERNAME", Value: uc.Username},
 		{Name: "KOOLNA_SHELL", Value: shell},
 		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.codex"},
+		{Name: "REPO_URL", Value: repoURL},
 	}
 	if koolna.Spec.SSHPublicKey != "" {
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "KOOLNA_SSH_PUBKEY", Value: koolna.Spec.SSHPublicKey})
