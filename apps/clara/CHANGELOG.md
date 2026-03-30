@@ -1,6 +1,24 @@
 # Changelog — clara
 
 
+## 2026-03-26
+
+### Fixed
+
+- update dependency lucide-svelte to v1
+
+### Documentation
+
+- update changelogs [ci-skip]
+- update changelogs [ci-skip]
+- update changelogs [ci-skip]
+
+## 2026-03-30
+
+### Documentation
+
+- update changelogs [ci-skip]
+
 ## 2026-03-29
 
 ### Documentation
@@ -9,6 +27,10 @@
 - update changelogs [ci-skip]
 
 ## 2026-03-26
+
+### Fixed
+
+- update dependency lucide-svelte to v1
 
 ### Documentation
 
