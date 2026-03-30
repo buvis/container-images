@@ -7,6 +7,7 @@ export interface Koolna {
   phase: KoolnaPhase
   ip?: string
   suspended: boolean
+  sshPublicKey?: string
 }
 
 export type DotfilesMethod = 'none' | 'bare-git' | 'clone' | 'command'
@@ -30,6 +31,7 @@ export interface CreateKoolnaRequest {
   gitToken?: string
   gitName?: string
   gitEmail?: string
+  sshPublicKey?: string
 }
 
 export interface DotfilesDefaults {
@@ -39,6 +41,7 @@ export interface DotfilesDefaults {
   dotfilesCommand?: string
   initCommand?: string
   defaultBranch?: string
+  sshPublicKey?: string
 }
 
 const API_BASE = '/api/koolnas'
@@ -158,6 +161,10 @@ export async function checkoutBranch(
     body: JSON.stringify({ branch }),
   })
   return parseResponse<{ branch: string; output: string }>(response)
+}
+
+export function mountScriptUrl(name: string): string {
+  return koolnaUrl(name, 'mount-script')
 }
 
 export async function getBranch(

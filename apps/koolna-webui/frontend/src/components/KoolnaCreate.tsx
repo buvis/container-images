@@ -30,6 +30,7 @@ type FormState = {
   gitToken: string
   gitName: string
   gitEmail: string
+  sshPublicKey: string
 }
 
 type ValidatableField = 'name' | 'repo' | 'branch' | 'image' | 'storage'
@@ -118,6 +119,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     gitToken: '',
     gitName: '',
     gitEmail: '',
+    sshPublicKey: '',
   })
   const [homePathManual, setHomePathManual] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ValidatableField, true>>>({})
@@ -136,6 +138,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         dotfilesBareDir: defaults.dotfilesBareDir ?? prev.dotfilesBareDir,
         dotfilesCommand: defaults.dotfilesCommand ?? prev.dotfilesCommand,
         initCommand: defaults.initCommand ?? prev.initCommand,
+        sshPublicKey: defaults.sshPublicKey ?? prev.sshPublicKey,
       }))
     }).catch(() => {})
   }, [])
@@ -269,6 +272,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     if (formState.gitEmail.trim()) payload.gitEmail = formState.gitEmail.trim()
     if (formState.gitUsername.trim()) payload.gitUsername = formState.gitUsername.trim()
     if (formState.gitToken.trim()) payload.gitToken = formState.gitToken.trim()
+    if (formState.sshPublicKey.trim()) payload.sshPublicKey = formState.sshPublicKey.trim()
 
     try {
       await createKoolna(payload)
@@ -529,6 +533,20 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
               placeholder="/bin/bash"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-ssh-pubkey">
+            SSH public key (optional)
+          </label>
+          <textarea
+            id="koolna-ssh-pubkey"
+            value={formState.sshPublicKey}
+            onChange={(event) => handleFieldChange('sshPublicKey', event.target.value)}
+            className={`${INPUT_BASE} ${INPUT_OK} min-h-[4.5rem] resize-y font-mono text-xs`}
+            placeholder="Paste contents of ~/.ssh/id_ed25519.pub"
+            rows={2}
+          />
         </div>
 
         {(formState.username !== 'bob' || formState.uid !== '1000') && (
