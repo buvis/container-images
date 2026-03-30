@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: koolna-cache
+  namespace: koolna-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: koolna-cache
+  template:
+    metadata:
+      labels:
+        app: koolna-cache
+    spec:
+      serviceAccountName: koolna-cache
+      containers:
+        - name: squid
+          image: ghcr.io/buvis/koolna-cache:latest
+          ports:
+            - containerPort: 3128
+          env:
+            - name: KOOLNA_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: cache
+              mountPath: /var/spool/squid
+            - name: ssl-cert
+              mountPath: /etc/squid/ssl_cert
+          readinessProbe:
+            tcpSocket:
+              port: 3128
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: koolna-cache-data
+        - name: ssl-cert
+          persistentVolumeClaim:
+            claimName: koolna-cache-ssl
