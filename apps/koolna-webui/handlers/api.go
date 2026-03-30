@@ -67,10 +67,11 @@ type createRequest struct {
 	Image           string `json:"image"`
 	Storage         string `json:"storage"`
 	GitSecretRef    string `json:"gitSecretRef,omitempty"`
-	GitUsername     string `json:"gitUsername,omitempty"`
-	GitToken        string `json:"gitToken,omitempty"`
-	GitName         string `json:"gitName,omitempty"`
-	GitEmail        string `json:"gitEmail,omitempty"`
+	GitUsername     string        `json:"gitUsername,omitempty"`
+	GitToken        string        `json:"gitToken,omitempty"`
+	GitName         string        `json:"gitName,omitempty"`
+	GitEmail        string        `json:"gitEmail,omitempty"`
+	EnvVars         []envVarEntry `json:"envVars,omitempty"`
 }
 
 type koolnaResponse struct {
@@ -482,6 +483,26 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 		}
 		req.GitSecretRef = secretName
 	}
+	var envSecretRef string
+	if len(req.EnvVars) > 0 {
+		envSecretName := req.Name + "-env"
+		envSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      envSecretName,
+				Namespace: h.ns,
+				Labels: map[string]string{
+					"koolna.buvis.net/name": req.Name,
+				},
+			},
+			Type:       corev1.SecretTypeOpaque,
+			StringData: envVarsToStringData(req.EnvVars),
+		}
+		if _, err := h.kube.CoreV1().Secrets(h.ns).Create(context.Background(), envSecret, metav1.CreateOptions{}); err != nil && !apierrors.IsAlreadyExists(err) {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		envSecretRef = envSecretName
+	}
 	spec := map[string]interface{}{
 		"repo":    req.Repo,
 		"branch":  req.Branch,
@@ -490,6 +511,9 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.GitSecretRef != "" {
 		spec["gitSecretRef"] = req.GitSecretRef
+	}
+	if envSecretRef != "" {
+		spec["envSecretRef"] = envSecretRef
 	}
 	if req.DotfilesMethod != "" {
 		spec["dotfilesMethod"] = req.DotfilesMethod
