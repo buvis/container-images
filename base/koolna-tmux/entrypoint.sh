@@ -47,7 +47,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   case "$DOTFILES_METHOD" in
     bare-git)
       bare_dir="$HOME/${DOTFILES_BARE_DIR:-.cfg}"
-      cache="$HOME/.dotfiles-cache"
+      cache="$HOME/.cache/dotfiles"
       if [ ! -d "$bare_dir/HEAD" ]; then
         if [ ! -d "$cache/HEAD" ]; then
           rm -rf "$cache"
@@ -119,10 +119,15 @@ if [ -f "$KOOLNA_GC" ]; then
   git config --global include.path "$KOOLNA_GC"
 fi
 
-# Fix ownership of home directory contents created by root during dotfiles/init
+# Fix ownership of directories written by root during dotfiles/init
 KOOLNA_UID="${KOOLNA_UID:-1000}"
-echo "fixing home directory ownership (uid=$KOOLNA_UID)..."
-chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
+echo "fixing ownership (uid=$KOOLNA_UID)..."
+chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
+chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/workspace" 2>/dev/null || true
+chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.cache" 2>/dev/null || true
+[ -d "$HOME/.cfg" ] && chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.cfg" 2>/dev/null || true
+[ -d "$HOME/.dotfiles" ] && chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.dotfiles" 2>/dev/null || true
+[ -d "$HOME/.ssh" ] && chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.ssh" 2>/dev/null || true
 
 # --- credential sync ---
 KOOLNA_CREDENTIAL_PATHS="${KOOLNA_CREDENTIAL_PATHS:-.claude/.credentials.json,.codex}"
