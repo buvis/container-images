@@ -1,5 +1,10 @@
 # Changelog — koolna-base
 
+## [Unreleased]
+
+### Removed
+
+- claude-code from default npm packages (install method changed)
 
 ## 2026-03-28
 
