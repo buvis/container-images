@@ -279,7 +279,7 @@ setup_sshd() {
   [ -z "${KOOLNA_SSH_PUBKEY:-}" ] && return
 
   KOOLNA_USERNAME="${KOOLNA_USERNAME:-bob}"
-  SSH_HOST_KEY_DIR="$HOME/.ssh/host_keys"
+  SSH_HOST_KEY_DIR="$HOME/workspace/.koolna/ssh"
   SSH_DIR="$HOME/.ssh"
 
   mkdir -p "$SSH_HOST_KEY_DIR"
@@ -287,6 +287,8 @@ setup_sshd() {
     echo "generating SSH host key..."
     ssh-keygen -t ed25519 -f "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key" -N "" -q
   fi
+  chown root:root "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key"
+  chmod 600 "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key"
 
   mkdir -p "$SSH_DIR"
   echo "$KOOLNA_SSH_PUBKEY" > "$SSH_DIR/authorized_keys"
