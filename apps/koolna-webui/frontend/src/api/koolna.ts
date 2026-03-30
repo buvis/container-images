@@ -12,6 +12,15 @@ export interface Koolna {
 
 export type DotfilesMethod = 'none' | 'bare-git' | 'clone' | 'command'
 
+export interface EnvVar {
+  name: string
+  value: string
+}
+
+export interface EnvVarsPayload {
+  vars: EnvVar[]
+}
+
 export interface CreateKoolnaRequest {
   name: string
   repo: string
@@ -32,6 +41,7 @@ export interface CreateKoolnaRequest {
   gitName?: string
   gitEmail?: string
   sshPublicKey?: string
+  envVars?: EnvVar[]
 }
 
 export interface DotfilesDefaults {
@@ -172,4 +182,32 @@ export async function getBranch(
 ): Promise<{ branch: string }> {
   const response = await fetch(koolnaUrl(name, 'branch'))
   return parseResponse<{ branch: string }>(response)
+}
+
+export async function getEnvDefaults(): Promise<EnvVarsPayload> {
+  const response = await fetch('/api/env-defaults')
+  return parseResponse<EnvVarsPayload>(response)
+}
+
+export async function updateEnvDefaults(payload: EnvVarsPayload): Promise<EnvVarsPayload> {
+  const response = await fetch('/api/env-defaults', {
+    method: 'PUT',
+    headers: jsonHeaders(),
+    body: JSON.stringify(payload),
+  })
+  return parseResponse<EnvVarsPayload>(response)
+}
+
+export async function getKoolnaEnv(name: string): Promise<EnvVarsPayload> {
+  const response = await fetch(koolnaUrl(name, 'env'))
+  return parseResponse<EnvVarsPayload>(response)
+}
+
+export async function updateKoolnaEnv(name: string, payload: EnvVarsPayload): Promise<EnvVarsPayload> {
+  const response = await fetch(koolnaUrl(name, 'env'), {
+    method: 'PUT',
+    headers: jsonHeaders(),
+    body: JSON.stringify(payload),
+  })
+  return parseResponse<EnvVarsPayload>(response)
 }
