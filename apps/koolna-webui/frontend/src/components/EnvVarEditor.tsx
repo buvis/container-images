@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EnvVar } from '../api/koolna'
 
 const INPUT_BASE = 'w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
@@ -30,15 +30,18 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
   const nextId = useRef(vars.length)
   const [rows, setRows] = useState<Row[]>(() => toRows(vars, 0))
   const [showValues, setShowValues] = useState<Record<number, boolean>>({})
+  const lastExternalVars = useRef(vars)
 
   const defaultNames = new Set(defaults?.map((d) => d.name) ?? [])
 
-  // Sync rows from parent when vars change externally (e.g. defaults loaded)
-  if (vars.length !== rows.length || vars.some((v, i) => v.name !== rows[i]?.name || v.value !== rows[i]?.value)) {
+  // Sync rows from parent only when vars reference changes externally
+  useEffect(() => {
+    if (lastExternalVars.current === vars) return
+    lastExternalVars.current = vars
     const synced = toRows(vars, nextId.current)
     nextId.current += vars.length
     setRows(synced)
-  }
+  }, [vars])
 
   const emit = (updated: Row[]) => {
     setRows(updated)
