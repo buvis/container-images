@@ -508,6 +508,7 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, uc userConfig) co
 		script = `if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
   REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
+  chmod 600 ` + cred + `
   git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
   chown ` + own + ` ` + cred + `
 fi
