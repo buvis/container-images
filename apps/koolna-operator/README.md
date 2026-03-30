@@ -55,7 +55,7 @@ Repo fields accept full HTTPS URLs (any git host). Legacy `owner/repo` format is
 
 The `initCommand` field runs an arbitrary shell command after dotfiles setup (or on its own if dotfiles are not configured).
 
-Dotfiles are installed by `startup.sh` in the main container (as the correct user with `$HOME` access). Clones are cached in `/workspace/.dotfiles-cache` across pod restarts.
+Dotfiles are installed by the tmux sidecar (as root, writing into `$HOME`). The bare-git clone cache at `$HOME/.dotfiles-cache` is ephemeral and re-cloned on pod restart.
 
 ## Storage Layout
 
