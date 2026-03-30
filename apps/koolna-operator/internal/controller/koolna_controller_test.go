@@ -1077,4 +1077,137 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(secret.Labels).To(HaveKeyWithValue("koolna.buvis.net/type", "shared-credentials"))
 		})
 	})
+
+	Context("SSH public key wiring", func() {
+		const resourceName = "test-ssh"
+
+		AfterEach(func() {
+			cleanupKoolna(resourceName, "default")
+		})
+
+		It("should include KOOLNA_SSH_PUBKEY env var when sshPublicKey is set", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+					SSHPublicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest user@host",
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, pod)).To(Succeed())
+
+			sidecar := pod.Spec.Containers[1]
+			sidecarEnvMap := map[string]string{}
+			for _, e := range sidecar.Env {
+				sidecarEnvMap[e.Name] = e.Value
+			}
+			Expect(sidecarEnvMap).To(HaveKeyWithValue("KOOLNA_SSH_PUBKEY", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest user@host"))
+		})
+
+		It("should not include KOOLNA_SSH_PUBKEY when sshPublicKey is empty", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, pod)).To(Succeed())
+
+			sidecar := pod.Spec.Containers[1]
+			for _, e := range sidecar.Env {
+				Expect(e.Name).NotTo(Equal("KOOLNA_SSH_PUBKEY"))
+			}
+		})
+
+		It("should have containerPort 2222 on sidecar", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, pod)).To(Succeed())
+
+			sidecar := pod.Spec.Containers[1]
+			Expect(sidecar.Ports).To(HaveLen(1))
+			Expect(sidecar.Ports[0].ContainerPort).To(Equal(int32(2222)))
+		})
+
+		It("should include SSH port on service", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			svc := &corev1.Service{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, svc)).To(Succeed())
+			Expect(svc.Spec.Ports).To(HaveLen(2))
+
+			portMap := map[string]int32{}
+			for _, p := range svc.Spec.Ports {
+				portMap[p.Name] = p.Port
+			}
+			Expect(portMap).To(HaveKeyWithValue("http", int32(3000)))
+			Expect(portMap).To(HaveKeyWithValue("ssh", int32(2222)))
+		})
+	})
 })
