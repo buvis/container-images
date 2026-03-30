@@ -16,6 +16,8 @@
 - restore credentials from shared secret (KOOLNA_SHARED_SECRET) instead of per-pod
 - sync credentials writes to per-pod secret (KOOLNA_AUTH_SECRET)
 - SSH host keys moved to `workspace/.koolna/ssh/` for PVC persistence
+- dotfiles cache moved from `$HOME/.dotfiles-cache` to `$HOME/.cache/dotfiles` (emptyDir)
+- ownership fix scoped to workspace, .cache, dotfiles dirs instead of recursive on entire $HOME
 
 ## 2026-03-29
 
