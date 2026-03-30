@@ -387,7 +387,7 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	return pod, nil
 }
 
-const homeVolumeName = "home"
+const workspaceVolumeName = "workspace"
 
 type userConfig struct {
 	Username string
@@ -499,19 +499,12 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, uc userConfig) co
 	own := fmt.Sprintf("%d:%d", uc.UID, uc.UID)
 
 	ws := home + "/workspace"
-	cred := home + "/.git-credentials"
-	gc := home + "/.gitconfig"
-
-	fixOwnership := `mkdir -p ` + home + `
-chown ` + own + ` ` + home + `
-[ -d ` + home + `/.cache ] && chown -R ` + own + ` ` + home + `/.cache
-[ -d ` + home + `/.local ] && chown -R ` + own + ` ` + home + `/.local
-[ -d ` + home + `/.config ] && chown -R ` + own + ` ` + home + `/.config`
+	cred := ws + "/.koolna/.git-credentials"
+	gc := ws + "/.koolna/.gitconfig"
 
 	var script string
 	if secretName != "" {
-		script = fixOwnership + `
-if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
+		script = `if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
   REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
   git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
@@ -521,17 +514,18 @@ fi
 [ -n "$GIT_EMAIL" ] && git config -f ` + gc + ` user.email "$GIT_EMAIL"
 [ -f ` + gc + ` ] && chown ` + own + ` ` + gc + `
 if [ ! -d ` + ws + `/.git ]; then
-  rm -rf ` + ws + `
-  git clone "$REPO_URL" ` + ws + `
+  git clone "$REPO_URL" /tmp/repo
+  cp -a /tmp/repo/. ` + ws + `/
+  rm -rf /tmp/repo
   cd ` + ws + ` && git checkout "$REPO_BRANCH"
   chown -R ` + own + ` ` + ws + `
 fi
 mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
 	} else {
-		script = fixOwnership + `
-if [ ! -d ` + ws + `/.git ]; then
-  rm -rf ` + ws + `
-  git clone "$REPO_URL" ` + ws + `
+		script = `if [ ! -d ` + ws + `/.git ]; then
+  git clone "$REPO_URL" /tmp/repo
+  cp -a /tmp/repo/. ` + ws + `/
+  rm -rf /tmp/repo
   cd ` + ws + ` && git checkout "$REPO_BRANCH"
   chown -R ` + own + ` ` + ws + `
 fi
@@ -619,8 +613,9 @@ mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
 		Env:  env,
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      homeVolumeName,
-				MountPath: home,
+				Name:      workspaceVolumeName,
+				MountPath: ws,
+				SubPath:   "workspace",
 			},
 		},
 	}
@@ -711,7 +706,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
 	}
 
-	homeMount := corev1.VolumeMount{Name: homeVolumeName, MountPath: uc.HomePath}
+	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: uc.HomePath + "/workspace", SubPath: "workspace"}
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -739,7 +734,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 						RunAsUser:  &uc.UID,
 						RunAsGroup: &uc.UID,
 					},
-					VolumeMounts: []corev1.VolumeMount{homeMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount},
 				},
 				{
 					Name:    "tmux-sidecar",
@@ -763,19 +758,19 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{homeMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount},
 				},
 			},
 			Volumes: []corev1.Volume{
-				buildHomeVolume(pvcName),
+				buildWorkspaceVolume(pvcName),
 			},
 		},
 	}
 }
 
-func buildHomeVolume(pvcName string) corev1.Volume {
+func buildWorkspaceVolume(pvcName string) corev1.Volume {
 	return corev1.Volume{
-		Name: homeVolumeName,
+		Name: workspaceVolumeName,
 		VolumeSource: corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: pvcName,
