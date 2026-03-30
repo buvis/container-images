@@ -87,7 +87,7 @@ const SettingsPage = () => {
             Back
           </button>
         </header>
-        <Settings onBack={() => navigate('/')} />
+        <Settings />
       </div>
     </main>
   )

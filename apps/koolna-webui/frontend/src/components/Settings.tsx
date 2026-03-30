@@ -12,11 +12,7 @@ import { EnvVarEditor } from './EnvVarEditor'
 const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
 const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:ring-sky-400'
 
-interface SettingsProps {
-  onBack?: () => void
-}
-
-export function Settings({ onBack }: SettingsProps) {
+export function Settings() {
   const [defaults, setDefaults] = useState<DotfilesDefaults>({})
   const [envVars, setEnvVars] = useState<EnvVar[]>([])
   const [loading, setLoading] = useState(true)
@@ -187,15 +183,6 @@ export function Settings({ onBack }: SettingsProps) {
           )}
           Save settings
         </button>
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-2xl border border-white/20 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-white/40"
-          >
-            Back
-          </button>
-        )}
         {saved && (
           <span className="text-sm text-emerald-400">Saved</span>
         )}
