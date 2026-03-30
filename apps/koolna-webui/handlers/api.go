@@ -105,6 +105,7 @@ func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/koolnas/{name}", h.GetKoolna).Methods("GET")
 	r.HandleFunc("/api/koolnas/{name}/checkout", h.CheckoutBranch).Methods("POST")
 	r.HandleFunc("/api/koolnas/{name}/branch", h.GetBranch).Methods("GET")
+	r.HandleFunc("/api/koolnas/{name}/mount-script", h.MountScript).Methods("GET")
 	r.HandleFunc("/api/koolnas/{name}", h.DeleteKoolna).Methods("DELETE")
 	r.HandleFunc("/api/koolnas/{name}/pause", h.PauseKoolna).Methods("POST")
 	r.HandleFunc("/api/koolnas/{name}/resume", h.ResumeKoolna).Methods("POST")
@@ -514,6 +515,120 @@ func (h *APIHandler) GetBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"branch": stdout})
+}
+
+// MountScript generates a shell script for mounting a koolna pod via SSHFS.
+func (h *APIHandler) MountScript(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	if name == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("name is required"))
+		return
+	}
+
+	obj, err := h.resource().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+
+	username, _, _ := unstructured.NestedString(obj.Object, "spec", "username")
+	if username == "" {
+		username = "bob"
+	}
+	homePath, _, _ := unstructured.NestedString(obj.Object, "spec", "homePath")
+	if homePath == "" {
+		if username == "root" {
+			homePath = "/root"
+		} else {
+			homePath = "/home/" + username
+		}
+	}
+
+	script := fmt.Sprintf(`#!/bin/sh
+set -eu
+
+NAME="%s"
+NAMESPACE="%s"
+USERNAME="%s"
+REMOTE_PATH="%s"
+MOUNT_POINT="$HOME/mnt/$NAME"
+PF_PID=""
+
+cleanup() {
+  if [ -n "$PF_PID" ] && kill -0 "$PF_PID" 2>/dev/null; then
+    kill "$PF_PID" 2>/dev/null || true
+  fi
+  case "$(uname)" in
+    Darwin) umount "$MOUNT_POINT" 2>/dev/null || true ;;
+    *)      fusermount -u "$MOUNT_POINT" 2>/dev/null || true ;;
+  esac
+}
+trap cleanup EXIT INT TERM
+
+# Check dependencies
+if ! command -v kubectl >/dev/null 2>&1; then
+  echo "error: kubectl not found" >&2
+  exit 1
+fi
+
+if ! command -v sshfs >/dev/null 2>&1; then
+  echo "error: sshfs not found" >&2
+  case "$(uname)" in
+    Darwin) echo "install: brew install macfuse sshfs" >&2 ;;
+    *)      echo "install: sudo apt-get install sshfs" >&2 ;;
+  esac
+  exit 1
+fi
+
+mkdir -p "$MOUNT_POINT"
+
+echo "starting port-forward to $NAME..."
+kubectl port-forward "svc/$NAME" 0:2222 -n "$NAMESPACE" > /tmp/koolna-pf-$NAME.log 2>&1 &
+PF_PID=$!
+
+# Wait for port-forward to establish and parse the local port
+LOCAL_PORT=""
+for i in $(seq 1 30); do
+  if ! kill -0 "$PF_PID" 2>/dev/null; then
+    echo "error: port-forward exited" >&2
+    cat /tmp/koolna-pf-$NAME.log >&2
+    exit 1
+  fi
+  LOCAL_PORT=$(grep -o '127.0.0.1:[0-9]*' /tmp/koolna-pf-$NAME.log 2>/dev/null | head -1 | cut -d: -f2)
+  [ -n "$LOCAL_PORT" ] && break
+  sleep 1
+done
+
+if [ -z "$LOCAL_PORT" ]; then
+  echo "error: could not determine local port" >&2
+  cat /tmp/koolna-pf-$NAME.log >&2
+  exit 1
+fi
+
+echo "port-forward on localhost:$LOCAL_PORT"
+echo "mounting $USERNAME@localhost:$REMOTE_PATH -> $MOUNT_POINT"
+
+sshfs -p "$LOCAL_PORT" "$USERNAME@localhost:$REMOTE_PATH" "$MOUNT_POINT" \
+  -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
+  -o IdentityFile=~/.ssh/id_ed25519 \
+  -o StrictHostKeyChecking=no \
+  -o UserKnownHostsFile=/dev/null
+
+echo ""
+echo "mounted at: $MOUNT_POINT"
+echo "press Ctrl+C to unmount and exit"
+echo ""
+
+# Keep script alive until interrupted
+while kill -0 "$PF_PID" 2>/dev/null; do
+  sleep 5
+done
+`, name, h.ns, username, homePath)
+
+	w.Header().Set("Content-Type", "application/x-sh")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="mount-%s.sh"`, name))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(script))
 }
 
 func (h *APIHandler) patchSuspended(w http.ResponseWriter, r *http.Request, suspended bool) {
