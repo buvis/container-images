@@ -1301,6 +1301,21 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(repoURL).To(Equal("https://github.com/owner/repo"))
 		})
+
+		It("should set GIT_CONFIG_GLOBAL on main container pointing to workspace/.koolna/.gitconfig", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-gitconfig", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var gitConfigGlobal string
+			for _, e := range koolnaC.Env {
+				if e.Name == "GIT_CONFIG_GLOBAL" {
+					gitConfigGlobal = e.Value
+					break
+				}
+			}
+			Expect(gitConfigGlobal).To(Equal(uc.HomePath + "/workspace/.koolna/.gitconfig"))
+		})
 	})
 
 	Context("SSH public key wiring", func() {

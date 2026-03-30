@@ -762,6 +762,9 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Command:    []string{"sh", "-c", "exec sleep infinity"},
 					WorkingDir: uc.HomePath + "/workspace",
 					Resources:  koolna.Spec.Resources,
+					Env: []corev1.EnvVar{
+						{Name: "GIT_CONFIG_GLOBAL", Value: uc.HomePath + "/workspace/.koolna/.gitconfig"},
+					},
 					SecurityContext: &corev1.SecurityContext{
 						RunAsUser:  &uc.UID,
 						RunAsGroup: &uc.UID,
