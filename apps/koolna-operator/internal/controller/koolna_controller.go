@@ -388,6 +388,7 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 }
 
 const workspaceVolumeName = "workspace"
+const cacheVolumeName = "cache"
 
 type userConfig struct {
 	Username string
@@ -654,30 +655,55 @@ func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvV
 		env = append(env, corev1.EnvVar{Name: "DOTFILES_COMMAND", Value: cfg.Command})
 	}
 
-	if gitSecretRef != "" {
-		env = append(env,
-			corev1.EnvVar{
-				Name: "GIT_USERNAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
-						Key:                  "username",
-					},
-				},
-			},
-			corev1.EnvVar{
-				Name: "GIT_TOKEN",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
-						Key:                  "token",
-					},
-				},
-			},
-		)
-	}
-
 	return env
+}
+
+func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
+	if gitSecretRef == "" {
+		return nil
+	}
+	return []corev1.EnvVar{
+		{
+			Name: "GIT_USERNAME",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
+					Key:                  "username",
+					Optional:             boolPtr(true),
+				},
+			},
+		},
+		{
+			Name: "GIT_TOKEN",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
+					Key:                  "token",
+					Optional:             boolPtr(true),
+				},
+			},
+		},
+		{
+			Name: "GIT_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
+					Key:                  "name",
+					Optional:             boolPtr(true),
+				},
+			},
+		},
+		{
+			Name: "GIT_EMAIL",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: gitSecretRef},
+					Key:                  "email",
+					Optional:             boolPtr(true),
+				},
+			},
+		},
+	}
 }
 
 func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig, uc userConfig) *corev1.Pod {
@@ -707,6 +733,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 	}
 
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: uc.HomePath + "/workspace", SubPath: "workspace"}
+	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: uc.HomePath + "/.cache"}
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -734,7 +761,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 						RunAsUser:  &uc.UID,
 						RunAsGroup: &uc.UID,
 					},
-					VolumeMounts: []corev1.VolumeMount{wsMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},
 				{
 					Name:    "tmux-sidecar",
@@ -758,11 +785,12 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{wsMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},
 			},
 			Volumes: []corev1.Volume{
 				buildWorkspaceVolume(pvcName),
+				{Name: cacheVolumeName, VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
 			},
 		},
 	}

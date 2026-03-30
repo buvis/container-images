@@ -125,9 +125,12 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
 			Expect(koolnaContainer.Ports).To(BeEmpty())
 			Expect(koolnaContainer.WorkingDir).To(Equal("/home/bob/workspace"))
-			Expect(koolnaContainer.VolumeMounts).To(HaveLen(1))
-			Expect(koolnaContainer.VolumeMounts[0].Name).To(Equal("home"))
-			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/bob"))
+			Expect(koolnaContainer.VolumeMounts).To(HaveLen(2))
+			Expect(koolnaContainer.VolumeMounts[0].Name).To(Equal("workspace"))
+			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/bob/workspace"))
+			Expect(koolnaContainer.VolumeMounts[0].SubPath).To(Equal("workspace"))
+			Expect(koolnaContainer.VolumeMounts[1].Name).To(Equal("cache"))
+			Expect(koolnaContainer.VolumeMounts[1].MountPath).To(Equal("/home/bob/.cache"))
 			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(1000)))
 			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(1000)))
 
@@ -135,9 +138,11 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecar.Name).To(Equal("tmux-sidecar"))
 			Expect(sidecar.Image).To(Equal("ghcr.io/buvis/koolna-tmux:latest"))
 			Expect(sidecar.SecurityContext.Capabilities.Add).To(ContainElement(corev1.Capability("SYS_PTRACE")))
-			Expect(sidecar.VolumeMounts).To(HaveLen(1))
-			Expect(sidecar.VolumeMounts[0].Name).To(Equal("home"))
-			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/bob"))
+			Expect(sidecar.VolumeMounts).To(HaveLen(2))
+			Expect(sidecar.VolumeMounts[0].Name).To(Equal("workspace"))
+			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/bob/workspace"))
+			Expect(sidecar.VolumeMounts[1].Name).To(Equal("cache"))
+			Expect(sidecar.VolumeMounts[1].MountPath).To(Equal("/home/bob/.cache"))
 
 			By("Checking env vars are on tmux-sidecar, not koolna")
 			Expect(koolnaContainer.Env).To(BeEmpty())
@@ -156,10 +161,12 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_CREDENTIAL_PATHS"))
 			Expect(sidecarEnvMap["KOOLNA_CREDENTIAL_PATHS"]).To(Equal(".claude/.credentials.json,.codex"))
 
-			By("Checking single home volume backed by PVC")
-			Expect(pod.Spec.Volumes).To(HaveLen(1))
-			Expect(pod.Spec.Volumes[0].Name).To(Equal("home"))
+			By("Checking workspace and cache volumes")
+			Expect(pod.Spec.Volumes).To(HaveLen(2))
+			Expect(pod.Spec.Volumes[0].Name).To(Equal("workspace"))
 			Expect(pod.Spec.Volumes[0].PersistentVolumeClaim).NotTo(BeNil())
+			Expect(pod.Spec.Volumes[1].Name).To(Equal("cache"))
+			Expect(pod.Spec.Volumes[1].EmptyDir).NotTo(BeNil())
 
 			By("Checking Service was created")
 			svc := &corev1.Service{}
@@ -767,13 +774,13 @@ var _ = Describe("Koolna Controller", func() {
 
 			koolnaContainer := pod.Spec.Containers[0]
 			Expect(koolnaContainer.WorkingDir).To(Equal("/home/dev/workspace"))
-			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev"))
+			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev/workspace"))
 			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(2000)))
 			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(2000)))
 			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
 
 			sidecar := pod.Spec.Containers[1]
-			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/dev"))
+			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/dev/workspace"))
 			sidecarEnvMap := map[string]string{}
 			for _, e := range sidecar.Env {
 				sidecarEnvMap[e.Name] = e.Value
@@ -785,7 +792,7 @@ var _ = Describe("Koolna Controller", func() {
 			By("Checking init container uses custom uid")
 			initContainer := pod.Spec.InitContainers[0]
 			Expect(initContainer.Args[0]).To(ContainSubstring("2000:2000"))
-			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev"))
+			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev/workspace"))
 		})
 	})
 
