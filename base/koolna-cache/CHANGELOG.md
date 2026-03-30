@@ -14,3 +14,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - CA certificate export to Kubernetes ConfigMap for pod trust injection
 - Aggressive caching for immutable content (tarballs, wheels, archives)
 - Short TTL for mutable metadata (PyPI simple index, npm registry)
+- Kubernetes deploy manifests (Deployment, Service, PVC, RBAC) with kustomize
