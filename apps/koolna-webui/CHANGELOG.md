@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-03-29
+
+### Documentation
+
+- update changelogs [ci-skip]
+
 ## 2026-03-27
 
 ### Added
