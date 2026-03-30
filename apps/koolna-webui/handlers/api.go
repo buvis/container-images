@@ -257,6 +257,10 @@ func (h *APIHandler) UpdateEnvDefaults(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, err)
 		return
 	}
+	if err := validateEnvVarNames(req.Vars); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
 
 	stringData := envVarsToStringData(req.Vars)
 
@@ -322,6 +326,10 @@ func (h *APIHandler) UpdateKoolnaEnv(w http.ResponseWriter, r *http.Request) {
 
 	var req envVarsPayload
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := validateEnvVarNames(req.Vars); err != nil {
 		respondError(w, http.StatusBadRequest, err)
 		return
 	}
@@ -517,6 +525,10 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	var envSecretRef string
 	if len(req.EnvVars) > 0 {
+		if err := validateEnvVarNames(req.EnvVars); err != nil {
+			respondError(w, http.StatusBadRequest, err)
+			return
+		}
 		envSecretName := req.Name + "-env"
 		envSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -712,6 +724,16 @@ func (h *APIHandler) GetBranch(w http.ResponseWriter, r *http.Request) {
 }
 
 var shellUnsafe = regexp.MustCompile(`[^a-zA-Z0-9_./-]`)
+var envVarNamePattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
+
+func validateEnvVarNames(vars []envVarEntry) error {
+	for _, v := range vars {
+		if !envVarNamePattern.MatchString(v.Name) {
+			return fmt.Errorf("invalid env var name %q: must match [A-Z_][A-Z0-9_]*", v.Name)
+		}
+	}
+	return nil
+}
 
 // MountScript generates a shell script for mounting a koolna pod via SSHFS.
 func (h *APIHandler) MountScript(w http.ResponseWriter, r *http.Request) {
