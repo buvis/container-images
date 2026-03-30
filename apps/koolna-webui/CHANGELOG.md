@@ -5,21 +5,40 @@
 
 ### Added
 
-- sshPublicKey field in create/defaults/response APIs
-- mount-script endpoint (GET /api/koolnas/{name}/mount-script) for SSHFS mount
-- SSH public key textarea in create form with defaults pre-fill
-- Mount button in KoolnaList with download/usage modal
-- env var CRUD API (GET/PUT /api/env-defaults, GET/PUT /api/koolnas/{name}/env)
-- per-koolna env secret creation in create flow with envSecretRef on CR
-- Settings page (/settings) for managing dotfiles defaults and default env vars
-- EnvVarEditor component with name validation, show/hide toggle, defaults inheritance
-- env var section in create form seeded from defaults
-- koolna-env-defaults Secret deploy manifest
+- add env var section to create form
+- add Settings page with env var defaults editor
+- add EnvVarEditor component
+- add frontend env var types and API functions
+- create per-koolna env secret in create flow
+- add env var CRUD API handlers
+- add koolna-env-defaults Secret deploy manifest
+- add Mount button and modal to KoolnaList
+- add sshPublicKey to frontend types and create form
+- add mount-script endpoint for SSHFS mount
+- add sshPublicKey to backend create/defaults/response
+
+### Changed
+
+- revert(deps): revert typescript 6.0.2 bump, typescript-eslint requires <6.0.0
 
 ### Fixed
 
+- clean up orphan env secret on CR patch failure
+- use useEffect for EnvVarEditor external sync
+- validate env var names and allow empty values in create form
+- remove redundant Back button from Settings page
+- use stable IDs in EnvVarEditor for correct state tracking
+- add server-side env var name validation
+- upsert env secret and patch CR in UpdateKoolnaEnv
 - show OS-specific unmount commands in modal
 - harden mount script SSH options and input validation
+
+### Documentation
+
+- update changelogs for env var config feature
+- update changelogs [ci-skip]
+- update changelogs for SSHFS mount feature
+- update changelogs [ci-skip]
 
 ## 2026-03-29
 

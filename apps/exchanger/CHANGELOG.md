@@ -1,6 +1,16 @@
 # Changelog — exchanger
 
 
+## 2026-03-30
+
+### Changed
+
+- revert(deps): revert typescript 6.0.2 bump, typescript-eslint requires <6.0.0
+
+### Documentation
+
+- update changelogs [ci-skip]
+
 ## 2026-03-29
 
 ### Documentation
