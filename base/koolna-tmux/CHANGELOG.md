@@ -1,37 +1,52 @@
 # Changelog — koolna-tmux
 
-## [Unreleased]
+
+## 2026-03-30
 
 ### Added
 
-- openssh-server in sidecar image for SSHFS mount support
-- `setup_sshd()` function: starts sshd on port 2222 when KOOLNA_SSH_PUBKEY is set
-- configurable credential paths via KOOLNA_CREDENTIAL_PATHS env var
-- `koolna.buvis.net/type: credentials` label on per-pod secrets
-- persistent git credentials at `workspace/.koolna/.git-credentials`
-- git config include for `workspace/.koolna/.gitconfig`
+- move SSH host keys to workspace/.koolna/ssh for persistence
+- set up persistent git credentials from workspace/.koolna
+- add setup_sshd for SSH access via sidecar
+- add openssh-server to sidecar image
 
-### Changed
+### Fixed
 
-- restore credentials from shared secret (KOOLNA_SHARED_SECRET) instead of per-pod
-- sync credentials writes to per-pod secret (KOOLNA_AUTH_SECRET)
-- SSH host keys moved to `workspace/.koolna/ssh/` for PVC persistence
-- dotfiles cache moved from `$HOME/.dotfiles-cache` to `$HOME/.cache/dotfiles` (emptyDir)
-- ownership fix scoped to workspace, .cache, dotfiles dirs instead of recursive on entire $HOME
+- target ownership fix and move dotfiles cache to .cache/
+- restrict .git-credentials file to owner-only read
+- pass REPO_URL to sidecar for correct credential host
+- preserve root ownership on SSH host keys
+- allow root SSH login with pubkey when username is root
+
+### Documentation
+
+- update changelogs for storage split and git config fix
+- document storage layout and update changelogs
+- update changelogs for SSHFS mount feature
 
 ## 2026-03-29
 
 ### Added
 
-- restore credentials from shared secret on pod startup and each sync cycle
-
-### Changed
-
-- sync credentials to shared secret (koolna-credentials) instead of per-pod secret
+- restore credentials from shared secret
+- add credentials label to per-pod secret
+- make restore_credentials use KOOLNA_CREDENTIAL_PATHS
+- make sync_credentials use KOOLNA_CREDENTIAL_PATHS
+- restore credentials from shared secret on startup
 
 ### Fixed
 
+- guard KOOLNA_SHARED_SECRET in restore_credentials
+- pass val directly to restore_credential_file, fix formatting
+- always restore creds, reorder sync-before-restore
+- skip restore if local creds exist, chown dirs
 - only log credential sync on errors
+
+### Documentation
+
+- update changelogs for credential read/write split
+- update changelogs for configurable credential paths
+- update changelogs for shared credential secret
 
 ## 2026-03-28
 
@@ -44,6 +59,48 @@
 
 ### Documentation
 
+- update changelogs [ci-skip]
+- update changelogs [ci-skip]
+- document mise integration and preference
+- update changelogs [ci-skip]
+- update changelogs [ci-skip]
+
+## 2026-03-29
+
+### Added
+
+- restore credentials from shared secret
+- add credentials label to per-pod secret
+- make restore_credentials use KOOLNA_CREDENTIAL_PATHS
+- make sync_credentials use KOOLNA_CREDENTIAL_PATHS
+- restore credentials from shared secret on startup
+
+### Fixed
+
+- guard KOOLNA_SHARED_SECRET in restore_credentials
+- pass val directly to restore_credential_file, fix formatting
+- always restore creds, reorder sync-before-restore
+- skip restore if local creds exist, chown dirs
+- only log credential sync on errors
+
+### Documentation
+
+- update changelogs for credential read/write split
+- update changelogs for configurable credential paths
+- update changelogs for shared credential secret
+
+## 2026-03-28
+
+### Fixed
+
+- trust workspace before config detection
+- use mise CLI for config and node detection
+- make mise bootstrap conditional on config and node usage
+- trust workspace mise config before install
+
+### Documentation
+
+- update changelogs [ci-skip]
 - update changelogs [ci-skip]
 - document mise integration and preference
 - update changelogs [ci-skip]

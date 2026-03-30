@@ -1,33 +1,59 @@
 # Changelog — koolna-operator
 
-## [Unreleased]
+
+## 2026-03-30
 
 ### Added
 
-- `sshPublicKey` field in KoolnaSpec CRD for SSH access
-- pass KOOLNA_SSH_PUBKEY env var to sidecar when sshPublicKey is set
-- SSH port 2222 on service and sidecar container
-- aggregate per-pod credential secrets into shared koolna-credentials secret
-- pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
-- pass KOOLNA_SHARED_SECRET env var to tmux-sidecar for shared credential reads
-- emptyDir cache volume mounted at `$HOME/.cache` for disposable storage
-- GIT_CONFIG_GLOBAL env var on main container for git credential discovery
-- git credential env vars (GIT_USERNAME, GIT_TOKEN, GIT_NAME, GIT_EMAIL) passed to sidecar unconditionally
+- pass git credential env vars to sidecar unconditionally
+- add emptyDir cache volume for disposable storage
+- mount PVC at workspace subPath instead of entire home
+- add SSH port 2222 to service and sidecar
+- pass KOOLNA_SSH_PUBKEY env to sidecar
+- add sshPublicKey field to KoolnaSpec CRD
 
-### Changed
+### Fixed
 
-- revert auth secret to per-pod naming (`<name>-auth`) instead of shared
-- PVC mounted at `$HOME/workspace` with subPath instead of entire home directory
-- git credentials written to `workspace/.koolna/` (persistent) instead of `$HOME/` (was PVC, now ephemeral)
+- set GIT_CONFIG_GLOBAL on main container for credential discovery
+- chmod 600 on .git-credentials in init container
+- pass REPO_URL to sidecar for correct credential host
+- reject sshPublicKey with newlines
+- sort by ResourceVersion for true last-write-wins
+
+### Documentation
+
+- update changelogs for storage split and git config fix
+- fix stale dotfiles-cache path in README
+- document storage layout and update changelogs
+- update changelogs for SSHFS mount feature
+- update changelogs [ci-skip]
 
 ## 2026-03-29
 
 ### Added
 
+- call reconcileCredentials from Reconcile loop
+- add reconcileCredentials function
+- add create;update RBAC for secrets
+- add KOOLNA_SHARED_SECRET env to sidecar
+- revert authSecretName to per-pod naming
+- pass KOOLNA_CREDENTIAL_PATHS env to sidecar
 - use shared credential secret across all pods
+
+### Changed
+
+- extract sharedSecretName constant, enforce label on update
+
+### Fixed
+
+- delete stale koolna-credentials when no per-pod secrets exist
+- sort credential secrets by timestamp for last-write-wins
 
 ### Documentation
 
+- update koolna-operator changelog for credential aggregation
+- update changelogs for credential read/write split
+- update changelogs for configurable credential paths
 - update changelogs for shared credential secret
 
 ## 2026-03-27
