@@ -38,6 +38,7 @@ type KoolnaSpec struct {
 	Repo            string                      `json:"repo"`
 	Branch          string                      `json:"branch"`
 	GitSecretRef    string                      `json:"gitSecretRef,omitempty"`
+	EnvSecretRef    string                      `json:"envSecretRef,omitempty"`
 	DotfilesRepo    string                      `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string                      `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string                      `json:"dotfilesBareDir,omitempty"`
