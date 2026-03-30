@@ -44,6 +44,7 @@ type KoolnaSpec struct {
 	DotfilesCommand string                      `json:"dotfilesCommand,omitempty"`
 	InitCommand     string                      `json:"initCommand,omitempty"`
 	Shell           string                      `json:"shell,omitempty"`
+	SSHPublicKey    string                      `json:"sshPublicKey,omitempty"`
 	Image           string                      `json:"image"`
 	Username        string                      `json:"username,omitempty"`
 	UID             *int64                      `json:"uid,omitempty"`
