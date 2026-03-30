@@ -4,6 +4,9 @@
 
 ### Added
 
+- `sshPublicKey` field in KoolnaSpec CRD for SSH access
+- pass KOOLNA_SSH_PUBKEY env var to sidecar when sshPublicKey is set
+- SSH port 2222 on service and sidecar container
 - aggregate per-pod credential secrets into shared koolna-credentials secret
 - pass KOOLNA_CREDENTIAL_PATHS env var to tmux-sidecar
 - pass KOOLNA_SHARED_SECRET env var to tmux-sidecar for shared credential reads

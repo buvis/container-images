@@ -4,6 +4,9 @@
 
 ### Added
 
+- openssh-server in sidecar image for SSHFS mount support
+- `setup_sshd()` function: starts sshd on port 2222 when KOOLNA_SSH_PUBKEY is set
+- host key persistence on PVC at `$HOME/.ssh/host_keys/`
 - configurable credential paths via KOOLNA_CREDENTIAL_PATHS env var
 - `koolna.buvis.net/type: credentials` label on per-pod secrets
 

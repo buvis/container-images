@@ -1,5 +1,13 @@
 # Changelog — koolna-webui
 
+## [Unreleased]
+
+### Added
+
+- sshPublicKey field in create/defaults/response APIs
+- mount-script endpoint (GET /api/koolnas/{name}/mount-script) for SSHFS mount
+- SSH public key textarea in create form with defaults pre-fill
+- Mount button in KoolnaList with download/usage modal
 
 ## 2026-03-27
 
