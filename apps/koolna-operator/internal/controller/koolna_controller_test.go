@@ -1196,6 +1196,61 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(wsMount.MountPath).To(Equal("/home/dev/workspace"))
 			Expect(wsMount.SubPath).To(Equal("workspace"))
 		})
+
+		It("should include cache emptyDir volume in pod spec", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles, uc)
+
+			var cacheVol *corev1.Volume
+			for i := range pod.Spec.Volumes {
+				if pod.Spec.Volumes[i].Name == "cache" {
+					cacheVol = &pod.Spec.Volumes[i]
+					break
+				}
+			}
+			Expect(cacheVol).NotTo(BeNil(), "expected volume named 'cache'")
+			Expect(cacheVol.VolumeSource.EmptyDir).NotTo(BeNil(), "expected cache volume to use emptyDir")
+		})
+
+		It("should mount cache volume at .cache in main container", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var cacheMount *corev1.VolumeMount
+			for i := range koolnaC.VolumeMounts {
+				if koolnaC.VolumeMounts[i].Name == "cache" {
+					cacheMount = &koolnaC.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(cacheMount).NotTo(BeNil(), "expected volume mount named 'cache'")
+			Expect(cacheMount.MountPath).To(Equal(uc.HomePath + "/.cache"))
+		})
+
+		It("should mount cache volume at .cache in sidecar", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			var cacheMount *corev1.VolumeMount
+			for i := range sidecar.VolumeMounts {
+				if sidecar.VolumeMounts[i].Name == "cache" {
+					cacheMount = &sidecar.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(cacheMount).NotTo(BeNil(), "expected volume mount named 'cache' on sidecar")
+			Expect(cacheMount.MountPath).To(Equal(uc.HomePath + "/.cache"))
+		})
+
+		It("should not mount cache volume in init container", func() {
+			c := buildGitCloneInitContainer(koolna, uc)
+
+			for _, vm := range c.VolumeMounts {
+				Expect(vm.Name).NotTo(Equal("cache"), "init container should not have cache volume mount")
+			}
+		})
 	})
 
 	Context("SSH public key wiring", func() {
