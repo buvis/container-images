@@ -5,20 +5,21 @@
 
 ### Added
 
-- add Mount button and modal to KoolnaList
-- add sshPublicKey to frontend types and create form
-- add mount-script endpoint for SSHFS mount
-- add sshPublicKey to backend create/defaults/response
+- sshPublicKey field in create/defaults/response APIs
+- mount-script endpoint (GET /api/koolnas/{name}/mount-script) for SSHFS mount
+- SSH public key textarea in create form with defaults pre-fill
+- Mount button in KoolnaList with download/usage modal
+- env var CRUD API (GET/PUT /api/env-defaults, GET/PUT /api/koolnas/{name}/env)
+- per-koolna env secret creation in create flow with envSecretRef on CR
+- Settings page (/settings) for managing dotfiles defaults and default env vars
+- EnvVarEditor component with name validation, show/hide toggle, defaults inheritance
+- env var section in create form seeded from defaults
+- koolna-env-defaults Secret deploy manifest
 
 ### Fixed
 
 - show OS-specific unmount commands in modal
 - harden mount script SSH options and input validation
-
-### Documentation
-
-- update changelogs for SSHFS mount feature
-- update changelogs [ci-skip]
 
 ## 2026-03-29
 

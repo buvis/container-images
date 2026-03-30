@@ -17,6 +17,8 @@
 - proxy env var injection (HTTP_PROXY, HTTPS_PROXY, NO_PROXY) on main container and sidecar
 - proxy CA ConfigMap mount (`koolna-cache-ca`) for cache proxy trust, optional so pods start without proxy
 - configurable proxy address via KOOLNA_PROXY_ADDRESS env var on operator
+- `envSecretRef` field in KoolnaSpec CRD for per-koolna environment variable injection
+- EnvFrom SecretRef injection on both koolna and tmux-sidecar containers when envSecretRef is set
 
 ### Fixed
 
