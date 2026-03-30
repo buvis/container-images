@@ -281,7 +281,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     if (formState.gitToken.trim()) payload.gitToken = formState.gitToken.trim()
     if (formState.sshPublicKey.trim()) payload.sshPublicKey = formState.sshPublicKey.trim()
     if (envVars.length > 0) {
-      payload.envVars = envVars.filter((v) => v.name.trim() && v.value.trim())
+      payload.envVars = envVars.filter((v) => v.name.trim() && /^[A-Z_][A-Z0-9_]*$/.test(v.name))
     }
 
     try {
