@@ -104,6 +104,7 @@ if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ] && [ ! -f "$KOOLNA_CRED
   mkdir -p "$KOOLNA_DIR"
   REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > "$KOOLNA_CRED"
+  chmod 600 "$KOOLNA_CRED"
   git config -f "$KOOLNA_GC" credential.helper "store --file=$KOOLNA_CRED"
 fi
 if [ -n "${GIT_NAME:-}" ] && ! git config -f "$KOOLNA_GC" user.name >/dev/null 2>&1; then
