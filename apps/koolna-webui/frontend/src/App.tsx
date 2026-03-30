@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import KoolnaCreate from './components/KoolnaCreate'
 import KoolnaList from './components/KoolnaList'
+import Settings from './components/Settings'
 import { Terminal } from './components/Terminal'
 import './App.css'
 
@@ -19,13 +20,22 @@ const HomePage = () => {
             <h1 className="text-3xl font-semibold text-white">Environment library</h1>
             <p className="text-sm text-white/60">Manage live Koolna sessions from one console.</p>
           </div>
-          <button
-            type="button"
-            className="rounded-2xl border border-transparent bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
-            onClick={() => navigate('/create')}
-          >
-            New Koolna
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-white/40"
+              onClick={() => navigate('/settings')}
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              className="rounded-2xl border border-transparent bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
+              onClick={() => navigate('/create')}
+            >
+              New Koolna
+            </button>
+          </div>
         </header>
         <KoolnaList onTerminal={(name, session) => { window.location.href = `/terminal/${name}/${session}`; }} />
       </div>
@@ -58,6 +68,31 @@ const CreatePage = () => {
   )
 }
 
+const SettingsPage = () => {
+  const navigate = useNavigate()
+
+  return (
+    <main className={`${layoutWrapper}`}>
+      <div className={`${contentWrapper}`}>
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-950/70 px-6 py-5 shadow-lg shadow-black/40">
+          <div>
+            <p className="text-sm uppercase tracking-wide text-sky-500">Settings</p>
+            <h1 className="text-3xl font-semibold text-white">Koolna defaults</h1>
+          </div>
+          <button
+            type="button"
+            className="rounded-2xl border border-white/10 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-white/40"
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </button>
+        </header>
+        <Settings onBack={() => navigate('/')} />
+      </div>
+    </main>
+  )
+}
+
 const TerminalPage = () => {
   const { name, session } = useParams<{ name: string; session: string }>()
 
@@ -84,6 +119,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/terminal/:name/:session" element={<TerminalPage />} />
       </Routes>
     </BrowserRouter>
