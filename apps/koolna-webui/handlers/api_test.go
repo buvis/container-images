@@ -501,3 +501,147 @@ func TestMountScript_NotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestMountScript_Success(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "koolna.buvis.net/v1alpha1",
+			"kind":       "Koolna",
+			"metadata": map[string]interface{}{
+				"name":      "ssh-env",
+				"namespace": testNS,
+			},
+			"spec": map[string]interface{}{
+				"repo":         "https://github.com/owner/repo",
+				"branch":       "main",
+				"image":        "ghcr.io/buvis/koolna-base:latest",
+				"storage":      "10Gi",
+				"sshPublicKey": "ssh-ed25519 AAAAC3test user@host",
+			},
+			"status": map[string]interface{}{
+				"phase": "Running",
+				"ip":    "10.0.0.1",
+			},
+		},
+	}
+	router := setupTest(t, obj)
+
+	req := httptest.NewRequest("GET", "/api/koolnas/ssh-env/mount-script", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	ct := w.Header().Get("Content-Type")
+	if ct != "application/x-sh" {
+		t.Errorf("Content-Type = %s, want application/x-sh", ct)
+	}
+
+	cd := w.Header().Get("Content-Disposition")
+	if !strings.Contains(cd, "ssh-env") {
+		t.Errorf("Content-Disposition = %s, want it to contain ssh-env", cd)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, "#!/bin/sh") {
+		t.Error("script should start with shebang")
+	}
+	if !strings.Contains(body, "ssh-env") {
+		t.Error("script should contain the koolna name")
+	}
+	if !strings.Contains(body, testNS) {
+		t.Errorf("script should contain namespace %s", testNS)
+	}
+	if !strings.Contains(body, `USERNAME="bob"`) {
+		t.Error("script should default USERNAME to bob")
+	}
+}
+
+func TestMountScript_CustomUsername(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "koolna.buvis.net/v1alpha1",
+			"kind":       "Koolna",
+			"metadata": map[string]interface{}{
+				"name":      "custom-user-env",
+				"namespace": testNS,
+			},
+			"spec": map[string]interface{}{
+				"repo":         "https://github.com/owner/repo",
+				"branch":       "main",
+				"image":        "ghcr.io/buvis/koolna-base:latest",
+				"storage":      "10Gi",
+				"sshPublicKey": "ssh-ed25519 AAAAC3test alice@host",
+				"username":     "alice",
+				"homePath":     "/home/alice",
+			},
+			"status": map[string]interface{}{
+				"phase": "Running",
+				"ip":    "10.0.0.2",
+			},
+		},
+	}
+	router := setupTest(t, obj)
+
+	req := httptest.NewRequest("GET", "/api/koolnas/custom-user-env/mount-script", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `USERNAME="alice"`) {
+		t.Error("script should contain USERNAME=\"alice\"")
+	}
+	if !strings.Contains(body, `REMOTE_PATH="/home/alice"`) {
+		t.Error("script should contain REMOTE_PATH=\"/home/alice\"")
+	}
+}
+
+func TestListKoolnas_IncludesSSHPublicKey(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "koolna.buvis.net/v1alpha1",
+			"kind":       "Koolna",
+			"metadata": map[string]interface{}{
+				"name":      "ssh-list-env",
+				"namespace": testNS,
+			},
+			"spec": map[string]interface{}{
+				"repo":         "https://github.com/owner/repo",
+				"branch":       "main",
+				"image":        "ghcr.io/buvis/koolna-base:latest",
+				"storage":      "10Gi",
+				"sshPublicKey": "ssh-ed25519 AAAAC3test user@host",
+			},
+			"status": map[string]interface{}{
+				"phase": "Running",
+				"ip":    "10.0.0.1",
+			},
+		},
+	}
+	router := setupTest(t, obj)
+
+	req := httptest.NewRequest("GET", "/api/koolnas", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var items []map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &items); err != nil {
+		t.Fatalf("expected JSON array: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	if items[0]["sshPublicKey"] != "ssh-ed25519 AAAAC3test user@host" {
+		t.Errorf("sshPublicKey = %v, want ssh-ed25519 key", items[0]["sshPublicKey"])
+	}
+}
