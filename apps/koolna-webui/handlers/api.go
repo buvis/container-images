@@ -59,6 +59,7 @@ type createRequest struct {
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
 	InitCommand    string `json:"initCommand,omitempty"`
 	Shell           string `json:"shell,omitempty"`
+	SSHPublicKey    string `json:"sshPublicKey,omitempty"`
 	Username        string `json:"username,omitempty"`
 	UID             *int64 `json:"uid,omitempty"`
 	HomePath        string `json:"homePath,omitempty"`
@@ -72,12 +73,13 @@ type createRequest struct {
 }
 
 type koolnaResponse struct {
-	Name      string `json:"name"`
-	Repo      string `json:"repo"`
-	Branch    string `json:"branch"`
-	Phase     string `json:"phase"`
-	IP        string `json:"ip,omitempty"`
-	Suspended bool   `json:"suspended"`
+	Name         string `json:"name"`
+	Repo         string `json:"repo"`
+	Branch       string `json:"branch"`
+	Phase        string `json:"phase"`
+	IP           string `json:"ip,omitempty"`
+	Suspended    bool   `json:"suspended"`
+	SSHPublicKey string `json:"sshPublicKey,omitempty"`
 }
 
 func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
@@ -85,6 +87,7 @@ func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
 	resp.Repo, _, _ = unstructured.NestedString(obj.Object, "spec", "repo")
 	resp.Branch, _, _ = unstructured.NestedString(obj.Object, "spec", "branch")
 	resp.Suspended, _, _ = unstructured.NestedBool(obj.Object, "spec", "suspended")
+	resp.SSHPublicKey, _, _ = unstructured.NestedString(obj.Object, "spec", "sshPublicKey")
 	resp.Phase, _, _ = unstructured.NestedString(obj.Object, "status", "phase")
 	resp.IP, _, _ = unstructured.NestedString(obj.Object, "status", "ip")
 	return resp
@@ -114,6 +117,7 @@ type defaultsResponse struct {
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
 	InitCommand    string `json:"initCommand,omitempty"`
 	DefaultBranch   string `json:"defaultBranch,omitempty"`
+	SSHPublicKey    string `json:"sshPublicKey,omitempty"`
 }
 
 // GetDefaults reads the koolna-defaults ConfigMap.
@@ -134,6 +138,7 @@ func (h *APIHandler) GetDefaults(w http.ResponseWriter, _ *http.Request) {
 		DotfilesCommand: cm.Data["dotfilesCommand"],
 		InitCommand:    cm.Data["initCommand"],
 		DefaultBranch:   cm.Data["defaultBranch"],
+		SSHPublicKey:    cm.Data["sshPublicKey"],
 	})
 }
 
@@ -163,6 +168,9 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.DefaultBranch != "" {
 		data["defaultBranch"] = req.DefaultBranch
+	}
+	if req.SSHPublicKey != "" {
+		data["sshPublicKey"] = req.SSHPublicKey
 	}
 
 	cm, err := h.kube.CoreV1().ConfigMaps(h.ns).Get(context.Background(), defaultsConfigMapName, metav1.GetOptions{})
@@ -361,6 +369,9 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Shell != "" {
 		spec["shell"] = req.Shell
+	}
+	if req.SSHPublicKey != "" {
+		spec["sshPublicKey"] = req.SSHPublicKey
 	}
 	if req.Username != "" {
 		spec["username"] = req.Username
