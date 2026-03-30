@@ -362,7 +362,9 @@ func (h *APIHandler) UpdateKoolnaEnv(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if _, err := h.resource().Patch(context.Background(), name, types.MergePatchType, patchBody, metav1.PatchOptions{}); err != nil {
-			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			// Clean up orphan secret since CR patch failed
+			_ = h.kube.CoreV1().Secrets(h.ns).Delete(context.Background(), secretName, metav1.DeleteOptions{})
+			respondError(w, statusFromError(err, http.StatusInternalServerError), fmt.Errorf("env secret created but CR patch failed: %v", err))
 			return
 		}
 		respondJSON(w, http.StatusOK, req)
