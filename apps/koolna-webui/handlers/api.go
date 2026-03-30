@@ -327,14 +327,46 @@ func (h *APIHandler) UpdateKoolnaEnv(w http.ResponseWriter, r *http.Request) {
 	}
 
 	secretName := name + "-env"
+	stringData := envVarsToStringData(req.Vars)
 	secret, err := h.kube.CoreV1().Secrets(h.ns).Get(context.Background(), secretName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: h.ns,
+				Labels: map[string]string{
+					"koolna.buvis.net/name": name,
+				},
+			},
+			Type:       corev1.SecretTypeOpaque,
+			StringData: stringData,
+		}
+		if _, err := h.kube.CoreV1().Secrets(h.ns).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		// Patch CR to set envSecretRef so operator picks up the new secret
+		patchBody, err := json.Marshal(map[string]interface{}{
+			"spec": map[string]string{"envSecretRef": secretName},
+		})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
+		if _, err := h.resource().Patch(context.Background(), name, types.MergePatchType, patchBody, metav1.PatchOptions{}); err != nil {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		respondJSON(w, http.StatusOK, req)
+		return
+	}
 	if err != nil {
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
 	}
 
 	secret.Data = nil
-	secret.StringData = envVarsToStringData(req.Vars)
+	secret.StringData = stringData
 	if _, err := h.kube.CoreV1().Secrets(h.ns).Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
