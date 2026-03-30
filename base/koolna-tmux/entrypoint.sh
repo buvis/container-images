@@ -274,6 +274,11 @@ setup_sshd() {
   # sshd requires /run/sshd
   mkdir -p /run/sshd
 
+  PERMIT_ROOT="no"
+  if [ "$KOOLNA_USERNAME" = "root" ]; then
+    PERMIT_ROOT="prohibit-password"
+  fi
+
   cat > /tmp/sshd_config <<SSHD
 Port 2222
 HostKey $SSH_HOST_KEY_DIR/ssh_host_ed25519_key
@@ -281,7 +286,7 @@ AuthorizedKeysFile $SSH_DIR/authorized_keys
 PasswordAuthentication no
 PubkeyAuthentication yes
 AllowUsers $KOOLNA_USERNAME
-PermitRootLogin no
+PermitRootLogin $PERMIT_ROOT
 Subsystem sftp /usr/lib/openssh/sftp-server
 SSHD
 
