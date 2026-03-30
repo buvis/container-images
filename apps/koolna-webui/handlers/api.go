@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -517,6 +518,8 @@ func (h *APIHandler) GetBranch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"branch": stdout})
 }
 
+var shellUnsafe = regexp.MustCompile(`[^a-zA-Z0-9_./-]`)
+
 // MountScript generates a shell script for mounting a koolna pod via SSHFS.
 func (h *APIHandler) MountScript(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
@@ -542,6 +545,15 @@ func (h *APIHandler) MountScript(w http.ResponseWriter, r *http.Request) {
 		} else {
 			homePath = "/home/" + username
 		}
+	}
+
+	if shellUnsafe.MatchString(username) {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("username contains unsafe characters"))
+		return
+	}
+	if shellUnsafe.MatchString(homePath) {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("homePath contains unsafe characters"))
+		return
 	}
 
 	script := fmt.Sprintf(`#!/bin/sh
@@ -594,7 +606,7 @@ for i in $(seq 1 30); do
     cat /tmp/koolna-pf-$NAME.log >&2
     exit 1
   fi
-  LOCAL_PORT=$(grep -o '127.0.0.1:[0-9]*' /tmp/koolna-pf-$NAME.log 2>/dev/null | head -1 | cut -d: -f2)
+  LOCAL_PORT=$(grep -oE '(127\.0\.0\.1|\[::1\]|0\.0\.0\.0):[0-9]+' /tmp/koolna-pf-$NAME.log 2>/dev/null | head -1 | grep -oE '[0-9]+$')
   [ -n "$LOCAL_PORT" ] && break
   sleep 1
 done
@@ -610,9 +622,8 @@ echo "mounting $USERNAME@localhost:$REMOTE_PATH -> $MOUNT_POINT"
 
 sshfs -p "$LOCAL_PORT" "$USERNAME@localhost:$REMOTE_PATH" "$MOUNT_POINT" \
   -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-  -o IdentityFile=~/.ssh/id_ed25519 \
-  -o StrictHostKeyChecking=no \
-  -o UserKnownHostsFile=/dev/null
+  -o StrictHostKeyChecking=accept-new \
+  -o UserKnownHostsFile=~/.ssh/koolna_known_hosts
 
 echo ""
 echo "mounted at: $MOUNT_POINT"
