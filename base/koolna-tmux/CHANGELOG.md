@@ -3,12 +3,19 @@
 
 ## 2026-03-30
 
+### Removed
+
+- runtime GPG key fetch for Node.js (keys already baked into koolna-base image)
+
 ### Added
 
-- move SSH host keys to workspace/.koolna/ssh for persistence
-- set up persistent git credentials from workspace/.koolna
-- add setup_sshd for SSH access via sidecar
-- add openssh-server to sidecar image
+- openssh-server in sidecar image for SSHFS mount support
+- `setup_sshd()` function: starts sshd on port 2222 when KOOLNA_SSH_PUBKEY is set
+- configurable credential paths via KOOLNA_CREDENTIAL_PATHS env var
+- `koolna.buvis.net/type: credentials` label on per-pod secrets
+- `update-ca-certificates` in main container via nsenter before mise install for cache proxy CA trust
+- persistent git credentials at `workspace/.koolna/.git-credentials`
+- git config include for `workspace/.koolna/.gitconfig`
 
 ### Fixed
 
