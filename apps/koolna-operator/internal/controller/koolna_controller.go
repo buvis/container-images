@@ -622,7 +622,7 @@ mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
 	}
 }
 
-func buildDotfilesEnvVars(cfg dotfilesConfig, gitSecretRef string) []corev1.EnvVar {
+func buildDotfilesEnvVars(cfg dotfilesConfig) []corev1.EnvVar {
 	if cfg.Method == "none" {
 		return nil
 	}
@@ -727,7 +727,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 	if koolna.Spec.SSHPublicKey != "" {
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "KOOLNA_SSH_PUBKEY", Value: koolna.Spec.SSHPublicKey})
 	}
-	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles, koolna.Spec.GitSecretRef)...)
+	sidecarEnv = append(sidecarEnv, buildGitCredentialEnvVars(koolna.Spec.GitSecretRef)...)
+	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles)...)
 	if koolna.Spec.InitCommand != "" {
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
 	}

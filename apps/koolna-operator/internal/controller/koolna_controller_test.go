@@ -528,9 +528,9 @@ var _ = Describe("Koolna Controller", func() {
 	})
 
 	Context("When building dotfiles env vars", func() {
-		It("should include git secret env vars when gitSecretRef is set", func() {
+		It("should not include git secret env vars (now in buildGitCredentialEnvVars)", func() {
 			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles"}
-			envVars := buildDotfilesEnvVars(cfg, "git-creds")
+			envVars := buildDotfilesEnvVars(cfg)
 			Expect(envVars).NotTo(BeEmpty())
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
@@ -538,19 +538,19 @@ var _ = Describe("Koolna Controller", func() {
 			}
 			Expect(names).To(ContainElement("DOTFILES_REPO"))
 			Expect(names).To(ContainElement("DOTFILES_METHOD"))
-			Expect(names).To(ContainElement("GIT_USERNAME"))
-			Expect(names).To(ContainElement("GIT_TOKEN"))
+			Expect(names).NotTo(ContainElement("GIT_USERNAME"))
+			Expect(names).NotTo(ContainElement("GIT_TOKEN"))
 		})
 
 		It("should return nil when repo is empty", func() {
 			cfg := dotfilesConfig{}
-			envVars := buildDotfilesEnvVars(cfg, "git-creds")
+			envVars := buildDotfilesEnvVars(cfg)
 			Expect(envVars).To(BeNil())
 		})
 
 		It("should default method to clone", func() {
 			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles"}
-			envVars := buildDotfilesEnvVars(cfg, "")
+			envVars := buildDotfilesEnvVars(cfg)
 			var method string
 			for _, e := range envVars {
 				if e.Name == "DOTFILES_METHOD" {
@@ -562,7 +562,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should include DOTFILES_BARE_DIR when set", func() {
 			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles", Method: "bare-git", BareDir: ".buvis"}
-			envVars := buildDotfilesEnvVars(cfg, "")
+			envVars := buildDotfilesEnvVars(cfg)
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
 				names[i] = e.Name
@@ -572,13 +572,13 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should return nil when method is none", func() {
 			cfg := dotfilesConfig{Method: "none", Repo: "https://github.com/owner/dotfiles"}
-			envVars := buildDotfilesEnvVars(cfg, "")
+			envVars := buildDotfilesEnvVars(cfg)
 			Expect(envVars).To(BeNil())
 		})
 
 		It("should support command method without repo", func() {
 			cfg := dotfilesConfig{Method: "command", Command: "curl -Ls https://example.com | bash"}
-			envVars := buildDotfilesEnvVars(cfg, "")
+			envVars := buildDotfilesEnvVars(cfg)
 			Expect(envVars).NotTo(BeEmpty())
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
@@ -591,7 +591,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should support command method", func() {
 			cfg := dotfilesConfig{Method: "command", Command: "curl -Ls https://example.com | bash"}
-			envVars := buildDotfilesEnvVars(cfg, "")
+			envVars := buildDotfilesEnvVars(cfg)
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
 				names[i] = e.Name
@@ -603,7 +603,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should not set DOTFILES_BARE_DIR for clone method", func() {
 			cfg := dotfilesConfig{Repo: "https://github.com/owner/dotfiles", Method: "clone", BareDir: ".stale"}
-			envVars := buildDotfilesEnvVars(cfg, "")
+			envVars := buildDotfilesEnvVars(cfg)
 			names := make([]string, len(envVars))
 			for i, e := range envVars {
 				names[i] = e.Name
