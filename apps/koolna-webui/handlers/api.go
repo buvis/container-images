@@ -95,6 +95,16 @@ func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
 }
 
 const defaultsConfigMapName = "koolna-defaults"
+const envDefaultsSecretName = "koolna-env-defaults"
+
+type envVarEntry struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type envVarsPayload struct {
+	Vars []envVarEntry `json:"vars"`
+}
 
 // RegisterRoutes wires the handler functions into the provided router.
 func RegisterRoutes(r *mux.Router, h *APIHandler) {
@@ -110,6 +120,10 @@ func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/koolnas/{name}", h.DeleteKoolna).Methods("DELETE")
 	r.HandleFunc("/api/koolnas/{name}/pause", h.PauseKoolna).Methods("POST")
 	r.HandleFunc("/api/koolnas/{name}/resume", h.ResumeKoolna).Methods("POST")
+	r.HandleFunc("/api/env-defaults", h.GetEnvDefaults).Methods("GET")
+	r.HandleFunc("/api/env-defaults", h.UpdateEnvDefaults).Methods("PUT")
+	r.HandleFunc("/api/koolnas/{name}/env", h.GetKoolnaEnv).Methods("GET")
+	r.HandleFunc("/api/koolnas/{name}/env", h.UpdateKoolnaEnv).Methods("PUT")
 }
 
 type defaultsResponse struct {
@@ -198,6 +212,129 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 
 	cm.Data = data
 	if _, err := h.kube.CoreV1().ConfigMaps(h.ns).Update(context.Background(), cm, metav1.UpdateOptions{}); err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	respondJSON(w, http.StatusOK, req)
+}
+
+func secretToEnvVars(secret *corev1.Secret) envVarsPayload {
+	vars := make([]envVarEntry, 0, len(secret.Data))
+	for k, v := range secret.Data {
+		vars = append(vars, envVarEntry{Name: k, Value: string(v)})
+	}
+	sort.Slice(vars, func(i, j int) bool { return vars[i].Name < vars[j].Name })
+	return envVarsPayload{Vars: vars}
+}
+
+func envVarsToStringData(vars []envVarEntry) map[string]string {
+	data := make(map[string]string, len(vars))
+	for _, v := range vars {
+		data[v.Name] = v.Value
+	}
+	return data
+}
+
+// GetEnvDefaults reads the koolna-env-defaults Secret.
+func (h *APIHandler) GetEnvDefaults(w http.ResponseWriter, _ *http.Request) {
+	secret, err := h.kube.CoreV1().Secrets(h.ns).Get(context.Background(), envDefaultsSecretName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			respondJSON(w, http.StatusOK, envVarsPayload{Vars: []envVarEntry{}})
+			return
+		}
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	respondJSON(w, http.StatusOK, secretToEnvVars(secret))
+}
+
+// UpdateEnvDefaults creates or replaces the koolna-env-defaults Secret.
+func (h *APIHandler) UpdateEnvDefaults(w http.ResponseWriter, r *http.Request) {
+	var req envVarsPayload
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	stringData := envVarsToStringData(req.Vars)
+
+	secret, err := h.kube.CoreV1().Secrets(h.ns).Get(context.Background(), envDefaultsSecretName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      envDefaultsSecretName,
+				Namespace: h.ns,
+			},
+			Type:       corev1.SecretTypeOpaque,
+			StringData: stringData,
+		}
+		if _, err := h.kube.CoreV1().Secrets(h.ns).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		respondJSON(w, http.StatusOK, req)
+		return
+	}
+	if err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+
+	secret.Data = nil
+	secret.StringData = stringData
+	if _, err := h.kube.CoreV1().Secrets(h.ns).Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	respondJSON(w, http.StatusOK, req)
+}
+
+// GetKoolnaEnv reads the per-koolna env Secret.
+func (h *APIHandler) GetKoolnaEnv(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	if name == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("name is required"))
+		return
+	}
+
+	secretName := name + "-env"
+	secret, err := h.kube.CoreV1().Secrets(h.ns).Get(context.Background(), secretName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			respondJSON(w, http.StatusOK, envVarsPayload{Vars: []envVarEntry{}})
+			return
+		}
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	respondJSON(w, http.StatusOK, secretToEnvVars(secret))
+}
+
+// UpdateKoolnaEnv updates the per-koolna env Secret.
+func (h *APIHandler) UpdateKoolnaEnv(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	if name == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("name is required"))
+		return
+	}
+
+	var req envVarsPayload
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	secretName := name + "-env"
+	secret, err := h.kube.CoreV1().Secrets(h.ns).Get(context.Background(), secretName, metav1.GetOptions{})
+	if err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+
+	secret.Data = nil
+	secret.StringData = envVarsToStringData(req.Vars)
+	if _, err := h.kube.CoreV1().Secrets(h.ns).Update(context.Background(), secret, metav1.UpdateOptions{}); err != nil {
 		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
 		return
 	}
