@@ -1078,6 +1078,126 @@ var _ = Describe("Koolna Controller", func() {
 		})
 	})
 
+	Describe("Volume layout", func() {
+		var (
+			koolna *koolnav1alpha1.Koolna
+			uc     userConfig
+		)
+
+		BeforeEach(func() {
+			koolna = &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "vol-test", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+			uc = userConfigFromSpec(koolna.Spec)
+		})
+
+		It("should mount PVC at workspace subpath in main container", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var wsMount *corev1.VolumeMount
+			for i := range koolnaC.VolumeMounts {
+				if koolnaC.VolumeMounts[i].Name == "workspace" {
+					wsMount = &koolnaC.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace'")
+			Expect(wsMount.MountPath).To(Equal(uc.HomePath + "/workspace"))
+			Expect(wsMount.SubPath).To(Equal("workspace"))
+		})
+
+		It("should mount PVC at workspace subpath in sidecar", func() {
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles, uc)
+
+			sidecar := pod.Spec.Containers[1]
+			var wsMount *corev1.VolumeMount
+			for i := range sidecar.VolumeMounts {
+				if sidecar.VolumeMounts[i].Name == "workspace" {
+					wsMount = &sidecar.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace' on sidecar")
+			Expect(wsMount.MountPath).To(Equal(uc.HomePath + "/workspace"))
+			Expect(wsMount.SubPath).To(Equal("workspace"))
+		})
+
+		It("should mount PVC at workspace subpath in init container", func() {
+			c := buildGitCloneInitContainer(koolna, uc)
+
+			var wsMount *corev1.VolumeMount
+			for i := range c.VolumeMounts {
+				if c.VolumeMounts[i].Name == "workspace" {
+					wsMount = &c.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace' on init container")
+			Expect(wsMount.MountPath).To(Equal(uc.HomePath + "/workspace"))
+			Expect(wsMount.SubPath).To(Equal("workspace"))
+		})
+
+		It("should not chown cache/local/config in init script", func() {
+			c := buildGitCloneInitContainer(koolna, uc)
+			script := c.Args[0]
+
+			Expect(script).NotTo(ContainSubstring(".cache"))
+			Expect(script).NotTo(ContainSubstring(".local"))
+			Expect(script).NotTo(ContainSubstring(".config"))
+		})
+
+		It("should write git credentials to workspace .koolna dir", func() {
+			koolna.Spec.GitSecretRef = "git-creds"
+			c := buildGitCloneInitContainer(koolna, uc)
+			script := c.Args[0]
+
+			ws := uc.HomePath + "/workspace"
+			// Credentials should go into {ws}/.koolna/, not {home}/
+			Expect(script).To(ContainSubstring(ws + "/.koolna/.git-credentials"))
+			Expect(script).To(ContainSubstring(ws + "/.koolna/.gitconfig"))
+			Expect(script).NotTo(ContainSubstring(uc.HomePath + "/.git-credentials"))
+			Expect(script).NotTo(ContainSubstring(uc.HomePath + "/.gitconfig"))
+		})
+
+		It("should clone via temp dir instead of rm -rf mount point", func() {
+			c := buildGitCloneInitContainer(koolna, uc)
+			script := c.Args[0]
+
+			ws := uc.HomePath + "/workspace"
+			Expect(script).NotTo(ContainSubstring("rm -rf " + ws))
+		})
+
+		It("should use workspace subpath for custom home path", func() {
+			koolna.Spec.Username = "dev"
+			koolna.Spec.HomePath = "/home/dev"
+			uc = userConfigFromSpec(koolna.Spec)
+
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles, uc)
+
+			koolnaC := pod.Spec.Containers[0]
+			var wsMount *corev1.VolumeMount
+			for i := range koolnaC.VolumeMounts {
+				if koolnaC.VolumeMounts[i].Name == "workspace" {
+					wsMount = &koolnaC.VolumeMounts[i]
+					break
+				}
+			}
+			Expect(wsMount).NotTo(BeNil())
+			Expect(wsMount.MountPath).To(Equal("/home/dev/workspace"))
+			Expect(wsMount.SubPath).To(Equal("workspace"))
+		})
+	})
+
 	Context("SSH public key wiring", func() {
 		const resourceName = "test-ssh"
 
