@@ -645,3 +645,31 @@ func TestListKoolnas_IncludesSSHPublicKey(t *testing.T) {
 		t.Errorf("sshPublicKey = %v, want ssh-ed25519 key", items[0]["sshPublicKey"])
 	}
 }
+
+func TestUpdateDefaults_WithSSHPublicKey(t *testing.T) {
+	router := setupTest(t)
+
+	body := `{"sshPublicKey":"ssh-ed25519 AAAAC3default user@host"}`
+	req := httptest.NewRequest("PUT", "/api/defaults", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	req = httptest.NewRequest("GET", "/api/defaults", nil)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["sshPublicKey"] != "ssh-ed25519 AAAAC3default user@host" {
+		t.Errorf("sshPublicKey = %v, want ssh-ed25519 key", resp["sshPublicKey"])
+	}
+}
