@@ -126,12 +126,13 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
 			Expect(koolnaContainer.Ports).To(BeEmpty())
 			Expect(koolnaContainer.WorkingDir).To(Equal("/home/bob/workspace"))
-			Expect(koolnaContainer.VolumeMounts).To(HaveLen(2))
+			Expect(koolnaContainer.VolumeMounts).To(HaveLen(3))
 			Expect(koolnaContainer.VolumeMounts[0].Name).To(Equal("workspace"))
 			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/bob/workspace"))
 			Expect(koolnaContainer.VolumeMounts[0].SubPath).To(Equal("workspace"))
 			Expect(koolnaContainer.VolumeMounts[1].Name).To(Equal("cache"))
 			Expect(koolnaContainer.VolumeMounts[1].MountPath).To(Equal("/home/bob/.cache"))
+			Expect(koolnaContainer.VolumeMounts[2].Name).To(Equal("proxy-ca"))
 			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(1000)))
 			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(1000)))
 
@@ -139,14 +140,15 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecar.Name).To(Equal("tmux-sidecar"))
 			Expect(sidecar.Image).To(Equal("ghcr.io/buvis/koolna-tmux:latest"))
 			Expect(sidecar.SecurityContext.Capabilities.Add).To(ContainElement(corev1.Capability("SYS_PTRACE")))
-			Expect(sidecar.VolumeMounts).To(HaveLen(2))
+			Expect(sidecar.VolumeMounts).To(HaveLen(3))
 			Expect(sidecar.VolumeMounts[0].Name).To(Equal("workspace"))
 			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/bob/workspace"))
 			Expect(sidecar.VolumeMounts[1].Name).To(Equal("cache"))
 			Expect(sidecar.VolumeMounts[1].MountPath).To(Equal("/home/bob/.cache"))
+			Expect(sidecar.VolumeMounts[2].Name).To(Equal("proxy-ca"))
 
 			By("Checking env vars are on tmux-sidecar, not koolna")
-			Expect(koolnaContainer.Env).To(BeEmpty())
+			Expect(koolnaContainer.Env).NotTo(BeEmpty())
 			sidecarEnvMap := map[string]string{}
 			for _, e := range sidecar.Env {
 				sidecarEnvMap[e.Name] = e.Value
@@ -162,12 +164,13 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_CREDENTIAL_PATHS"))
 			Expect(sidecarEnvMap["KOOLNA_CREDENTIAL_PATHS"]).To(Equal(".claude/.credentials.json,.codex"))
 
-			By("Checking workspace and cache volumes")
-			Expect(pod.Spec.Volumes).To(HaveLen(2))
+			By("Checking workspace, cache, and proxy-ca volumes")
+			Expect(pod.Spec.Volumes).To(HaveLen(3))
 			Expect(pod.Spec.Volumes[0].Name).To(Equal("workspace"))
 			Expect(pod.Spec.Volumes[0].PersistentVolumeClaim).NotTo(BeNil())
 			Expect(pod.Spec.Volumes[1].Name).To(Equal("cache"))
 			Expect(pod.Spec.Volumes[1].EmptyDir).NotTo(BeNil())
+			Expect(pod.Spec.Volumes[2].Name).To(Equal("proxy-ca"))
 
 			By("Checking Service was created")
 			svc := &corev1.Service{}
@@ -1441,6 +1444,38 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 			Expect(httpProxy).To(Equal("http://custom-proxy.example.com:8080"))
+		})
+
+		It("should add EnvFrom with SecretRef on both containers when envSecretRef is set", func() {
+			koolna.Spec.EnvSecretRef = "my-env"
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-envfrom", dotfiles, uc)
+
+			for _, c := range pod.Spec.Containers {
+				var found bool
+				for _, ef := range c.EnvFrom {
+					if ef.SecretRef != nil && ef.SecretRef.Name == "my-env" {
+						found = true
+						Expect(ef.SecretRef.Optional).NotTo(BeNil())
+						Expect(*ef.SecretRef.Optional).To(BeTrue())
+					}
+				}
+				Expect(found).To(BeTrue(), "container %s should have EnvFrom with SecretRef my-env", c.Name)
+			}
+		})
+
+		It("should not add env secret EnvFrom when envSecretRef is empty", func() {
+			koolna.Spec.EnvSecretRef = ""
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-no-envfrom", dotfiles, uc)
+
+			for _, c := range pod.Spec.Containers {
+				for _, ef := range c.EnvFrom {
+					if ef.SecretRef != nil {
+						Expect(ef.SecretRef.Name).NotTo(Equal(""), "unexpected EnvFrom SecretRef on container %s", c.Name)
+					}
+				}
+			}
 		})
 	})
 
