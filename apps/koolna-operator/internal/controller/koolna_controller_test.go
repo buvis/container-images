@@ -1354,8 +1354,11 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(envMap).To(HaveKey("NO_PROXY"))
 		})
 
-		It("should use koolna namespace in default proxy address", func() {
-			koolna.Namespace = "koolna"
+		It("should use operator namespace in default proxy address", func() {
+			os.Setenv("KOOLNA_OPERATOR_NAMESPACE", "koolna-system")
+			defer os.Unsetenv("KOOLNA_OPERATOR_NAMESPACE")
+			os.Unsetenv("KOOLNA_PROXY_ADDRESS")
+
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
 			pod := buildPodSpec(koolna, "vol-test-proxy-ns", dotfiles, uc)
 
@@ -1367,7 +1370,7 @@ var _ = Describe("Koolna Controller", func() {
 					break
 				}
 			}
-			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna.svc:3128"))
+			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna-system.svc:3128"))
 		})
 
 		It("should include proxy-ca volume with optional ConfigMap", func() {

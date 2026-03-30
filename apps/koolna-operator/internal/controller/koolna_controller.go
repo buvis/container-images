@@ -710,15 +710,19 @@ func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
 	}
 }
 
-func proxyAddress(namespace string) string {
+func proxyAddress() string {
 	if addr := os.Getenv("KOOLNA_PROXY_ADDRESS"); addr != "" {
 		return addr
 	}
-	return "koolna-cache." + namespace + ".svc:3128"
+	ns := os.Getenv("KOOLNA_OPERATOR_NAMESPACE")
+	if ns == "" {
+		ns = "koolna-system"
+	}
+	return "koolna-cache." + ns + ".svc:3128"
 }
 
-func buildProxyEnvVars(namespace string) []corev1.EnvVar {
-	addr := proxyAddress(namespace)
+func buildProxyEnvVars() []corev1.EnvVar {
+	addr := proxyAddress()
 	proxyURL := "http://" + addr
 	noProxy := "kubernetes.default.svc,.svc,.cluster.local,10.0.0.0/8,127.0.0.1,localhost"
 	return []corev1.EnvVar{
@@ -786,7 +790,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
 	}
 
-	proxyEnv := buildProxyEnvVars(koolna.Namespace)
+	proxyEnv := buildProxyEnvVars()
 	sidecarEnv = append(sidecarEnv, proxyEnv...)
 
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: uc.HomePath + "/workspace", SubPath: "workspace"}
