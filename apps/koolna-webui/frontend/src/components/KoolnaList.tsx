@@ -4,6 +4,7 @@ import {
   pauseKoolna,
   resumeKoolna,
   deleteKoolna,
+  mountScriptUrl,
   type Koolna,
 } from '../api/koolna'
 
@@ -22,6 +23,7 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
   const [koolnas, setKoolnas] = useState<Koolna[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mountTarget, setMountTarget] = useState<string | null>(null)
 
   const loadKoolnas = useCallback(async () => {
     setLoading(true)
@@ -151,6 +153,14 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
                     )}
                     <button
                       type="button"
+                      className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200 transition hover:border-sky-400/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-sky-500/30"
+                      onClick={() => setMountTarget(koolna.name)}
+                      disabled={koolna.phase !== 'Running' || !koolna.sshPublicKey}
+                    >
+                      Mount
+                    </button>
+                    <button
+                      type="button"
                       className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-200 transition hover:border-rose-400/50"
                       onClick={() => performAction(() => deleteKoolna(koolna.name))}
                     >
@@ -170,6 +180,51 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
           </tbody>
         </table>
       </div>
+
+      {mountTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setMountTarget(null)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-950 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-4 text-lg font-semibold text-white">
+              Mount {mountTarget}
+            </h3>
+            <p className="mb-3 text-sm text-white/70">
+              Download the mount script, make it executable, and run it.
+            </p>
+            <div className="mb-4 rounded-xl border border-white/10 bg-slate-900/80 p-4 font-mono text-xs text-white/80">
+              <p>chmod +x mount-{mountTarget}.sh</p>
+              <p>./mount-{mountTarget}.sh</p>
+            </div>
+            <p className="mb-4 text-sm text-white/70">
+              To unmount, press Ctrl+C in the script terminal or run:
+            </p>
+            <div className="mb-6 rounded-xl border border-white/10 bg-slate-900/80 p-4 font-mono text-xs text-white/80">
+              <p>umount ~/mnt/{mountTarget}</p>
+            </div>
+            <div className="flex gap-3">
+              <a
+                href={mountScriptUrl(mountTarget)}
+                download
+                className="inline-flex items-center rounded-2xl border border-transparent bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
+              >
+                Download script
+              </a>
+              <button
+                type="button"
+                onClick={() => setMountTarget(null)}
+                className="rounded-2xl border border-white/20 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-white/40"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
