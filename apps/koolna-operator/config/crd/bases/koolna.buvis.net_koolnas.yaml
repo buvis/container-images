@@ -70,8 +70,6 @@ spec:
                 type: string
               gitSecretRef:
                 type: string
-              homePath:
-                type: string
               image:
                 type: string
               initCommand:
@@ -149,11 +147,6 @@ spec:
                 x-kubernetes-int-or-string: true
               suspended:
                 type: boolean
-              uid:
-                format: int64
-                type: integer
-              username:
-                type: string
             required:
             - branch
             - image
