@@ -61,9 +61,6 @@ type createRequest struct {
 	InitCommand    string `json:"initCommand,omitempty"`
 	Shell           string `json:"shell,omitempty"`
 	SSHPublicKey    string `json:"sshPublicKey,omitempty"`
-	Username        string `json:"username,omitempty"`
-	UID             *int64 `json:"uid,omitempty"`
-	HomePath        string `json:"homePath,omitempty"`
 	Image           string `json:"image"`
 	Storage         string `json:"storage"`
 	GitSecretRef    string `json:"gitSecretRef,omitempty"`
@@ -581,15 +578,6 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.SSHPublicKey != "" {
 		spec["sshPublicKey"] = req.SSHPublicKey
-	}
-	if req.Username != "" {
-		spec["username"] = req.Username
-	}
-	if req.UID != nil {
-		spec["uid"] = *req.UID
-	}
-	if req.HomePath != "" {
-		spec["homePath"] = req.HomePath
 	}
 
 	obj := &unstructured.Unstructured{
