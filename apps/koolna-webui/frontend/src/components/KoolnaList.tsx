@@ -156,6 +156,7 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
                       className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200 transition hover:border-sky-400/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-sky-500/30"
                       onClick={() => setMountTarget(koolna.name)}
                       disabled={koolna.phase !== 'Running' || !koolna.sshPublicKey}
+                      title={koolna.phase !== 'Running' ? 'Pod not running' : !koolna.sshPublicKey ? 'Set SSH public key in Settings to enable mounting' : undefined}
                     >
                       Mount
                     </button>
