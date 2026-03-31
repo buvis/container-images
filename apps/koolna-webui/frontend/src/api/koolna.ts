@@ -33,9 +33,6 @@ export interface CreateKoolnaRequest {
   shell?: string
   image?: string
   storage?: string | number
-  username?: string
-  uid?: number
-  homePath?: string
   gitUsername?: string
   gitToken?: string
   gitName?: string

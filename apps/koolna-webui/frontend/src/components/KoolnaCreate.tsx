@@ -18,9 +18,6 @@ type FormState = {
   branch: string
   image: string
   storage: string
-  username: string
-  uid: string
-  homePath: string
   dotfilesMethod: DotfilesMethod
   dotfilesRepo: string
   dotfilesBareDir: string
@@ -35,7 +32,6 @@ type FormState = {
 }
 
 type ValidatableField = 'name' | 'repo' | 'branch' | 'image' | 'storage'
-  | 'username' | 'uid' | 'homePath'
   | 'gitName' | 'gitEmail' | 'gitUsername' | 'gitToken' | 'dotfilesBareDir'
 
 const FIELD_HELP: Record<ValidatableField, string> = {
@@ -44,13 +40,10 @@ const FIELD_HELP: Record<ValidatableField, string> = {
   branch: 'Branch to check out after cloning.',
   image: 'Container image that runs your development environment.',
   storage: 'Persistent volume size for your workspace data.',
-  username: 'POSIX username for the container. Must match the user in the image.',
-  uid: 'Numeric user ID. Must match the UID of the user in the image.',
   gitName: 'Used as git user.name for commits made in this environment.',
   gitEmail: 'Used as git user.email for commits made in this environment.',
   gitUsername: 'Git service username for authenticating repository access.',
   gitToken: 'Authentication token for pulling and pushing to the repository.',
-  homePath: 'Absolute path to the user home directory inside the container.',
   dotfilesBareDir: 'Directory name where the bare git repository is checked out.',
 }
 
@@ -60,13 +53,6 @@ function isFieldInvalid(field: ValidatableField, state: FormState): boolean {
       return !NAME_PATTERN.test(state.name)
     case 'repo':
       return !REPO_PATTERN.test(state.repo)
-    case 'username':
-      return !/^[a-z_][a-z0-9_-]*$/.test(state.username)
-    case 'uid':
-      return !/^\d+$/.test(state.uid)
-    case 'homePath':
-      if (!state.homePath.trim()) return false
-      return !state.homePath.startsWith('/') || state.homePath.trim() === '/'
     case 'dotfilesBareDir':
       return state.dotfilesMethod === 'bare-git' && !!state.dotfilesRepo.trim() && !state.dotfilesBareDir.trim()
     default:
@@ -107,9 +93,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     branch: 'main',
     image: IMAGE_OPTIONS[0],
     storage: '10Gi',
-    username: 'bob',
-    uid: '1000',
-    homePath: '',
     dotfilesMethod: 'bare-git',
     dotfilesRepo: '',
     dotfilesBareDir: '',
@@ -122,7 +105,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     gitEmail: '',
     sshPublicKey: '',
   })
-  const [homePathManual, setHomePathManual] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ValidatableField, true>>>({})
   const [touched, setTouched] = useState<Partial<Record<ValidatableField, true>>>({})
   const [apiError, setApiError] = useState<string | null>(null)
@@ -173,17 +155,8 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     })
   }
 
-  const deriveHomePath = (user: string): string =>
-    user === 'root' ? '/root' : `/home/${user}`
-
   const handleFieldChange = (field: keyof FormState, value: string) => {
     const newState = { ...formState, [field]: value }
-    if (field === 'username' && !homePathManual) {
-      newState.homePath = deriveHomePath(value)
-    }
-    if (field === 'homePath') {
-      setHomePathManual(true)
-    }
     setFormState(newState)
     if (touched[field as ValidatableField]) {
       revalidate(field as ValidatableField, newState)
@@ -207,14 +180,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
   const validate = (): boolean => {
     const fields: ValidatableField[] = [
       'name', 'repo', 'branch', 'image', 'storage',
-      'username', 'uid',
       'gitName', 'gitEmail', 'gitUsername', 'gitToken',
     ]
     if (formState.dotfilesMethod === 'bare-git' && formState.dotfilesRepo.trim()) {
       fields.push('dotfilesBareDir')
-    }
-    if (formState.homePath.trim()) {
-      fields.push('homePath')
     }
     const newErrors: Partial<Record<ValidatableField, true>> = {}
     const newTouched: Partial<Record<ValidatableField, true>> = {}
@@ -241,16 +210,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
       branch: formState.branch,
       image: formState.image,
       storage: formState.storage,
-    }
-
-    if (formState.username !== 'bob') {
-      payload.username = formState.username
-    }
-    if (formState.uid !== '1000') {
-      payload.uid = parseInt(formState.uid, 10)
-    }
-    if (formState.homePath && formState.homePath !== deriveHomePath(formState.username)) {
-      payload.homePath = formState.homePath
     }
 
     if (formState.shell && formState.shell !== '/bin/bash') {
@@ -482,67 +441,17 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-username">
-                Username
-              </label>
-              {showHelp('username') && <FieldHelp field="username" />}
-            </div>
-            <input
-              id="koolna-username"
-              value={formState.username}
-              onChange={(event) => handleFieldChange('username', event.target.value)}
-              onBlur={() => handleBlur('username')}
-              className={inputClass('username')}
-              placeholder="bob"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-uid">
-                UID
-              </label>
-              {showHelp('uid') && <FieldHelp field="uid" />}
-            </div>
-            <input
-              id="koolna-uid"
-              value={formState.uid}
-              onChange={(event) => handleFieldChange('uid', event.target.value)}
-              onBlur={() => handleBlur('uid')}
-              className={inputClass('uid')}
-              placeholder="1000"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-home-path">
-                Home path
-              </label>
-              {showHelp('homePath') && <FieldHelp field="homePath" />}
-            </div>
-            <input
-              id="koolna-home-path"
-              value={formState.homePath}
-              onChange={(event) => handleFieldChange('homePath', event.target.value)}
-              onBlur={() => handleBlur('homePath')}
-              className={inputClass('homePath')}
-              placeholder={deriveHomePath(formState.username)}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-shell">
-              Shell
-            </label>
-            <input
-              id="koolna-shell"
-              value={formState.shell}
-              onChange={(event) => handleFieldChange('shell', event.target.value)}
-              className={`${INPUT_BASE} ${INPUT_OK}`}
-              placeholder="/bin/bash"
-            />
-          </div>
+        <div>
+          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-shell">
+            Shell
+          </label>
+          <input
+            id="koolna-shell"
+            value={formState.shell}
+            onChange={(event) => handleFieldChange('shell', event.target.value)}
+            className={`${INPUT_BASE} ${INPUT_OK}`}
+            placeholder="/bin/bash"
+          />
         </div>
 
         <div>
@@ -567,12 +476,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             <EnvVarEditor vars={envVars} onChange={setEnvVars} defaults={envDefaults} />
           </div>
         </div>
-
-        {(formState.username !== 'bob' || formState.uid !== '1000') && (
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
-            The specified user must exist in the chosen image with the given UID. If the user does not exist, the environment will fail to start.
-          </div>
-        )}
 
         <div>
           <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-method">
