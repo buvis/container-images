@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- fix dotfiles command syntax error and gitconfig path
 - fix chown paths, add GID detection, HOME fallback, cache path
 - run dotfiles and init command in main container via nsenter
 - silence credential-sync no-op log in polling loop
@@ -17,6 +18,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
 - update changelogs [skip ci]
 - update changelogs [skip ci]
