@@ -35,6 +35,14 @@ echo "found koolna main container process at PID $TARGET_PID"
 # Use dynamic home from operator env, default to /home/bob
 HOME="${KOOLNA_HOME:-/home/bob}"
 export HOME
+
+# Update CA certificates in main container before any network operations
+NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
+if $NSENTER_ROOT test -f /usr/local/share/ca-certificates/koolna-cache.crt; then
+  echo "updating CA certificates in main container..."
+  $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed (non-fatal)"
+fi
+
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
     repo_host=$(echo "$DOTFILES_REPO" | sed 's|https://\([^/]*\).*|\1|')
@@ -338,13 +346,6 @@ if ! $NSENTER sh -c "command -v $KOOLNA_SHELL" >/dev/null 2>&1; then
 fi
 
 NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
-
-# Update CA certificates in main container if proxy CA is mounted
-NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
-if $NSENTER_ROOT test -f /usr/local/share/ca-certificates/koolna-cache.crt; then
-  echo "updating CA certificates in main container..."
-  $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed (non-fatal)"
-fi
 
 # Bootstrap mise tools inside the main container
 if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then

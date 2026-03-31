@@ -506,9 +506,13 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, uc userConfig) co
 	cred := ws + "/.koolna/.git-credentials"
 	gc := ws + "/.koolna/.gitconfig"
 
+	koolnaDir := ws + "/.koolna"
+	mkKoolna := `mkdir -p ` + koolnaDir + ` && chown ` + own + ` ` + koolnaDir
+
 	var script string
 	if secretName != "" {
-		script = `if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
+		script = mkKoolna + `
+if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
   REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
   chmod 600 ` + cred + `
@@ -524,17 +528,16 @@ if [ ! -d ` + ws + `/.git ]; then
   rm -rf /tmp/repo
   cd ` + ws + ` && git checkout "$REPO_BRANCH"
   chown -R ` + own + ` ` + ws + `
-fi
-mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
+fi`
 	} else {
-		script = `if [ ! -d ` + ws + `/.git ]; then
+		script = mkKoolna + `
+if [ ! -d ` + ws + `/.git ]; then
   git clone "$REPO_URL" /tmp/repo
   cp -a /tmp/repo/. ` + ws + `/
   rm -rf /tmp/repo
   cd ` + ws + ` && git checkout "$REPO_BRANCH"
   chown -R ` + own + ` ` + ws + `
-fi
-mkdir -p ` + ws + `/.koolna && chown ` + own + ` ` + ws + `/.koolna`
+fi`
 	}
 
 	repoURL := resolveRepoURL(koolna.Spec.Repo)
