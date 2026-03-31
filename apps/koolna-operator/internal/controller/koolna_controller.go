@@ -376,9 +376,8 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 		return &pods.Items[0], nil
 	}
 
-	uc := userConfigFromSpec(koolna.Spec)
 	dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-	pod := buildPodSpec(koolna, pvcName, dotfiles, uc)
+	pod := buildPodSpec(koolna, pvcName, dotfiles)
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -392,35 +391,6 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 
 const workspaceVolumeName = "workspace"
 const cacheVolumeName = "cache"
-
-type userConfig struct {
-	Username string
-	UID      int64
-	HomePath string
-}
-
-func userConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) userConfig {
-	uc := userConfig{
-		Username: spec.Username,
-		HomePath: spec.HomePath,
-	}
-	if uc.Username == "" {
-		uc.Username = "bob"
-	}
-	if spec.UID != nil {
-		uc.UID = *spec.UID
-	} else {
-		uc.UID = 1000
-	}
-	if uc.HomePath == "" {
-		if uc.Username == "root" {
-			uc.HomePath = "/root"
-		} else {
-			uc.HomePath = "/home/" + uc.Username
-		}
-	}
-	return uc
-}
 
 type dotfilesConfig struct {
 	Repo    string
@@ -443,11 +413,9 @@ func dotfilesConfigFromSpec(spec koolnav1alpha1.KoolnaSpec) dotfilesConfig {
 }
 
 var (
-	validURLPattern      = regexp.MustCompile(`^https://[^/]+/.+$`)
-	validLegacyPattern   = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
-	validBranchPattern   = regexp.MustCompile(`^[\w./-]+$`)
-	validUsernamePattern = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
-	validHomePathPattern = regexp.MustCompile(`^/[a-zA-Z0-9._/-]+$`)
+	validURLPattern    = regexp.MustCompile(`^https://[^/]+/.+$`)
+	validLegacyPattern = regexp.MustCompile(`^[\w.-]+/[\w.-]+$`)
+	validBranchPattern = regexp.MustCompile(`^[\w./-]+$`)
 )
 
 func resolveRepoURL(raw string) string {
@@ -466,17 +434,6 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 	}
 	if spec.DotfilesRepo != "" && !validURLPattern.MatchString(spec.DotfilesRepo) && !validLegacyPattern.MatchString(spec.DotfilesRepo) {
 		return fmt.Errorf("invalid dotfilesRepo format %q: use https://host/owner/repo or owner/repo", spec.DotfilesRepo)
-	}
-	if spec.Username != "" && !validUsernamePattern.MatchString(spec.Username) {
-		return fmt.Errorf("invalid username %q: must be 1-32 lowercase chars matching [a-z_][a-z0-9_-]*", spec.Username)
-	}
-	if spec.UID != nil && *spec.UID < 0 {
-		return fmt.Errorf("invalid uid %d: must be >= 0", *spec.UID)
-	}
-	if spec.HomePath != "" {
-		if !validHomePathPattern.MatchString(spec.HomePath) {
-			return fmt.Errorf("invalid homePath %q: must be an absolute path with safe characters", spec.HomePath)
-		}
 	}
 	switch spec.DotfilesMethod {
 	case "", "none":
@@ -497,24 +454,21 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 	return nil
 }
 
-func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, uc userConfig) corev1.Container {
+func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
 	secretName := koolna.Spec.GitSecretRef
-	home := uc.HomePath
-	own := fmt.Sprintf("%d:%d", uc.UID, uc.UID)
 
-	ws := home + "/workspace"
+	ws := "/workspace"
 	cred := ws + "/.koolna/.git-credentials"
 	gc := ws + "/.koolna/.gitconfig"
 
 	koolnaDir := ws + "/.koolna"
-	mkKoolna := `mkdir -p ` + koolnaDir + ` && chown ` + own + ` ` + koolnaDir
+	mkKoolna := `mkdir -p ` + koolnaDir
 
 	cloneBlock := `if [ ! -d ` + ws + `/.git ]; then
   git clone "$REPO_URL" /tmp/repo
   cp -a /tmp/repo/. ` + ws + `/
   rm -rf /tmp/repo
   cd ` + ws + ` && git checkout "$REPO_BRANCH"
-  chown -R ` + own + ` ` + ws + `
 fi`
 
 	var script string
@@ -525,11 +479,9 @@ if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
   printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
   chmod 600 ` + cred + `
   git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
-  chown ` + own + ` ` + cred + `
 fi
 [ -n "$GIT_NAME" ] && git config -f ` + gc + ` user.name "$GIT_NAME"
 [ -n "$GIT_EMAIL" ] && git config -f ` + gc + ` user.email "$GIT_EMAIL"
-[ -f ` + gc + ` ] && chown ` + own + ` ` + gc + `
 ` + cloneBlock
 	} else {
 		script = mkKoolna + `
@@ -541,7 +493,7 @@ fi
 	env := []corev1.EnvVar{
 		{
 			Name:  "HOME",
-			Value: home,
+			Value: ws,
 		},
 		{
 			Name:  "GIT_CONFIG_GLOBAL",
@@ -763,7 +715,7 @@ func proxyCAVolumeMount() corev1.VolumeMount {
 	}
 }
 
-func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig, uc userConfig) *corev1.Pod {
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig) *corev1.Pod {
 	shareProcessNamespace := true
 
 	shell := koolna.Spec.Shell
@@ -777,9 +729,6 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
 		{Name: "KOOLNA_SHARED_SECRET", Value: sharedSecretName},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
-		{Name: "KOOLNA_HOME", Value: uc.HomePath},
-		{Name: "KOOLNA_UID", Value: fmt.Sprintf("%d", uc.UID)},
-		{Name: "KOOLNA_USERNAME", Value: uc.Username},
 		{Name: "KOOLNA_SHELL", Value: shell},
 		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.codex"},
 		{Name: "REPO_URL", Value: repoURL},
@@ -808,8 +757,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 		}
 	}
 
-	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: uc.HomePath + "/workspace", SubPath: "workspace"}
-	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: uc.HomePath + "/.cache"}
+	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: "/workspace", SubPath: "workspace"}
+	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: "/cache"}
 	caMount := proxyCAVolumeMount()
 
 	return &corev1.Pod{
@@ -825,23 +774,22 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 			ServiceAccountName:    "koolna-auth-syncer",
 			ShareProcessNamespace: &shareProcessNamespace,
 			InitContainers: []corev1.Container{
-				buildGitCloneInitContainer(koolna, uc),
+				buildGitCloneInitContainer(koolna),
 			},
 			Containers: []corev1.Container{
 				{
 					Name:       "koolna",
 					Image:      koolna.Spec.Image,
 					Command:    []string{"sh", "-c", "exec sleep infinity"},
-					WorkingDir: uc.HomePath + "/workspace",
+					WorkingDir: "/workspace",
 					Resources:  koolna.Spec.Resources,
 					EnvFrom:    envFrom,
 					Env: append([]corev1.EnvVar{
-						{Name: "GIT_CONFIG_GLOBAL", Value: uc.HomePath + "/workspace/.koolna/.gitconfig"},
+						{Name: "GIT_CONFIG_GLOBAL", Value: "/workspace/.koolna/.gitconfig"},
+						{Name: "XDG_CACHE_HOME", Value: "/cache"},
+						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
+						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
 					}, proxyEnv...),
-					SecurityContext: &corev1.SecurityContext{
-						RunAsUser:  &uc.UID,
-						RunAsGroup: &uc.UID,
-					},
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
 				{
@@ -890,8 +838,7 @@ func buildWorkspaceVolume(pvcName string) corev1.Volume {
 	}
 }
 
-func boolPtr(b bool) *bool    { return &b }
-func int64Ptr(i int64) *int64 { return &i }
+func boolPtr(b bool) *bool { return &b }
 
 func authSecretName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-auth"

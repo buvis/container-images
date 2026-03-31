@@ -195,8 +195,8 @@ func TestBuildGitCloneInitContainer_WorkspacePaths(t *testing.T) {
 		t.Fatal("init container: Args is empty, expected script")
 	}
 	script := c.Args[0]
-	if !strings.Contains(script, "/workspace/.koolna/") {
-		t.Error("init container script should reference /workspace/.koolna/ for credential/gitconfig paths")
+	if !strings.Contains(script, "/workspace/.koolna") {
+		t.Error("init container script should reference /workspace/.koolna for credential/gitconfig paths")
 	}
 }
 

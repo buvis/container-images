@@ -506,8 +506,7 @@ var _ = Describe("Koolna Controller", func() {
 					Storage:      resource.MustParse("1Gi"),
 				},
 			}
-			uc := userConfigFromSpec(koolna.Spec)
-			c := buildGitCloneInitContainer(koolna, uc)
+			c := buildGitCloneInitContainer(koolna)
 			script := c.Args[0]
 			Expect(script).NotTo(ContainSubstring("$GIT_USERNAME:$GIT_TOKEN@"))
 			Expect(script).To(ContainSubstring("credential.helper"))
@@ -524,8 +523,7 @@ var _ = Describe("Koolna Controller", func() {
 					Storage:      resource.MustParse("1Gi"),
 				},
 			}
-			uc := userConfigFromSpec(koolna.Spec)
-			c := buildGitCloneInitContainer(koolna, uc)
+			c := buildGitCloneInitContainer(koolna)
 			script := c.Args[0]
 			Expect(script).To(ContainSubstring(`"$REPO_BRANCH"`))
 		})
@@ -735,28 +733,24 @@ var _ = Describe("Koolna Controller", func() {
 		})
 	})
 
-	Context("When creating Koolna with custom user config", func() {
-		const resourceName = "test-custom-user"
+	Context("When creating Koolna with fixed workspace paths", func() {
+		const resourceName = "test-fixed-paths"
 
 		AfterEach(func() {
 			cleanupKoolna(resourceName, "default")
 		})
 
-		It("should use custom username/uid/homePath", func() {
+		It("should use fixed /workspace and /cache paths", func() {
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      resourceName,
 					Namespace: "default",
 				},
 				Spec: koolnav1alpha1.KoolnaSpec{
-					Repo:         "https://github.com/owner/repo",
-					Branch:       "main",
-					GitSecretRef: "git-creds",
-					Image:        "python:3.12",
-					Storage:      resource.MustParse("1Gi"),
-					Username:     "dev",
-					UID:          int64Ptr(2000),
-					HomePath:     "/home/dev",
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "python:3.12",
+					Storage: resource.MustParse("1Gi"),
 				},
 			}
 
@@ -769,7 +763,7 @@ var _ = Describe("Koolna Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Checking Pod uses custom user config")
+			By("Checking Pod uses fixed paths")
 			pod := &corev1.Pod{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName,
@@ -777,125 +771,20 @@ var _ = Describe("Koolna Controller", func() {
 			}, pod)).To(Succeed())
 
 			koolnaContainer := pod.Spec.Containers[0]
-			Expect(koolnaContainer.WorkingDir).To(Equal("/home/dev/workspace"))
-			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev/workspace"))
-			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(2000)))
-			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(2000)))
+			Expect(koolnaContainer.WorkingDir).To(Equal("/workspace"))
+			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/workspace"))
+			Expect(koolnaContainer.SecurityContext).To(BeNil())
 			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
-
-			sidecar := pod.Spec.Containers[1]
-			Expect(sidecar.VolumeMounts[0].MountPath).To(Equal("/home/dev/workspace"))
-			sidecarEnvMap := map[string]string{}
-			for _, e := range sidecar.Env {
-				sidecarEnvMap[e.Name] = e.Value
-			}
-			Expect(sidecarEnvMap["KOOLNA_HOME"]).To(Equal("/home/dev"))
-			Expect(sidecarEnvMap["KOOLNA_UID"]).To(Equal("2000"))
-			Expect(sidecarEnvMap["KOOLNA_USERNAME"]).To(Equal("dev"))
-
-			By("Checking init container uses custom uid")
-			initContainer := pod.Spec.InitContainers[0]
-			Expect(initContainer.Args[0]).To(ContainSubstring("2000:2000"))
-			Expect(initContainer.VolumeMounts[0].MountPath).To(Equal("/home/dev/workspace"))
 		})
 	})
 
-	Context("When resolving user config defaults", func() {
-		It("should default to bob/1000/home/bob", func() {
-			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{})
-			Expect(uc.Username).To(Equal("bob"))
-			Expect(uc.UID).To(Equal(int64(1000)))
-			Expect(uc.HomePath).To(Equal("/home/bob"))
-		})
-
-		It("should derive /root for root user", func() {
-			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{Username: "root"})
-			Expect(uc.HomePath).To(Equal("/root"))
-		})
-
-		It("should use explicit homePath when provided", func() {
-			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{
-				Username: "dev",
-				HomePath: "/opt/dev",
-			})
-			Expect(uc.HomePath).To(Equal("/opt/dev"))
-		})
-	})
-
-	Context("When validating user config fields", func() {
-		It("should reject invalid username", func() {
-			spec := koolnav1alpha1.KoolnaSpec{
-				Repo:     "https://github.com/owner/repo",
-				Branch:   "main",
-				Image:    "ghcr.io/buvis/koolna-base:latest",
-				Storage:  resource.MustParse("1Gi"),
-				Username: "123invalid",
-			}
-			Expect(validateSpec(spec)).NotTo(Succeed())
-		})
-
-		It("should reject relative homePath", func() {
-			spec := koolnav1alpha1.KoolnaSpec{
-				Repo:     "https://github.com/owner/repo",
-				Branch:   "main",
-				Image:    "ghcr.io/buvis/koolna-base:latest",
-				Storage:  resource.MustParse("1Gi"),
-				HomePath: "relative/path",
-			}
-			Expect(validateSpec(spec)).NotTo(Succeed())
-		})
-
-		It("should reject root homePath", func() {
-			spec := koolnav1alpha1.KoolnaSpec{
-				Repo:     "https://github.com/owner/repo",
-				Branch:   "main",
-				Image:    "ghcr.io/buvis/koolna-base:latest",
-				Storage:  resource.MustParse("1Gi"),
-				HomePath: "/",
-			}
-			Expect(validateSpec(spec)).NotTo(Succeed())
-		})
-
-		It("should reject homePath with shell metacharacters", func() {
-			spec := koolnav1alpha1.KoolnaSpec{
-				Repo:     "https://github.com/owner/repo",
-				Branch:   "main",
-				Image:    "ghcr.io/buvis/koolna-base:latest",
-				Storage:  resource.MustParse("1Gi"),
-				HomePath: "/home/$(evil)",
-			}
-			Expect(validateSpec(spec)).NotTo(Succeed())
-		})
-
-		It("should reject negative UID", func() {
+	Context("When validating spec fields", func() {
+		It("should accept a valid minimal spec", func() {
 			spec := koolnav1alpha1.KoolnaSpec{
 				Repo:    "https://github.com/owner/repo",
 				Branch:  "main",
 				Image:   "ghcr.io/buvis/koolna-base:latest",
 				Storage: resource.MustParse("1Gi"),
-				UID:     int64Ptr(-1),
-			}
-			Expect(validateSpec(spec)).NotTo(Succeed())
-		})
-
-		It("should allow uid=0 for root", func() {
-			uc := userConfigFromSpec(koolnav1alpha1.KoolnaSpec{
-				Username: "root",
-				UID:      int64Ptr(0),
-			})
-			Expect(uc.UID).To(Equal(int64(0)))
-			Expect(uc.HomePath).To(Equal("/root"))
-		})
-
-		It("should accept valid custom user config", func() {
-			spec := koolnav1alpha1.KoolnaSpec{
-				Repo:     "https://github.com/owner/repo",
-				Branch:   "main",
-				Image:    "python:3.12",
-				Storage:  resource.MustParse("1Gi"),
-				Username: "dev",
-				UID:      int64Ptr(2000),
-				HomePath: "/home/dev",
 			}
 			Expect(validateSpec(spec)).To(Succeed())
 		})
@@ -1090,10 +979,7 @@ var _ = Describe("Koolna Controller", func() {
 	})
 
 	Describe("Volume layout", func() {
-		var (
-			koolna *koolnav1alpha1.Koolna
-			uc     userConfig
-		)
+		var koolna *koolnav1alpha1.Koolna
 
 		BeforeEach(func() {
 			koolna = &koolnav1alpha1.Koolna{
@@ -1105,12 +991,11 @@ var _ = Describe("Koolna Controller", func() {
 					Storage: resource.MustParse("1Gi"),
 				},
 			}
-			uc = userConfigFromSpec(koolna.Spec)
 		})
 
-		It("should mount PVC at workspace subpath in main container", func() {
+		It("should mount PVC at /workspace with subpath in main container", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			var wsMount *corev1.VolumeMount
@@ -1121,13 +1006,13 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace'")
-			Expect(wsMount.MountPath).To(Equal(uc.HomePath + "/workspace"))
+			Expect(wsMount.MountPath).To(Equal("/workspace"))
 			Expect(wsMount.SubPath).To(Equal("workspace"))
 		})
 
-		It("should mount PVC at workspace subpath in sidecar", func() {
+		It("should mount PVC at /workspace with subpath in sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			var wsMount *corev1.VolumeMount
@@ -1138,12 +1023,12 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace' on sidecar")
-			Expect(wsMount.MountPath).To(Equal(uc.HomePath + "/workspace"))
+			Expect(wsMount.MountPath).To(Equal("/workspace"))
 			Expect(wsMount.SubPath).To(Equal("workspace"))
 		})
 
-		It("should mount PVC at workspace subpath in init container", func() {
-			c := buildGitCloneInitContainer(koolna, uc)
+		It("should mount PVC at /workspace with subpath in init container", func() {
+			c := buildGitCloneInitContainer(koolna)
 
 			var wsMount *corev1.VolumeMount
 			for i := range c.VolumeMounts {
@@ -1153,12 +1038,12 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace' on init container")
-			Expect(wsMount.MountPath).To(Equal(uc.HomePath + "/workspace"))
+			Expect(wsMount.MountPath).To(Equal("/workspace"))
 			Expect(wsMount.SubPath).To(Equal("workspace"))
 		})
 
 		It("should not chown cache/local/config in init script", func() {
-			c := buildGitCloneInitContainer(koolna, uc)
+			c := buildGitCloneInitContainer(koolna)
 			script := c.Args[0]
 
 			Expect(script).NotTo(ContainSubstring(".cache"))
@@ -1168,49 +1053,23 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should write git credentials to workspace .koolna dir", func() {
 			koolna.Spec.GitSecretRef = "git-creds"
-			c := buildGitCloneInitContainer(koolna, uc)
+			c := buildGitCloneInitContainer(koolna)
 			script := c.Args[0]
 
-			ws := uc.HomePath + "/workspace"
-			// Credentials should go into {ws}/.koolna/, not {home}/
-			Expect(script).To(ContainSubstring(ws + "/.koolna/.git-credentials"))
-			Expect(script).To(ContainSubstring(ws + "/.koolna/.gitconfig"))
-			Expect(script).NotTo(ContainSubstring(uc.HomePath + "/.git-credentials"))
-			Expect(script).NotTo(ContainSubstring(uc.HomePath + "/.gitconfig"))
+			Expect(script).To(ContainSubstring("/workspace/.koolna/.git-credentials"))
+			Expect(script).To(ContainSubstring("/workspace/.koolna/.gitconfig"))
 		})
 
 		It("should clone via temp dir instead of rm -rf mount point", func() {
-			c := buildGitCloneInitContainer(koolna, uc)
+			c := buildGitCloneInitContainer(koolna)
 			script := c.Args[0]
 
-			ws := uc.HomePath + "/workspace"
-			Expect(script).NotTo(ContainSubstring("rm -rf " + ws))
-		})
-
-		It("should use workspace subpath for custom home path", func() {
-			koolna.Spec.Username = "dev"
-			koolna.Spec.HomePath = "/home/dev"
-			uc = userConfigFromSpec(koolna.Spec)
-
-			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-workspace", dotfiles, uc)
-
-			koolnaC := pod.Spec.Containers[0]
-			var wsMount *corev1.VolumeMount
-			for i := range koolnaC.VolumeMounts {
-				if koolnaC.VolumeMounts[i].Name == "workspace" {
-					wsMount = &koolnaC.VolumeMounts[i]
-					break
-				}
-			}
-			Expect(wsMount).NotTo(BeNil())
-			Expect(wsMount.MountPath).To(Equal("/home/dev/workspace"))
-			Expect(wsMount.SubPath).To(Equal("workspace"))
+			Expect(script).NotTo(ContainSubstring("rm -rf /workspace"))
 		})
 
 		It("should include cache emptyDir volume in pod spec", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles)
 
 			var cacheVol *corev1.Volume
 			for i := range pod.Spec.Volumes {
@@ -1223,9 +1082,9 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(cacheVol.VolumeSource.EmptyDir).NotTo(BeNil(), "expected cache volume to use emptyDir")
 		})
 
-		It("should mount cache volume at .cache in main container", func() {
+		It("should mount cache volume at /cache in main container", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			var cacheMount *corev1.VolumeMount
@@ -1236,12 +1095,12 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 			Expect(cacheMount).NotTo(BeNil(), "expected volume mount named 'cache'")
-			Expect(cacheMount.MountPath).To(Equal(uc.HomePath + "/.cache"))
+			Expect(cacheMount.MountPath).To(Equal("/cache"))
 		})
 
-		It("should mount cache volume at .cache in sidecar", func() {
+		It("should mount cache volume at /cache in sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-cache", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			var cacheMount *corev1.VolumeMount
@@ -1252,11 +1111,11 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 			Expect(cacheMount).NotTo(BeNil(), "expected volume mount named 'cache' on sidecar")
-			Expect(cacheMount.MountPath).To(Equal(uc.HomePath + "/.cache"))
+			Expect(cacheMount.MountPath).To(Equal("/cache"))
 		})
 
 		It("should not mount cache volume in init container", func() {
-			c := buildGitCloneInitContainer(koolna, uc)
+			c := buildGitCloneInitContainer(koolna)
 
 			for _, vm := range c.VolumeMounts {
 				Expect(vm.Name).NotTo(Equal("cache"), "init container should not have cache volume mount")
@@ -1266,7 +1125,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should pass git credential env vars to sidecar when gitSecretRef set", func() {
 			koolna.Spec.GitSecretRef = "git-creds"
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-creds", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-creds", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			envNames := map[string]bool{}
@@ -1282,7 +1141,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should not pass git credential env vars to sidecar when gitSecretRef empty", func() {
 			koolna.Spec.GitSecretRef = ""
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-no-creds", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-no-creds", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			for _, e := range sidecar.Env {
@@ -1293,7 +1152,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should pass REPO_URL to sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-repo-url", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-repo-url", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			var repoURL string
@@ -1306,9 +1165,9 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(repoURL).To(Equal("https://github.com/owner/repo"))
 		})
 
-		It("should set GIT_CONFIG_GLOBAL on main container pointing to workspace/.koolna/.gitconfig", func() {
+		It("should set GIT_CONFIG_GLOBAL on main container pointing to /workspace/.koolna/.gitconfig", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-gitconfig", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-gitconfig", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			var gitConfigGlobal string
@@ -1318,12 +1177,12 @@ var _ = Describe("Koolna Controller", func() {
 					break
 				}
 			}
-			Expect(gitConfigGlobal).To(Equal(uc.HomePath + "/workspace/.koolna/.gitconfig"))
+			Expect(gitConfigGlobal).To(Equal("/workspace/.koolna/.gitconfig"))
 		})
 
 		It("should include proxy env vars on main container", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			envMap := map[string]string{}
@@ -1345,7 +1204,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should include proxy env vars on sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			envMap := map[string]string{}
@@ -1363,7 +1222,7 @@ var _ = Describe("Koolna Controller", func() {
 			os.Unsetenv("KOOLNA_PROXY_ADDRESS")
 
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy-ns", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ns", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			var httpProxy string
@@ -1378,7 +1237,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should include proxy-ca volume with optional ConfigMap", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles)
 
 			var caVol *corev1.Volume
 			for i := range pod.Spec.Volumes {
@@ -1396,7 +1255,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should mount proxy CA cert in main container", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			var caMount *corev1.VolumeMount
@@ -1413,7 +1272,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should mount proxy CA cert in sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy-ca", dotfiles)
 
 			sidecar := pod.Spec.Containers[1]
 			var caMount *corev1.VolumeMount
@@ -1433,7 +1292,7 @@ var _ = Describe("Koolna Controller", func() {
 			defer os.Unsetenv("KOOLNA_PROXY_ADDRESS")
 
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-proxy-custom", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-proxy-custom", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			var httpProxy string
@@ -1449,7 +1308,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should add EnvFrom with SecretRef on both containers when envSecretRef is set", func() {
 			koolna.Spec.EnvSecretRef = "my-env"
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-envfrom", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-envfrom", dotfiles)
 
 			for _, c := range pod.Spec.Containers {
 				var found bool
@@ -1467,7 +1326,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should not add env secret EnvFrom when envSecretRef is empty", func() {
 			koolna.Spec.EnvSecretRef = ""
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-no-envfrom", dotfiles, uc)
+			pod := buildPodSpec(koolna, "vol-test-no-envfrom", dotfiles)
 
 			for _, c := range pod.Spec.Containers {
 				for _, ef := range c.EnvFrom {
