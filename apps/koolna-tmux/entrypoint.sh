@@ -32,19 +32,36 @@ while [ -z "$TARGET_PID" ]; do
 done
 echo "found koolna main container process at PID $TARGET_PID"
 
-# Use dynamic home from operator env, default to /home/bob
-HOME="${KOOLNA_HOME:-/home/bob}"
+# Auto-detect UID, HOME, PATH, and username from main container
+KOOLNA_UID=$(awk '/^Uid:/ {print $2}' "/proc/$TARGET_PID/status")
+HOME=$(tr '\0' '\n' < "/proc/$TARGET_PID/environ" | sed -n 's/^HOME=//p')
+DETECTED_PATH=$(tr '\0' '\n' < "/proc/$TARGET_PID/environ" | sed -n 's/^PATH=//p')
+if [ -n "$DETECTED_PATH" ]; then
+  export PATH="$DETECTED_PATH"
+fi
 export HOME
 
-# Update CA certificates before any network operations
 NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
+
+# Detect username from main container
+KOOLNA_USERNAME=$($NSENTER_ROOT getent passwd "$KOOLNA_UID" 2>/dev/null | cut -d: -f1)
+if [ -z "$KOOLNA_USERNAME" ]; then
+  if [ "$KOOLNA_UID" = "0" ]; then
+    KOOLNA_USERNAME="root"
+  else
+    KOOLNA_USERNAME="user"
+  fi
+fi
+
+echo "detected uid=$KOOLNA_UID home=$HOME user=$KOOLNA_USERNAME path=$DETECTED_PATH"
+
+# Update CA certificates before any network operations
 if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   echo "updating CA certificates..."
   update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in sidecar (non-fatal)"
   $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
 fi
 
-KOOLNA_UID="${KOOLNA_UID:-1000}"
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
 
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
@@ -115,8 +132,8 @@ if [ -n "${INIT_COMMAND:-}" ]; then
   $NSENTER_ROOT sh -c "$INIT_COMMAND"
 fi
 
-# Set up persistent git credentials from workspace/.koolna/
-WS="$HOME/workspace"
+# Set up persistent git credentials from /workspace/.koolna/
+WS="/workspace"
 KOOLNA_DIR="$WS/.koolna"
 KOOLNA_CRED="$KOOLNA_DIR/.git-credentials"
 KOOLNA_GC="$KOOLNA_DIR/.gitconfig"
@@ -302,8 +319,7 @@ fi
 setup_sshd() {
   [ -z "${KOOLNA_SSH_PUBKEY:-}" ] && return
 
-  KOOLNA_USERNAME="${KOOLNA_USERNAME:-bob}"
-  SSH_HOST_KEY_DIR="$HOME/workspace/.koolna/ssh"
+  SSH_HOST_KEY_DIR="/workspace/.koolna/ssh"
   SSH_DIR="$HOME/.ssh"
 
   mkdir -p "$SSH_HOST_KEY_DIR"
@@ -357,8 +373,6 @@ NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
 
 # Bootstrap mise tools inside the main container
 if $NSENTER_USER sh -c 'command -v mise >/dev/null 2>&1'; then
-  WS="$HOME/workspace"
-
   # Trust first so config detection works even in paranoid mode
   $NSENTER_USER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
 
