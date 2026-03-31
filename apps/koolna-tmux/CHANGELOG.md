@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- trust proxy CA in sidecar before dotfiles install
 - create .koolna dir before writing credentials, trust CA before dotfiles
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-30
 
