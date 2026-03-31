@@ -151,6 +151,9 @@ export function Settings() {
             <label className="text-sm font-semibold text-white/80" htmlFor="settings-ssh-pubkey">
               SSH public key
             </label>
+            <p className="mb-1 text-xs text-white/50">
+              Added to authorized_keys in the pod. Required for SSHFS workspace mounting.
+            </p>
             <textarea
               id="settings-ssh-pubkey"
               value={defaults.sshPublicKey ?? ''}
