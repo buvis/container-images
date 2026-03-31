@@ -530,7 +530,7 @@ func TestMountScript_Success(t *testing.T) {
 	}
 }
 
-func TestMountScript_CustomUsername(t *testing.T) {
+func TestMountScript_FixedPaths(t *testing.T) {
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "koolna.buvis.net/v1alpha1",
@@ -540,13 +540,10 @@ func TestMountScript_CustomUsername(t *testing.T) {
 				"namespace": testNS,
 			},
 			"spec": map[string]interface{}{
-				"repo":         "https://github.com/owner/repo",
-				"branch":       "main",
-				"image":        "ghcr.io/buvis/koolna-base:latest",
-				"storage":      "10Gi",
-				"sshPublicKey": "ssh-ed25519 AAAAC3test alice@host",
-				"username":     "alice",
-				"homePath":     "/home/alice",
+				"repo":    "https://github.com/owner/repo",
+				"branch":  "main",
+				"image":   "ghcr.io/buvis/koolna-base:latest",
+				"storage": "10Gi",
 			},
 			"status": map[string]interface{}{
 				"phase": "Running",
@@ -565,11 +562,11 @@ func TestMountScript_CustomUsername(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, `USERNAME="alice"`) {
-		t.Error("script should contain USERNAME=\"alice\"")
+	if !strings.Contains(body, `USERNAME="bob"`) {
+		t.Error("script should contain USERNAME=\"bob\"")
 	}
-	if !strings.Contains(body, `REMOTE_PATH="/home/alice"`) {
-		t.Error("script should contain REMOTE_PATH=\"/home/alice\"")
+	if !strings.Contains(body, `REMOTE_PATH="/workspace"`) {
+		t.Error("script should contain REMOTE_PATH=\"/workspace\"")
 	}
 }
 

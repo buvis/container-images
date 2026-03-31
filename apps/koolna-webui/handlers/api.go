@@ -732,6 +732,11 @@ func (h *APIHandler) MountScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := h.resource().Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+
 	username := "bob"
 	remotePath := "/workspace"
 
