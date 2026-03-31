@@ -3,6 +3,11 @@
 
 ## 2026-03-31
 
+### Changed
+
+- use fixed /workspace path in mount script
+- remove username/uid/homePath from create form and API
+
 ### Fixed
 
 - fix EnvVarEditor focus loss and remove value masking

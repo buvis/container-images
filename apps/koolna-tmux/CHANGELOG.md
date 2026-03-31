@@ -3,6 +3,16 @@
 
 ## 2026-03-31
 
+### Added
+
+- auto-detect UID, GID, HOME, PATH, and username from main container /proc
+- HOME detection fallback via getent passwd
+
+### Changed
+
+- use fixed /workspace and /cache paths instead of $HOME-relative
+- detect GID separately from UID for correct file ownership
+
 ### Fixed
 
 - silence credential-sync no-op log in polling loop

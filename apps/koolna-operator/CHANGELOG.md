@@ -6,6 +6,12 @@
 ### Changed
 
 - consolidate all koolna workloads into koolna namespace
+- replace user config fields with fixed /workspace and /cache mount paths
+- remove username/uid/homePath from CRD spec
+
+### Removed
+
+- username, uid, homePath CRD fields (auto-detected at runtime by sidecar)
 
 ### Fixed
 
