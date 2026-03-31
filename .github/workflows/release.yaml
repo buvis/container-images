@@ -206,7 +206,9 @@ jobs:
             if gh release view "${TAG}" >/dev/null 2>&1; then
               gh release edit "${TAG}" --notes "${NOTES}"
             else
-              git tag "${TAG}"
+              if ! git rev-parse "${TAG}" >/dev/null 2>&1; then
+                git tag "${TAG}"
+              fi
               git push origin "${TAG}"
               gh release create "${TAG}" \
                 --title "${CONTAINER} v${VERSION}" \
