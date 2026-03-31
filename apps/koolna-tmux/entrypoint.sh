@@ -36,11 +36,12 @@ echo "found koolna main container process at PID $TARGET_PID"
 HOME="${KOOLNA_HOME:-/home/bob}"
 export HOME
 
-# Update CA certificates in main container before any network operations
+# Update CA certificates before any network operations
 NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
-if $NSENTER_ROOT test -f /usr/local/share/ca-certificates/koolna-cache.crt; then
-  echo "updating CA certificates in main container..."
-  $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed (non-fatal)"
+if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
+  echo "updating CA certificates..."
+  update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in sidecar (non-fatal)"
+  $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
 fi
 
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
