@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- set GIT_CONFIG_GLOBAL on init container for credential discovery
 - create .koolna dir before writing credentials, trust CA before dotfiles
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-30
 
