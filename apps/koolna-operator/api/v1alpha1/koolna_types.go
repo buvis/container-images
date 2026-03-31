@@ -47,9 +47,6 @@ type KoolnaSpec struct {
 	Shell           string                      `json:"shell,omitempty"`
 	SSHPublicKey    string                      `json:"sshPublicKey,omitempty"`
 	Image           string                      `json:"image"`
-	Username        string                      `json:"username,omitempty"`
-	UID             *int64                      `json:"uid,omitempty"`
-	HomePath        string                      `json:"homePath,omitempty"`
 	Storage         resource.Quantity           `json:"storage"`
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
 	Suspended       bool                        `json:"suspended,omitempty"`
