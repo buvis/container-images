@@ -1,6 +1,12 @@
 # Changelog — koolna-tmux
 
 
+## 2026-04-01
+
+### Fixed
+
+- export NODE_EXTRA_CA_CERTS so nsenter'd npm trusts proxy CA
+
 ## 2026-03-31
 
 ### Added
@@ -18,6 +24,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
 - update changelogs [skip ci]
