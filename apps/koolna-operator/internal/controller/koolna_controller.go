@@ -719,7 +719,7 @@ func proxyAddress() string {
 	}
 	ns := os.Getenv("KOOLNA_OPERATOR_NAMESPACE")
 	if ns == "" {
-		ns = "koolna-system"
+		ns = "koolna"
 	}
 	return "koolna-cache." + ns + ".svc:3128"
 }

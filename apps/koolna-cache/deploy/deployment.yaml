@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: koolna-cache
-  namespace: koolna-system
+  namespace: koolna
 spec:
   replicas: 1
   strategy:
@@ -24,8 +24,10 @@ spec:
           ports:
             - containerPort: 3128
           env:
-            - name: KOOLNA_CA_TARGET_NAMESPACE
-              value: koolna
+            - name: KOOLNA_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           resources:
             requests:
               cpu: 100m

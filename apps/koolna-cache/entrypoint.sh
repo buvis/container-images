@@ -6,7 +6,7 @@ CA_CERT="$SSL_DIR/ca.pem"
 CA_KEY="$SSL_DIR/ca.key"
 SSL_DB="/var/spool/squid/ssl_db"
 CONFIGMAP_NAME="koolna-cache-ca"
-CA_TARGET_NAMESPACE="${KOOLNA_CA_TARGET_NAMESPACE:-${KOOLNA_NAMESPACE:-default}}"
+NAMESPACE="${KOOLNA_NAMESPACE:-default}"
 
 # Generate CA cert on first start
 if [ ! -f "$CA_CERT" ]; then
@@ -26,13 +26,13 @@ export_ca_configmap() {
 
   cert_b64=$(base64 < "$CA_CERT" | tr -d '\n')
 
-  payload="{\"apiVersion\": \"v1\", \"kind\": \"ConfigMap\", \"metadata\": {\"name\": \"$CONFIGMAP_NAME\", \"namespace\": \"$CA_TARGET_NAMESPACE\"}, \"binaryData\": {\"ca.crt\": \"$cert_b64\"}}"
+  payload="{\"apiVersion\": \"v1\", \"kind\": \"ConfigMap\", \"metadata\": {\"name\": \"$CONFIGMAP_NAME\", \"namespace\": \"$NAMESPACE\"}, \"binaryData\": {\"ca.crt\": \"$cert_b64\"}}"
 
   http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
     --cacert "$CA_BUNDLE" \
-    "$API_SERVER/api/v1/namespaces/$CA_TARGET_NAMESPACE/configmaps/$CONFIGMAP_NAME" \
+    "$API_SERVER/api/v1/namespaces/$NAMESPACE/configmaps/$CONFIGMAP_NAME" \
     -d "$payload")
 
   if [ "$http_code" = "404" ]; then
@@ -40,7 +40,7 @@ export_ca_configmap() {
       -H "Authorization: Bearer $TOKEN" \
       -H "Content-Type: application/json" \
       --cacert "$CA_BUNDLE" \
-      "$API_SERVER/api/v1/namespaces/$CA_TARGET_NAMESPACE/configmaps" \
+      "$API_SERVER/api/v1/namespaces/$NAMESPACE/configmaps" \
       -d "$payload")
   fi
 

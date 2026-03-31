@@ -1358,7 +1358,7 @@ var _ = Describe("Koolna Controller", func() {
 		})
 
 		It("should use operator namespace in default proxy address", func() {
-			os.Setenv("KOOLNA_OPERATOR_NAMESPACE", "koolna-system")
+			os.Setenv("KOOLNA_OPERATOR_NAMESPACE", "koolna")
 			defer os.Unsetenv("KOOLNA_OPERATOR_NAMESPACE")
 			os.Unsetenv("KOOLNA_PROXY_ADDRESS")
 
@@ -1373,7 +1373,7 @@ var _ = Describe("Koolna Controller", func() {
 					break
 				}
 			}
-			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna-system.svc:3128"))
+			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna.svc:3128"))
 		})
 
 		It("should include proxy-ca volume with optional ConfigMap", func() {
