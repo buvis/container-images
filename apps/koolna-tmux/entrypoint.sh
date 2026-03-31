@@ -250,7 +250,6 @@ sync_credentials() {
   unset IFS
 
   if [ -z "$data_fields" ]; then
-    echo "credential-sync: no credential files found, skipping"
     return
   fi
 
