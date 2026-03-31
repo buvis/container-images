@@ -115,7 +115,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
       "
       ;;
     command)
-      $NSENTER_ROOT sh -c "${CRED_SETUP}; ${DOTFILES_COMMAND:-true}; ${CRED_CLEANUP}"
+      $NSENTER_ROOT sh -c "${CRED_SETUP:-true}; ${DOTFILES_COMMAND:-true}; ${CRED_CLEANUP:-true}"
       ;;
     clone)
       $NSENTER_ROOT sh -c "
@@ -162,7 +162,7 @@ if [ -n "${GIT_EMAIL:-}" ] && ! git config -f "$KOOLNA_GC" user.email >/dev/null
   git config -f "$KOOLNA_GC" user.email "$GIT_EMAIL"
 fi
 if [ -f "$KOOLNA_GC" ]; then
-  git config --global include.path "$KOOLNA_GC"
+  $NSENTER_USER git config --global include.path "$KOOLNA_GC"
 fi
 
 # Fix ownership of directories written by root during dotfiles/init
