@@ -3,6 +3,12 @@
 
 ## 2026-03-31
 
+### Added
+
+- add tooltip to disabled Mount button
+- add SSH key help text to create form
+- add SSH key help text to Settings page
+
 ### Fixed
 
 - restore existence check in MountScript, update tests
@@ -13,6 +19,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
 - update changelogs [skip ci]
 
