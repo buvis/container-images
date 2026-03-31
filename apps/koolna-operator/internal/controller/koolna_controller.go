@@ -789,6 +789,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 						{Name: "XDG_CACHE_HOME", Value: "/cache"},
 						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
 						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
+						{Name: "NODE_EXTRA_CA_CERTS", Value: "/usr/local/share/ca-certificates/koolna-cache.crt"},
 					}, proxyEnv...),
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
