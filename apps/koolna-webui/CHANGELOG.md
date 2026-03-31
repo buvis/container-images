@@ -3,14 +3,18 @@
 
 ## 2026-03-31
 
-### Changed
-
-- use fixed /workspace path in mount script
-- remove username/uid/homePath from create form and API
-
 ### Fixed
 
+- restore existence check in MountScript, update tests
+- remove user config fields from create form
+- remove username/uid/homePath from create API
+- use fixed /workspace path in mount script
 - fix EnvVarEditor focus loss and remove value masking
+
+### Documentation
+
+- update changelogs for image-agnostic pod config
+- update changelogs [skip ci]
 
 ## 2026-03-30
 

@@ -5,21 +5,20 @@
 
 ### Changed
 
+- replace userConfig with fixed /workspace and /cache paths
 - consolidate all koolna workloads into koolna namespace
-- replace user config fields with fixed /workspace and /cache mount paths
-- remove username/uid/homePath from CRD spec
-
-### Removed
-
-- username, uid, homePath CRD fields (auto-detected at runtime by sidecar)
 
 ### Fixed
 
+- remove username/uid/homePath from CRD YAML
+- remove username/uid/homePath from KoolnaSpec CRD
 - set GIT_CONFIG_GLOBAL on init container for credential discovery
 - create .koolna dir before writing credentials, trust CA before dotfiles
 
 ### Documentation
 
+- update changelogs for image-agnostic pod config
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
