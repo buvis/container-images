@@ -67,6 +67,7 @@ echo "detected uid=$KOOLNA_UID gid=$KOOLNA_GID home=$HOME user=$KOOLNA_USERNAME"
 # Update CA certificates before any network operations
 if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   echo "updating CA certificates..."
+  export NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/koolna-cache.crt
   update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in sidecar (non-fatal)"
   $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
 fi
