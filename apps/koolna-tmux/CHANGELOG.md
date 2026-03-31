@@ -5,16 +5,11 @@
 
 ### Added
 
-- auto-detect UID, GID, HOME, PATH, and username from main container /proc
-- HOME detection fallback via getent passwd
-
-### Changed
-
-- use fixed /workspace and /cache paths instead of $HOME-relative
-- detect GID separately from UID for correct file ownership
+- auto-detect UID/HOME/PATH/username from /proc
 
 ### Fixed
 
+- fix chown paths, add GID detection, HOME fallback, cache path
 - run dotfiles and init command in main container via nsenter
 - silence credential-sync no-op log in polling loop
 - trust proxy CA in sidecar before dotfiles install
@@ -22,6 +17,8 @@
 
 ### Documentation
 
+- update changelogs for image-agnostic pod config
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
