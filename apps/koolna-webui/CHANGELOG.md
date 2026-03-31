@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-03-31
+
+### Fixed
+
+- fix EnvVarEditor focus loss and remove value masking
+
 ## 2026-03-30
 
 ### Added
@@ -35,6 +41,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs for env var config feature
 - update changelogs [ci-skip]
