@@ -3,9 +3,17 @@
 
 ## 2026-03-31
 
+### Changed
+
+- consolidate all koolna workloads into koolna namespace
+
 ### Fixed
 
 - export CA ConfigMap to koolna namespace, not koolna-system
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-30
 

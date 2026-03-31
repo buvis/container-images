@@ -3,6 +3,10 @@
 
 ## 2026-03-31
 
+### Changed
+
+- consolidate all koolna workloads into koolna namespace
+
 ### Fixed
 
 - set GIT_CONFIG_GLOBAL on init container for credential discovery
@@ -10,6 +14,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-30
