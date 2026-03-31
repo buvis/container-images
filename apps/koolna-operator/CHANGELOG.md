@@ -1,6 +1,12 @@
 # Changelog — koolna-operator
 
 
+## 2026-03-31
+
+### Fixed
+
+- create .koolna dir before writing credentials, trust CA before dotfiles
+
 ## 2026-03-30
 
 ### Added
@@ -32,6 +38,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs for env var config feature
 - update changelogs for proxy injection
 - update changelogs [ci-skip]
