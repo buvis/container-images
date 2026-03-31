@@ -458,6 +458,9 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           <label className="text-sm font-semibold text-white/80" htmlFor="koolna-ssh-pubkey">
             SSH public key (optional)
           </label>
+          <p className="mb-1 text-xs text-white/50">
+            Added to authorized_keys in the pod. Required for SSHFS workspace mounting.
+          </p>
           <textarea
             id="koolna-ssh-pubkey"
             value={formState.sshPublicKey}
