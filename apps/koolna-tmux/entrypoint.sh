@@ -44,50 +44,63 @@ if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
 fi
 
+KOOLNA_UID="${KOOLNA_UID:-1000}"
+NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
+
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
+  CRED_SETUP=""
+  CRED_CLEANUP=""
   if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
     repo_host=$(echo "$DOTFILES_REPO" | sed 's|https://\([^/]*\).*|\1|')
-    printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$repo_host" > /tmp/.gitcredentials
-    git config --global credential.helper "store --file=/tmp/.gitcredentials"
+    CRED_SETUP="printf 'https://%s:%s@%s\n' '$GIT_USERNAME' '$GIT_TOKEN' '$repo_host' > /tmp/.gitcredentials && git config --global credential.helper 'store --file=/tmp/.gitcredentials'"
+    CRED_CLEANUP="rm -f /tmp/.gitcredentials; git config --global --unset credential.helper 2>/dev/null || true"
   fi
 
   echo "installing dotfiles ($DOTFILES_METHOD)..."
   set +e
   case "$DOTFILES_METHOD" in
     bare-git)
-      bare_dir="$HOME/${DOTFILES_BARE_DIR:-.cfg}"
-      cache="$HOME/.cache/dotfiles"
-      if [ ! -d "$bare_dir/HEAD" ]; then
-        if [ ! -d "$cache/HEAD" ]; then
-          rm -rf "$cache"
-          git clone --bare "$DOTFILES_REPO" "$cache"
+      $NSENTER_ROOT sh -c "
+        ${CRED_SETUP}
+        bare_dir=\"$HOME/${DOTFILES_BARE_DIR:-.cfg}\"
+        cache=\"$HOME/.cache/dotfiles\"
+        if [ ! -d \"\$bare_dir/HEAD\" ]; then
+          if [ ! -d \"\$cache/HEAD\" ]; then
+            rm -rf \"\$cache\"
+            git clone --bare '$DOTFILES_REPO' \"\$cache\"
+          fi
+          cp -a \"\$cache\" \"\$bare_dir\"
+          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" config status.showUntrackedFiles no
+          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" checkout 2>/dev/null || {
+            mkdir -p \"\$bare_dir/backup\"
+            git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" checkout 2>&1 \
+              | grep -E '^\s+' | awk '{print \$1}' | while read -r f; do
+                mkdir -p \"\$bare_dir/backup/\$(dirname \"\$f\")\"
+                mv \"$HOME/\$f\" \"\$bare_dir/backup/\$f\" 2>/dev/null || true
+              done
+            git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" checkout
+          }
+        else
+          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" fetch origin || true
+          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" merge --ff-only || true
         fi
-        cp -a "$cache" "$bare_dir"
-        git --git-dir="$bare_dir" --work-tree="$HOME" config status.showUntrackedFiles no
-        git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>/dev/null || {
-          mkdir -p "$bare_dir/backup"
-          git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>&1 \
-            | grep -E '^\s+' | awk '{print $1}' | while read -r f; do
-              mkdir -p "$bare_dir/backup/$(dirname "$f")"
-              mv "$HOME/$f" "$bare_dir/backup/$f" 2>/dev/null || true
-            done
-          git --git-dir="$bare_dir" --work-tree="$HOME" checkout
-        }
-      else
-        git --git-dir="$bare_dir" --work-tree="$HOME" fetch origin || true
-        git --git-dir="$bare_dir" --work-tree="$HOME" merge --ff-only || true
-      fi
-      git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
+        git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" submodule update --init || true
+        ${CRED_CLEANUP}
+      "
       ;;
     command)
-      eval "${DOTFILES_COMMAND:-}"
+      $NSENTER_ROOT sh -c "${CRED_SETUP}; ${DOTFILES_COMMAND:-true}; ${CRED_CLEANUP}"
       ;;
     clone)
-      if [ ! -d "$HOME/.dotfiles/.git" ]; then
-        git clone "$DOTFILES_REPO" "$HOME/.dotfiles"
-      else
-        git -C "$HOME/.dotfiles" pull --ff-only || true
-      fi
+      $NSENTER_ROOT sh -c "
+        ${CRED_SETUP}
+        if [ ! -d '$HOME/.dotfiles/.git' ]; then
+          git clone '$DOTFILES_REPO' '$HOME/.dotfiles'
+        else
+          git -C '$HOME/.dotfiles' pull --ff-only || true
+        fi
+        ${CRED_CLEANUP}
+      "
       ;;
   esac
   dotfiles_exit=$?
@@ -95,13 +108,11 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   if [ "$dotfiles_exit" -ne 0 ]; then
     echo "dotfiles installation exited with status $dotfiles_exit (non-fatal)"
   fi
-  rm -f /tmp/.gitcredentials
-  git config --global --unset credential.helper 2>/dev/null || true
 fi
 
 if [ -n "${INIT_COMMAND:-}" ]; then
   echo "running init command..."
-  eval "$INIT_COMMAND"
+  $NSENTER_ROOT sh -c "$INIT_COMMAND"
 fi
 
 # Set up persistent git credentials from workspace/.koolna/
@@ -129,7 +140,6 @@ if [ -f "$KOOLNA_GC" ]; then
 fi
 
 # Fix ownership of directories written by root during dotfiles/init
-KOOLNA_UID="${KOOLNA_UID:-1000}"
 echo "fixing ownership (uid=$KOOLNA_UID)..."
 chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
 chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/workspace" 2>/dev/null || true
@@ -336,28 +346,26 @@ SSHD
 setup_sshd
 
 KOOLNA_SHELL="${KOOLNA_SHELL:-/bin/bash}"
-KOOLNA_UID="${KOOLNA_UID:-1000}"
-NSENTER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
 
 # Verify requested shell exists, fallback to /bin/sh if not
-if ! $NSENTER sh -c "command -v $KOOLNA_SHELL" >/dev/null 2>&1; then
+if ! $NSENTER_USER sh -c "command -v $KOOLNA_SHELL" >/dev/null 2>&1; then
   echo "warning: $KOOLNA_SHELL not found in main container, falling back to /bin/sh"
   KOOLNA_SHELL="/bin/sh"
 fi
 
-NSENTER_CMD="$NSENTER $KOOLNA_SHELL -l"
+NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
 
 # Bootstrap mise tools inside the main container
-if $NSENTER sh -c 'command -v mise >/dev/null 2>&1'; then
+if $NSENTER_USER sh -c 'command -v mise >/dev/null 2>&1'; then
   WS="$HOME/workspace"
 
   # Trust first so config detection works even in paranoid mode
-  $NSENTER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
+  $NSENTER_USER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
 
-  if $NSENTER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
+  if $NSENTER_USER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
 
     echo "running mise install in main container..."
-    $NSENTER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
+    $NSENTER_USER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
   fi
 fi
 
