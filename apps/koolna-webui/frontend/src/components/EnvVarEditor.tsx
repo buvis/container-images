@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { EnvVar } from '../api/koolna'
 
 const INPUT_BASE = 'w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
@@ -18,30 +18,17 @@ interface EnvVarEditorProps {
   defaults?: EnvVar[]
 }
 
-function toRows(vars: EnvVar[], startId: number): Row[] {
-  return vars.map((v, i) => ({ id: startId + i, name: v.name, value: v.value }))
-}
-
 function toEnvVars(rows: Row[]): EnvVar[] {
   return rows.map((r) => ({ name: r.name, value: r.value }))
 }
 
 export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
-  const nextId = useRef(vars.length)
-  const [rows, setRows] = useState<Row[]>(() => toRows(vars, 0))
-  const [showValues, setShowValues] = useState<Record<number, boolean>>({})
-  const lastExternalVars = useRef(vars)
+  const nextId = useRef(0)
+  const [rows, setRows] = useState<Row[]>(() =>
+    vars.map((v) => ({ id: nextId.current++, name: v.name, value: v.value }))
+  )
 
   const defaultNames = new Set(defaults?.map((d) => d.name) ?? [])
-
-  // Sync rows from parent only when vars reference changes externally
-  useEffect(() => {
-    if (lastExternalVars.current === vars) return
-    lastExternalVars.current = vars
-    const synced = toRows(vars, nextId.current)
-    nextId.current += vars.length
-    setRows(synced)
-  }, [vars])
 
   const emit = (updated: Row[]) => {
     setRows(updated)
@@ -53,21 +40,12 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
   }
 
   const removeRow = (id: number) => {
-    setShowValues((prev) => {
-      const next = { ...prev }
-      delete next[id]
-      return next
-    })
     emit(rows.filter((r) => r.id !== id))
   }
 
   const addRow = () => {
     const id = nextId.current++
     emit([...rows, { id, name: '', value: '' }])
-  }
-
-  const toggleShow = (id: number) => {
-    setShowValues((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
   const isNameInvalid = (name: string) => name.length > 0 && !NAME_PATTERN.test(name)
@@ -99,21 +77,12 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
             </div>
             <div className="flex-1">
               <input
-                type={showValues[row.id] ? 'text' : 'password'}
                 value={row.value}
                 onChange={(e) => updateRow(row.id, 'value', e.target.value)}
                 placeholder="value"
                 className={`${INPUT_BASE} ${INPUT_OK} font-mono text-xs`}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => toggleShow(row.id)}
-              className="mt-1 shrink-0 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white/60 transition hover:border-white/30 hover:text-white"
-              title={showValues[row.id] ? 'Hide value' : 'Show value'}
-            >
-              {showValues[row.id] ? 'Hide' : 'Show'}
-            </button>
             <button
               type="button"
               onClick={() => removeRow(row.id)}
