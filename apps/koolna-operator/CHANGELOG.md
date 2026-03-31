@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- add NODE_EXTRA_CA_CERTS for npm proxy trust
 - remove username/uid/homePath from CRD YAML
 - remove username/uid/homePath from KoolnaSpec CRD
 - set GIT_CONFIG_GLOBAL on init container for credential discovery
@@ -17,6 +18,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
 - update changelogs [skip ci]
 - update changelogs [skip ci]
