@@ -5,11 +5,13 @@
 
 ### Fixed
 
+- silence credential-sync no-op log in polling loop
 - trust proxy CA in sidecar before dotfiles install
 - create .koolna dir before writing credentials, trust CA before dotfiles
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-30
