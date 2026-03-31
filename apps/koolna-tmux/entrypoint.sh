@@ -70,6 +70,8 @@ if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   export NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/koolna-cache.crt
   update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in sidecar (non-fatal)"
   $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
+  export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+  export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 fi
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"

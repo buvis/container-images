@@ -1201,17 +1201,18 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(envMap["HTTP_PROXY"]).To(Equal(envMap["http_proxy"]))
 		})
 
-		It("should set NODE_EXTRA_CA_CERTS on main container for npm/node proxy trust", func() {
+		It("should set CA trust env vars on main container for proxy trust", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-node-ca", dotfiles)
+			pod := buildPodSpec(koolna, "vol-test-ca-trust", dotfiles)
 
 			koolnaC := pod.Spec.Containers[0]
 			envMap := map[string]string{}
 			for _, e := range koolnaC.Env {
 				envMap[e.Name] = e.Value
 			}
-			Expect(envMap).To(HaveKey("NODE_EXTRA_CA_CERTS"))
 			Expect(envMap["NODE_EXTRA_CA_CERTS"]).To(Equal("/usr/local/share/ca-certificates/koolna-cache.crt"))
+			Expect(envMap["SSL_CERT_FILE"]).To(Equal("/etc/ssl/certs/ca-certificates.crt"))
+			Expect(envMap["REQUESTS_CA_BUNDLE"]).To(Equal("/etc/ssl/certs/ca-certificates.crt"))
 		})
 
 		It("should include proxy env vars on sidecar", func() {

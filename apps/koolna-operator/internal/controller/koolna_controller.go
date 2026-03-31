@@ -790,6 +790,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
 						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
 						{Name: "NODE_EXTRA_CA_CERTS", Value: "/usr/local/share/ca-certificates/koolna-cache.crt"},
+						{Name: "SSL_CERT_FILE", Value: "/etc/ssl/certs/ca-certificates.crt"},
+						{Name: "REQUESTS_CA_BUNDLE", Value: "/etc/ssl/certs/ca-certificates.crt"},
 					}, proxyEnv...),
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
