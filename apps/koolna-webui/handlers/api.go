@@ -725,7 +725,6 @@ func (h *APIHandler) GetBranch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]string{"branch": stdout})
 }
 
-var shellUnsafe = regexp.MustCompile(`[^a-zA-Z0-9_./-]`)
 var envVarNamePattern = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
 func validateEnvVarNames(vars []envVarEntry) error {
@@ -745,33 +744,8 @@ func (h *APIHandler) MountScript(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	obj, err := h.resource().Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
-		return
-	}
-
-	username, _, _ := unstructured.NestedString(obj.Object, "spec", "username")
-	if username == "" {
-		username = "bob"
-	}
-	homePath, _, _ := unstructured.NestedString(obj.Object, "spec", "homePath")
-	if homePath == "" {
-		if username == "root" {
-			homePath = "/root"
-		} else {
-			homePath = "/home/" + username
-		}
-	}
-
-	if shellUnsafe.MatchString(username) {
-		respondError(w, http.StatusBadRequest, fmt.Errorf("username contains unsafe characters"))
-		return
-	}
-	if shellUnsafe.MatchString(homePath) {
-		respondError(w, http.StatusBadRequest, fmt.Errorf("homePath contains unsafe characters"))
-		return
-	}
+	username := "bob"
+	remotePath := "/workspace"
 
 	script := fmt.Sprintf(`#!/bin/sh
 set -eu
@@ -851,7 +825,7 @@ echo ""
 while kill -0 "$PF_PID" 2>/dev/null; do
   sleep 5
 done
-`, name, h.ns, username, homePath)
+`, name, h.ns, username, remotePath)
 
 	w.Header().Set("Content-Type", "application/x-sh")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="mount-%s.sh"`, name))
