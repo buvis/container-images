@@ -1,6 +1,12 @@
 # Changelog — koolna-operator
 
 
+## 2026-04-01
+
+### Fixed
+
+- export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
+
 ## 2026-03-31
 
 ### Changed
@@ -18,6 +24,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
 - update changelogs [skip ci]
