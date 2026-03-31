@@ -32,16 +32,25 @@ while [ -z "$TARGET_PID" ]; do
 done
 echo "found koolna main container process at PID $TARGET_PID"
 
-# Auto-detect UID, HOME, PATH, and username from main container
+# Auto-detect UID, GID, HOME, PATH, and username from main container
 KOOLNA_UID=$(awk '/^Uid:/ {print $2}' "/proc/$TARGET_PID/status")
+KOOLNA_GID=$(awk '/^Gid:/ {print $2}' "/proc/$TARGET_PID/status")
 HOME=$(tr '\0' '\n' < "/proc/$TARGET_PID/environ" | sed -n 's/^HOME=//p')
 DETECTED_PATH=$(tr '\0' '\n' < "/proc/$TARGET_PID/environ" | sed -n 's/^PATH=//p')
 if [ -n "$DETECTED_PATH" ]; then
   export PATH="$DETECTED_PATH"
 fi
-export HOME
 
 NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
+
+# Fallback for HOME if not found in environ
+if [ -z "$HOME" ]; then
+  HOME=$($NSENTER_ROOT getent passwd "$KOOLNA_UID" 2>/dev/null | cut -d: -f6)
+fi
+if [ -z "$HOME" ]; then
+  if [ "$KOOLNA_UID" = "0" ]; then HOME="/root"; else HOME="/home/user"; fi
+fi
+export HOME
 
 # Detect username from main container
 KOOLNA_USERNAME=$($NSENTER_ROOT getent passwd "$KOOLNA_UID" 2>/dev/null | cut -d: -f1)
@@ -53,7 +62,7 @@ if [ -z "$KOOLNA_USERNAME" ]; then
   fi
 fi
 
-echo "detected uid=$KOOLNA_UID home=$HOME user=$KOOLNA_USERNAME path=$DETECTED_PATH"
+echo "detected uid=$KOOLNA_UID gid=$KOOLNA_GID home=$HOME user=$KOOLNA_USERNAME"
 
 # Update CA certificates before any network operations
 if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
@@ -62,7 +71,7 @@ if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
 fi
 
-NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_UID --"
+NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   CRED_SETUP=""
@@ -80,7 +89,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
       $NSENTER_ROOT sh -c "
         ${CRED_SETUP}
         bare_dir=\"$HOME/${DOTFILES_BARE_DIR:-.cfg}\"
-        cache=\"$HOME/.cache/dotfiles\"
+        cache=\"/cache/dotfiles\"
         if [ ! -d \"\$bare_dir/HEAD\" ]; then
           if [ ! -d \"\$cache/HEAD\" ]; then
             rm -rf \"\$cache\"
@@ -158,12 +167,12 @@ fi
 
 # Fix ownership of directories written by root during dotfiles/init
 echo "fixing ownership (uid=$KOOLNA_UID)..."
-chown "$KOOLNA_UID:$KOOLNA_UID" "$HOME" 2>/dev/null || true
-chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/workspace" 2>/dev/null || true
-chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.cache" 2>/dev/null || true
-[ -d "$HOME/.cfg" ] && chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.cfg" 2>/dev/null || true
-[ -d "$HOME/.dotfiles" ] && chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.dotfiles" 2>/dev/null || true
-[ -d "$HOME/.ssh" ] && chown -R "$KOOLNA_UID:$KOOLNA_UID" "$HOME/.ssh" 2>/dev/null || true
+chown "$KOOLNA_UID:$KOOLNA_GID" "$HOME" 2>/dev/null || true
+chown -R "$KOOLNA_UID:$KOOLNA_GID" /workspace 2>/dev/null || true
+chown -R "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
+[ -d "$HOME/.cfg" ] && chown -R "$KOOLNA_UID:$KOOLNA_GID" "$HOME/.cfg" 2>/dev/null || true
+[ -d "$HOME/.dotfiles" ] && chown -R "$KOOLNA_UID:$KOOLNA_GID" "$HOME/.dotfiles" 2>/dev/null || true
+[ -d "$HOME/.ssh" ] && chown -R "$KOOLNA_UID:$KOOLNA_GID" "$HOME/.ssh" 2>/dev/null || true
 
 # --- credential sync ---
 KOOLNA_CREDENTIAL_PATHS="${KOOLNA_CREDENTIAL_PATHS:-.claude/.credentials.json,.codex}"
@@ -183,11 +192,11 @@ restore_credential_file() {
   [ -z "$val" ] && return
   dir=$(dirname "$dest")
   mkdir -p "$dir"
-  chown "$KOOLNA_UID:$KOOLNA_UID" "$dir"
+  chown "$KOOLNA_UID:$KOOLNA_GID" "$dir"
   if ! echo "$val" | base64 -d > "$dest" 2>/dev/null; then
     echo "credential-restore: failed decoding $key"
   else
-    chown "$KOOLNA_UID:$KOOLNA_UID" "$dest"
+    chown "$KOOLNA_UID:$KOOLNA_GID" "$dest"
   fi
 }
 
@@ -334,7 +343,7 @@ setup_sshd() {
   echo "$KOOLNA_SSH_PUBKEY" > "$SSH_DIR/authorized_keys"
   chmod 700 "$SSH_DIR"
   chmod 600 "$SSH_DIR/authorized_keys"
-  chown "$KOOLNA_UID:$KOOLNA_UID" "$SSH_DIR" "$SSH_DIR/authorized_keys"
+  chown "$KOOLNA_UID:$KOOLNA_GID" "$SSH_DIR" "$SSH_DIR/authorized_keys"
 
   # sshd requires /run/sshd
   mkdir -p /run/sshd
