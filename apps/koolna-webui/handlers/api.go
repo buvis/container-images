@@ -802,6 +802,12 @@ if [ -z "$LOCAL_PORT" ]; then
 fi
 
 echo "port-forward on localhost:$LOCAL_PORT"
+
+# Pre-connect to register host key (macOS SSH agent requires known host for key binding)
+ssh -p "$LOCAL_PORT" "$USERNAME@localhost" true \
+  -o StrictHostKeyChecking=accept-new \
+  -o UserKnownHostsFile=~/.ssh/koolna_known_hosts 2>/dev/null
+
 echo "mounting $USERNAME@localhost:$REMOTE_PATH -> $MOUNT_POINT"
 
 sshfs -p "$LOCAL_PORT" "$USERNAME@localhost:$REMOTE_PATH" "$MOUNT_POINT" \
