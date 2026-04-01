@@ -5,6 +5,8 @@
 
 ### Fixed
 
+- clean shutdown of sshfs before port-forward in mount script
+- detect gpg-agent SSH socket and use foreground sshfs in mount script
 - use StrictHostKeyChecking=no for ephemeral pod mount scripts
 - place SSH options before command in mount script pre-connect
 - pre-connect SSH in mount script for macOS agent key binding
@@ -12,6 +14,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
