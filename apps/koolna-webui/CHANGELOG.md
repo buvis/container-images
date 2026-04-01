@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- pre-connect SSH in mount script for macOS agent key binding
 - create sidecar user for sshd, fix mount script port detection
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
