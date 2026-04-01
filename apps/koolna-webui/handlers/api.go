@@ -805,15 +805,15 @@ echo "port-forward on localhost:$LOCAL_PORT"
 
 # Pre-connect to register host key (macOS SSH agent requires known host for key binding)
 ssh -p "$LOCAL_PORT" \
-  -o StrictHostKeyChecking=accept-new \
+  -o StrictHostKeyChecking=no \
   -o UserKnownHostsFile=~/.ssh/koolna_known_hosts \
-  "$USERNAME@localhost" true 2>/dev/null
+  "$USERNAME@localhost" true 2>/dev/null || true
 
 echo "mounting $USERNAME@localhost:$REMOTE_PATH -> $MOUNT_POINT"
 
 sshfs -p "$LOCAL_PORT" "$USERNAME@localhost:$REMOTE_PATH" "$MOUNT_POINT" \
   -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-  -o StrictHostKeyChecking=accept-new \
+  -o StrictHostKeyChecking=no \
   -o UserKnownHostsFile=~/.ssh/koolna_known_hosts
 
 echo ""
