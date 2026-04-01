@@ -72,6 +72,7 @@ if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
   export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
   export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+  export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 fi
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
@@ -147,9 +148,8 @@ if [ -n "${INIT_COMMAND:-}" ]; then
   $NSENTER_USER sh -c "$INIT_COMMAND"
 fi
 
-# Set up persistent git credentials from /workspace/.koolna/
-WS="/workspace"
-KOOLNA_DIR="$WS/.koolna"
+# Set up persistent git credentials on cache volume (not in workspace)
+KOOLNA_DIR="/cache/.koolna"
 KOOLNA_CRED="$KOOLNA_DIR/.git-credentials"
 KOOLNA_GC="$KOOLNA_DIR/.gitconfig"
 if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ] && [ ! -f "$KOOLNA_CRED" ]; then
@@ -334,7 +334,7 @@ fi
 setup_sshd() {
   [ -z "${KOOLNA_SSH_PUBKEY:-}" ] && return
 
-  SSH_HOST_KEY_DIR="/workspace/.koolna/ssh"
+  SSH_HOST_KEY_DIR="/cache/.koolna/ssh"
   SSH_DIR="$HOME/.ssh"
 
   mkdir -p "$SSH_HOST_KEY_DIR"

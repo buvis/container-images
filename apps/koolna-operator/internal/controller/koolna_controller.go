@@ -458,10 +458,10 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 	secretName := koolna.Spec.GitSecretRef
 
 	ws := "/workspace"
-	cred := ws + "/.koolna/.git-credentials"
-	gc := ws + "/.koolna/.gitconfig"
+	cred := "/cache/.koolna/.git-credentials"
+	gc := "/cache/.koolna/.gitconfig"
 
-	koolnaDir := ws + "/.koolna"
+	koolnaDir := "/cache/.koolna"
 	mkKoolna := `mkdir -p ` + koolnaDir
 
 	cloneBlock := `if [ ! -d ` + ws + `/.git ]; then
@@ -576,6 +576,10 @@ fi
 				Name:      workspaceVolumeName,
 				MountPath: ws,
 				SubPath:   "workspace",
+			},
+			{
+				Name:      cacheVolumeName,
+				MountPath: "/cache",
 			},
 		},
 	}
@@ -785,7 +789,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 					Resources:  koolna.Spec.Resources,
 					EnvFrom:    envFrom,
 					Env: append([]corev1.EnvVar{
-						{Name: "GIT_CONFIG_GLOBAL", Value: "/workspace/.koolna/.gitconfig"},
+						{Name: "GIT_CONFIG_GLOBAL", Value: "/cache/.koolna/.gitconfig"},
 						{Name: "XDG_CACHE_HOME", Value: "/cache"},
 						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
 						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},

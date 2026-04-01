@@ -74,8 +74,8 @@ func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 		}
 		for _, e := range c.Env {
 			if e.Name == "GIT_CONFIG_GLOBAL" {
-				if e.Value != "/workspace/.koolna/.gitconfig" {
-					t.Errorf("GIT_CONFIG_GLOBAL: got %q, want /workspace/.koolna/.gitconfig", e.Value)
+				if e.Value != "/cache/.koolna/.gitconfig" {
+					t.Errorf("GIT_CONFIG_GLOBAL: got %q, want /cache/.koolna/.gitconfig", e.Value)
 				}
 				return
 			}
@@ -195,8 +195,8 @@ func TestBuildGitCloneInitContainer_WorkspacePaths(t *testing.T) {
 		t.Fatal("init container: Args is empty, expected script")
 	}
 	script := c.Args[0]
-	if !strings.Contains(script, "/workspace/.koolna") {
-		t.Error("init container script should reference /workspace/.koolna for credential/gitconfig paths")
+	if !strings.Contains(script, "/cache/.koolna") {
+		t.Error("init container script should reference /cache/.koolna for credential/gitconfig paths")
 	}
 }
 
@@ -224,8 +224,8 @@ func TestBuildGitCloneInitContainer_WithGitSecret(t *testing.T) {
 		t.Fatal("init container: Args is empty, expected script")
 	}
 	script := c.Args[0]
-	if !strings.Contains(script, "/workspace/.koolna/") {
-		t.Error("init container script with git secret should reference /workspace/.koolna/ paths")
+	if !strings.Contains(script, "/cache/.koolna/") {
+		t.Error("init container script with git secret should reference /cache/.koolna/ paths")
 	}
 	if strings.Contains(script, "chown") {
 		t.Error("init container script should not contain chown even with git secret")

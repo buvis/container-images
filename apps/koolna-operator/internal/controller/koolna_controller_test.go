@@ -1055,8 +1055,8 @@ var _ = Describe("Koolna Controller", func() {
 			c := buildGitCloneInitContainer(koolna)
 			script := c.Args[0]
 
-			Expect(script).To(ContainSubstring("/workspace/.koolna/.git-credentials"))
-			Expect(script).To(ContainSubstring("/workspace/.koolna/.gitconfig"))
+			Expect(script).To(ContainSubstring("/cache/.koolna/.git-credentials"))
+			Expect(script).To(ContainSubstring("/cache/.koolna/.gitconfig"))
 		})
 
 		It("should clone via temp dir instead of rm -rf mount point", func() {
@@ -1113,12 +1113,17 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(cacheMount.MountPath).To(Equal("/cache"))
 		})
 
-		It("should not mount cache volume in init container", func() {
+		It("should mount cache volume in init container for .koolna config", func() {
 			c := buildGitCloneInitContainer(koolna)
 
-			for _, vm := range c.VolumeMounts {
-				Expect(vm.Name).NotTo(Equal("cache"), "init container should not have cache volume mount")
+			var cacheMount *corev1.VolumeMount
+			for i, vm := range c.VolumeMounts {
+				if vm.Name == "cache" {
+					cacheMount = &c.VolumeMounts[i]
+				}
 			}
+			Expect(cacheMount).NotTo(BeNil(), "expected cache volume mount on init container")
+			Expect(cacheMount.MountPath).To(Equal("/cache"))
 		})
 
 		It("should pass git credential env vars to sidecar when gitSecretRef set", func() {
@@ -1164,7 +1169,7 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(repoURL).To(Equal("https://github.com/owner/repo"))
 		})
 
-		It("should set GIT_CONFIG_GLOBAL on main container pointing to /workspace/.koolna/.gitconfig", func() {
+		It("should set GIT_CONFIG_GLOBAL on main container pointing to /cache/.koolna/.gitconfig", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
 			pod := buildPodSpec(koolna, "vol-test-gitconfig", dotfiles)
 
@@ -1176,7 +1181,7 @@ var _ = Describe("Koolna Controller", func() {
 					break
 				}
 			}
-			Expect(gitConfigGlobal).To(Equal("/workspace/.koolna/.gitconfig"))
+			Expect(gitConfigGlobal).To(Equal("/cache/.koolna/.gitconfig"))
 		})
 
 		It("should include proxy env vars on main container", func() {
