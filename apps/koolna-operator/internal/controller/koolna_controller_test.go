@@ -1245,7 +1245,7 @@ var _ = Describe("Koolna Controller", func() {
 					break
 				}
 			}
-			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna.svc:3128"))
+			Expect(httpProxy).To(ContainSubstring("koolna-cache.koolna.svc.cluster.local:3128"))
 		})
 
 		It("should include proxy-ca volume with optional ConfigMap", func() {

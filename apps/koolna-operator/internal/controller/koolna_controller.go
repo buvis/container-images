@@ -673,7 +673,7 @@ func proxyAddress() string {
 	if ns == "" {
 		ns = "koolna"
 	}
-	return "koolna-cache." + ns + ".svc:3128"
+	return "koolna-cache." + ns + ".svc.cluster.local:3128"
 }
 
 func buildProxyEnvVars() []corev1.EnvVar {

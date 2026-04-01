@@ -76,6 +76,9 @@ fi
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
+# Ensure user-writable directories before dotfiles run as user
+chown "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
+
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   CRED_SETUP=""
   CRED_CLEANUP=""
@@ -89,7 +92,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
   set +e
   case "$DOTFILES_METHOD" in
     bare-git)
-      $NSENTER_ROOT sh -c "
+      $NSENTER_USER sh -c "
         ${CRED_SETUP}
         bare_dir=\"$HOME/${DOTFILES_BARE_DIR:-.cfg}\"
         cache=\"/cache/dotfiles\"
@@ -118,10 +121,10 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
       "
       ;;
     command)
-      $NSENTER_ROOT sh -c "${CRED_SETUP:-true}; ${DOTFILES_COMMAND:-true}; ${CRED_CLEANUP:-true}"
+      $NSENTER_USER sh -c "${CRED_SETUP:-true}; ${DOTFILES_COMMAND:-true}; ${CRED_CLEANUP:-true}"
       ;;
     clone)
-      $NSENTER_ROOT sh -c "
+      $NSENTER_USER sh -c "
         ${CRED_SETUP}
         if [ ! -d '$HOME/.dotfiles/.git' ]; then
           git clone '$DOTFILES_REPO' '$HOME/.dotfiles'
@@ -141,7 +144,7 @@ fi
 
 if [ -n "${INIT_COMMAND:-}" ]; then
   echo "running init command..."
-  $NSENTER_ROOT sh -c "$INIT_COMMAND"
+  $NSENTER_USER sh -c "$INIT_COMMAND"
 fi
 
 # Set up persistent git credentials from /workspace/.koolna/
