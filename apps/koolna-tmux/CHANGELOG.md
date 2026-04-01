@@ -3,6 +3,10 @@
 
 ## 2026-04-01
 
+### Changed
+
+- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
+
 ### Fixed
 
 - create sidecar user for sshd, fix mount script port detection
@@ -12,6 +16,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-31
@@ -43,6 +48,10 @@
 
 ## 2026-04-01
 
+### Changed
+
+- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
+
 ### Fixed
 
 - create sidecar user for sshd, fix mount script port detection
@@ -52,6 +61,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-31
@@ -83,6 +93,10 @@
 
 ## 2026-04-01
 
+### Changed
+
+- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
+
 ### Fixed
 
 - create sidecar user for sshd, fix mount script port detection
@@ -92,6 +106,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-31

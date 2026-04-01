@@ -3,10 +3,18 @@
 
 ## 2026-04-01
 
+### Changed
+
+- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
+
 ### Fixed
 
 - run dotfiles/init as user, use FQDN for proxy DNS
 - export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
@@ -35,10 +43,18 @@
 
 ## 2026-04-01
 
+### Changed
+
+- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
+
 ### Fixed
 
 - run dotfiles/init as user, use FQDN for proxy DNS
 - export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
