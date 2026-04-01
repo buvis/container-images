@@ -793,6 +793,11 @@ if [ -z "${SSH_AUTH_SOCK:-}" ] || ! [ -S "${SSH_AUTH_SOCK:-}" ]; then
   echo "warning: no SSH agent socket found, key auth may fail" >&2
 fi
 
+# Clean up stale FUSE mount from previous run
+case "$(uname)" in
+  Darwin) umount "$MOUNT_POINT" 2>/dev/null || true ;;
+  *)      fusermount -u "$MOUNT_POINT" 2>/dev/null || true ;;
+esac
 mkdir -p "$MOUNT_POINT"
 
 echo "starting port-forward to $NAME..."
