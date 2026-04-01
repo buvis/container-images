@@ -749,15 +749,20 @@ USERNAME="%s"
 REMOTE_PATH="%s"
 MOUNT_POINT="$HOME/mnt/$NAME"
 PF_PID=""
+SSHFS_PID=""
 
 cleanup() {
-  if [ -n "$PF_PID" ] && kill -0 "$PF_PID" 2>/dev/null; then
-    kill "$PF_PID" 2>/dev/null || true
+  if [ -n "$SSHFS_PID" ] && kill -0 "$SSHFS_PID" 2>/dev/null; then
+    kill "$SSHFS_PID" 2>/dev/null || true
+    wait "$SSHFS_PID" 2>/dev/null || true
   fi
   case "$(uname)" in
     Darwin) umount "$MOUNT_POINT" 2>/dev/null || true ;;
     *)      fusermount -u "$MOUNT_POINT" 2>/dev/null || true ;;
   esac
+  if [ -n "$PF_PID" ] && kill -0 "$PF_PID" 2>/dev/null; then
+    kill "$PF_PID" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT INT TERM
 
