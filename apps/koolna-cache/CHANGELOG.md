@@ -1,6 +1,12 @@
 # Changelog — koolna-cache
 
 
+## 2026-04-01
+
+### Fixed
+
+- increase sslcrtd_children and cert cache for concurrent downloads
+
 ## 2026-03-31
 
 ### Changed
@@ -13,6 +19,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-30
