@@ -776,6 +776,18 @@ if ! command -v sshfs >/dev/null 2>&1; then
   exit 1
 fi
 
+# Detect SSH agent socket (gpg-agent, ssh-agent, or macOS keychain)
+if command -v gpgconf >/dev/null 2>&1; then
+  GPG_SSH_SOCK=$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null || true)
+  if [ -S "$GPG_SSH_SOCK" ]; then
+    export SSH_AUTH_SOCK="$GPG_SSH_SOCK"
+  fi
+fi
+
+if [ -z "${SSH_AUTH_SOCK:-}" ] || ! [ -S "${SSH_AUTH_SOCK:-}" ]; then
+  echo "warning: no SSH agent socket found, key auth may fail" >&2
+fi
+
 mkdir -p "$MOUNT_POINT"
 
 echo "starting port-forward to $NAME..."
@@ -803,26 +815,26 @@ fi
 
 echo "port-forward on localhost:$LOCAL_PORT"
 
-# Pre-connect to register host key (macOS SSH agent requires known host for key binding)
-ssh -p "$LOCAL_PORT" \
-  -o StrictHostKeyChecking=no \
-  -o UserKnownHostsFile=~/.ssh/koolna_known_hosts \
-  "$USERNAME@localhost" true 2>/dev/null || true
-
 echo "mounting $USERNAME@localhost:$REMOTE_PATH -> $MOUNT_POINT"
 
-sshfs -p "$LOCAL_PORT" "$USERNAME@localhost:$REMOTE_PATH" "$MOUNT_POINT" \
+sshfs -f -p "$LOCAL_PORT" "$USERNAME@localhost:$REMOTE_PATH" "$MOUNT_POINT" \
   -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-  -o StrictHostKeyChecking=no \
-  -o UserKnownHostsFile=~/.ssh/koolna_known_hosts
+  -o ssh_command="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" &
+SSHFS_PID=$!
+
+sleep 2
+if ! mount | grep -q "$MOUNT_POINT"; then
+  echo "error: mount failed" >&2
+  exit 1
+fi
 
 echo ""
 echo "mounted at: $MOUNT_POINT"
 echo "press Ctrl+C to unmount and exit"
 echo ""
 
-# Keep script alive until interrupted
-while kill -0 "$PF_PID" 2>/dev/null; do
+# Keep alive until sshfs or port-forward exits
+while kill -0 "$SSHFS_PID" 2>/dev/null && kill -0 "$PF_PID" 2>/dev/null; do
   sleep 5
 done
 `, name, h.ns, username, remotePath)
