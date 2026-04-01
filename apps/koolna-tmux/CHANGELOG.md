@@ -5,9 +5,14 @@
 
 ### Fixed
 
+- create sidecar user for sshd, fix mount script port detection
 - run dotfiles/init as user, use FQDN for proxy DNS
 - export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
 - export NODE_EXTRA_CA_CERTS so nsenter'd npm trusts proxy CA
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
@@ -40,9 +45,14 @@
 
 ### Fixed
 
+- create sidecar user for sshd, fix mount script port detection
 - run dotfiles/init as user, use FQDN for proxy DNS
 - export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
 - export NODE_EXTRA_CA_CERTS so nsenter'd npm trusts proxy CA
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
@@ -75,9 +85,14 @@
 
 ### Fixed
 
+- create sidecar user for sshd, fix mount script port detection
 - run dotfiles/init as user, use FQDN for proxy DNS
 - export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
 - export NODE_EXTRA_CA_CERTS so nsenter'd npm trusts proxy CA
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 

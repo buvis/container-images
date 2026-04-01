@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-04-01
+
+### Fixed
+
+- create sidecar user for sshd, fix mount script port detection
+
 ## 2026-03-31
 
 ### Added
@@ -19,6 +25,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
 - update changelogs [skip ci]
