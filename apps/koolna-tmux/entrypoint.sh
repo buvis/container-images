@@ -351,6 +351,11 @@ setup_sshd() {
   chmod 600 "$SSH_DIR/authorized_keys"
   chown "$KOOLNA_UID:$KOOLNA_GID" "$SSH_DIR" "$SSH_DIR/authorized_keys"
 
+  # sshd requires the user to exist in the sidecar's /etc/passwd
+  if ! grep -q "^${KOOLNA_USERNAME}:" /etc/passwd 2>/dev/null; then
+    echo "${KOOLNA_USERNAME}:x:${KOOLNA_UID}:${KOOLNA_GID}::${HOME}:/bin/sh" >> /etc/passwd
+  fi
+
   # sshd requires /run/sshd
   mkdir -p /run/sshd
 

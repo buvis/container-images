@@ -790,7 +790,7 @@ for i in $(seq 1 30); do
     cat /tmp/koolna-pf-$NAME.log >&2
     exit 1
   fi
-  LOCAL_PORT=$(grep -oE '(127\.0\.0\.1|\[::1\]|0\.0\.0\.0):[0-9]+' /tmp/koolna-pf-$NAME.log 2>/dev/null | head -1 | grep -oE '[0-9]+$')
+  LOCAL_PORT=$(grep -oE '(127\.0\.0\.1|\[::1\]|0\.0\.0\.0):[0-9]+' /tmp/koolna-pf-$NAME.log 2>/dev/null | head -1 | grep -oE '[0-9]+$' || true)
   [ -n "$LOCAL_PORT" ] && break
   sleep 1
 done
