@@ -5,6 +5,7 @@
 
 ### Fixed
 
+- run dotfiles/init as user, use FQDN for proxy DNS
 - export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
 
 ## 2026-03-31
@@ -24,6 +25,39 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
+- update changelogs [skip ci]
+- update changelogs [skip ci]
+- update changelogs for image-agnostic pod config
+- update changelogs [skip ci]
+- update changelogs [skip ci]
+- update changelogs [skip ci]
+
+## 2026-04-01
+
+### Fixed
+
+- run dotfiles/init as user, use FQDN for proxy DNS
+- export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
+
+## 2026-03-31
+
+### Changed
+
+- replace userConfig with fixed /workspace and /cache paths
+- consolidate all koolna workloads into koolna namespace
+
+### Fixed
+
+- add NODE_EXTRA_CA_CERTS for npm proxy trust
+- remove username/uid/homePath from CRD YAML
+- remove username/uid/homePath from KoolnaSpec CRD
+- set GIT_CONFIG_GLOBAL on init container for credential discovery
+- create .koolna dir before writing credentials, trust CA before dotfiles
+
+### Documentation
+
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs for image-agnostic pod config
