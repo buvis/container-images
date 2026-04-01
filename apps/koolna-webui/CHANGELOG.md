@@ -5,12 +5,14 @@
 
 ### Fixed
 
+- use StrictHostKeyChecking=no for ephemeral pod mount scripts
 - place SSH options before command in mount script pre-connect
 - pre-connect SSH in mount script for macOS agent key binding
 - create sidecar user for sshd, fix mount script port detection
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
