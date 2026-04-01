@@ -5,6 +5,7 @@
 
 ### Fixed
 
+- unmount stale FUSE mount before mkdir in mount script
 - clean shutdown of sshfs before port-forward in mount script
 - detect gpg-agent SSH socket and use foreground sshfs in mount script
 - use StrictHostKeyChecking=no for ephemeral pod mount scripts
@@ -14,6 +15,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
