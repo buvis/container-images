@@ -5,11 +5,13 @@
 
 ### Fixed
 
+- replace proxy hostname with IP, export cargo timeout for nsenter
 - pin proxy hostname in /etc/hosts to avoid DNS contention
 - restore WS variable removed during .koolna refactor
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-04-01
