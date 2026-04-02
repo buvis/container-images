@@ -796,6 +796,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 						{Name: "NODE_EXTRA_CA_CERTS", Value: "/usr/local/share/ca-certificates/koolna-cache.crt"},
 						{Name: "SSL_CERT_FILE", Value: "/etc/ssl/certs/ca-certificates.crt"},
 						{Name: "REQUESTS_CA_BUNDLE", Value: "/etc/ssl/certs/ca-certificates.crt"},
+						{Name: "CARGO_HTTP_TIMEOUT", Value: "120"},
+						{Name: "CARGO_HTTP_MULTIPLEXING", Value: "true"},
 					}, proxyEnv...),
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
