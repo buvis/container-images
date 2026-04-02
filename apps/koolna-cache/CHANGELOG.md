@@ -5,7 +5,12 @@
 
 ### Fixed
 
+- disable aggressive caching for claude.ai installer
 - use aufs async I/O, disable IPv6 pinger, dns_v4_first
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-01
 
