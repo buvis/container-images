@@ -73,6 +73,16 @@ if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
   export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
   export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
   export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+
+  # Pin proxy hostname in /etc/hosts to avoid DNS contention under load
+  PROXY_HOST=$(echo "${HTTPS_PROXY:-}" | sed 's|http://||;s|:.*||')
+  if [ -n "$PROXY_HOST" ]; then
+    PROXY_IP=$(getent hosts "$PROXY_HOST" 2>/dev/null | awk '{print $1}')
+    if [ -n "$PROXY_IP" ]; then
+      echo "$PROXY_IP $PROXY_HOST" >> /etc/hosts
+      $NSENTER_ROOT sh -c "echo '$PROXY_IP $PROXY_HOST' >> /etc/hosts"
+    fi
+  fi
 fi
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
