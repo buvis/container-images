@@ -1,6 +1,12 @@
 # Changelog — koolna-operator
 
 
+## 2026-04-02
+
+### Fixed
+
+- add CARGO_HTTP_TIMEOUT and CARGO_HTTP_MULTIPLEXING for proxy
+
 ## 2026-04-01
 
 ### Changed
@@ -14,6 +20,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-31
@@ -54,6 +61,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-03-31
