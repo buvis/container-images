@@ -1,11 +1,21 @@
 # Changelog — koolna-cache
 
 
+## 2026-04-02
+
+### Fixed
+
+- use aufs async I/O, disable IPv6 pinger, dns_v4_first
+
 ## 2026-04-01
 
 ### Fixed
 
 - increase sslcrtd_children and cert cache for concurrent downloads
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
