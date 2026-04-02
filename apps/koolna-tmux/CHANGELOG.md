@@ -1,6 +1,12 @@
 # Changelog — koolna-tmux
 
 
+## 2026-04-02
+
+### Fixed
+
+- restore WS variable removed during .koolna refactor
+
 ## 2026-04-01
 
 ### Changed
@@ -16,6 +22,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
@@ -63,6 +70,7 @@
 
 - update changelogs [skip ci]
 - update changelogs [skip ci]
+- update changelogs [skip ci]
 
 ## 2026-03-31
 
@@ -106,6 +114,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
