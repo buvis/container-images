@@ -149,6 +149,7 @@ if [ -n "${INIT_COMMAND:-}" ]; then
 fi
 
 # Set up persistent git credentials on cache volume (not in workspace)
+WS="/workspace"
 KOOLNA_DIR="/cache/.koolna"
 KOOLNA_CRED="$KOOLNA_DIR/.git-credentials"
 KOOLNA_GC="$KOOLNA_DIR/.gitconfig"
