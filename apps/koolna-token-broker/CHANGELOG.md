@@ -13,5 +13,7 @@
 
 ### Documentation
 
+- clarify bootstrap is a one-time action and broker auto-refreshes
+- update changelogs [skip ci]
 - expand bootstrap with prerequisites, verification, troubleshooting, and re-bootstrap flow
 - document Claude authentication flow, broker bootstrap, and opt-in
