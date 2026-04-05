@@ -3,6 +3,10 @@
 
 ## 2026-04-05
 
+### Added
+
+- add Claude authentication checkbox to workspace creation form
+
 ### Changed
 
 - reduce xterm font size from 14 to 13
@@ -13,6 +17,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-04-02
