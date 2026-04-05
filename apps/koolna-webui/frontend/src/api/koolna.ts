@@ -39,6 +39,7 @@ export interface CreateKoolnaRequest {
   gitEmail?: string
   sshPublicKey?: string
   envVars?: EnvVar[]
+  claudeAuth?: boolean
 }
 
 export interface DotfilesDefaults {

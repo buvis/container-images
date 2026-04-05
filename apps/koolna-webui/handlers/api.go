@@ -58,17 +58,18 @@ type createRequest struct {
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
-	InitCommand    string `json:"initCommand,omitempty"`
-	Shell           string `json:"shell,omitempty"`
-	SSHPublicKey    string `json:"sshPublicKey,omitempty"`
-	Image           string `json:"image"`
-	Storage         string `json:"storage"`
-	GitSecretRef    string `json:"gitSecretRef,omitempty"`
+	InitCommand     string        `json:"initCommand,omitempty"`
+	Shell           string        `json:"shell,omitempty"`
+	SSHPublicKey    string        `json:"sshPublicKey,omitempty"`
+	Image           string        `json:"image"`
+	Storage         string        `json:"storage"`
+	GitSecretRef    string        `json:"gitSecretRef,omitempty"`
 	GitUsername     string        `json:"gitUsername,omitempty"`
 	GitToken        string        `json:"gitToken,omitempty"`
 	GitName         string        `json:"gitName,omitempty"`
 	GitEmail        string        `json:"gitEmail,omitempty"`
 	EnvVars         []envVarEntry `json:"envVars,omitempty"`
+	ClaudeAuth      bool          `json:"claudeAuth,omitempty"`
 }
 
 type koolnaResponse struct {
@@ -578,6 +579,9 @@ func (h *APIHandler) CreateKoolna(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.SSHPublicKey != "" {
 		spec["sshPublicKey"] = req.SSHPublicKey
+	}
+	if req.ClaudeAuth {
+		spec["claudeAuth"] = true
 	}
 
 	obj := &unstructured.Unstructured{
