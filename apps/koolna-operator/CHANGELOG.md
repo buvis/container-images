@@ -1,11 +1,26 @@
 # Changelog — koolna-operator
 
 
+## 2026-04-05
+
+### Added
+
+- log when claudeAuth is enabled during reconcile
+- add claudeAuth spec field to inject broker URL on sidecar
+
+### Documentation
+
+- document Claude authentication flow, broker bootstrap, and opt-in
+
 ## 2026-04-02
 
 ### Fixed
 
 - add CARGO_HTTP_TIMEOUT and CARGO_HTTP_MULTIPLEXING for proxy
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-01
 
