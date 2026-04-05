@@ -21,7 +21,7 @@ export class XtermAdapter {
         selectionBackground: '#1d4ed8',
       },
       cursorBlink: true,
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: "'MesloLGS NF', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     });
 
