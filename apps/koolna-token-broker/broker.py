@@ -21,7 +21,7 @@ import threading
 import time
 from pathlib import Path
 
-CREDS_FILE = Path(os.environ.get("HOME", "/home/broker")) / ".claude" / ".credentials.json"
+CREDS_FILE = Path(os.environ.get("HOME", "/home/node")) / ".claude" / ".credentials.json"
 REFRESH_BUFFER_SECONDS = 300
 REFRESH_TIMEOUT_SECONDS = 30
 LISTEN_PORT = 8080

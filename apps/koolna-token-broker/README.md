@@ -26,7 +26,7 @@ This image ships Claude CLI but no credentials. The credentials must be seeded o
 2. Copy the file into the broker's PVC-backed home directory:
    ```
    kubectl -n koolna cp ~/.claude/.credentials.json \
-     $(kubectl -n koolna get pod -l app=koolna-token-broker -o name | head -1):/home/broker/.claude/.credentials.json
+     $(kubectl -n koolna get pod -l app=koolna-token-broker -o name | head -1):/home/node/.claude/.credentials.json
    ```
 
 3. Restart the broker so it picks up the new file cleanly:
@@ -52,6 +52,6 @@ Recover by repeating the bootstrap above.
 
 The broker reads credentials from `$HOME/.claude/.credentials.json` and listens on `:8080`. Both are hardcoded: the broker is a single-purpose component and exposing knobs would be misleading.
 
-## Why Python stdlib
+## Why Python stdlib on a Node base
 
-The broker does two things: read a JSON file and serve HTTP. Python 3 ships both in stdlib, so the runtime dependency chain is `node:24-trixie-slim` + `python3` + `tini`. No application dependencies, no virtualenv, no requirements file.
+The broker does two things: read a JSON file and serve HTTP. Python 3 ships both in stdlib. The base image is `node:24-trixie-slim` because `@anthropic-ai/claude-code` is an npm package; adding `python3` via apt keeps the runtime dependency chain to just `node` + `python3` + `tini`. No application dependencies, no virtualenv, no requirements file.

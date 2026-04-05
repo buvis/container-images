@@ -11,13 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g @anthropic-ai/claude-code@latest \
     && npm cache clean --force
 
-RUN useradd -m -u 1000 -s /bin/bash broker
-USER broker
-WORKDIR /home/broker
+# Use the existing `node` user (uid 1000) shipped with node:24-trixie-slim
+USER node
+WORKDIR /home/node
 
-COPY --chown=broker:broker broker.py /app/broker.py
+COPY --chown=node:node broker.py /app/broker.py
 
-ENV HOME=/home/broker
+ENV HOME=/home/node
 EXPOSE 8080
 
 ENTRYPOINT ["/usr/bin/tini", "--", "python3", "/app/broker.py"]
