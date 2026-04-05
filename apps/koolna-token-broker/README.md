@@ -17,6 +17,8 @@ Claude CLI uses rotating refresh tokens. If multiple pods share a credentials fi
 
 ## Bootstrap
 
+**How often is this needed? Once.** You run `claude setup-token` a single time, seed the file into the broker's PVC, and the broker takes it from there. From that point on, every request for a fresh access token is served from the broker's own refresh loop - you are not in the critical path. You only re-run the bootstrap if the refresh chain breaks, which is rare (account changes, PVC loss, Anthropic revocation). See [Frequency and lifetime](#frequency-and-lifetime) below for a concrete model of what refreshes automatically and what does not.
+
 This image ships the Claude CLI but no credentials. The broker starts up, sees there is no `~/.claude/.credentials.json`, and serves `503 no token available - broker not bootstrapped` until an administrator seeds it. The seeding is **interactive and cannot be automated**: Claude's OAuth flow requires a real browser to grant consent.
 
 ### Prerequisites
@@ -118,23 +120,50 @@ Expected: `ok 200`. Before bootstrap it returns `no credentials 503`.
 
 Workspaces created with `claudeAuth: true` will fetch tokens from the broker at every tmux shell launch. Existing workspaces (created before bootstrap) need to be restarted to pick up a fresh token; opening a new tmux pane is enough.
 
-## Token expiration and refresh
+## Frequency and lifetime
 
-The OAuth `accessToken` inside `.credentials.json` is short-lived (~8 hours from issuance). The `refreshToken` is long-lived (typically weeks to months) but it **rotates on use** - each refresh produces a new refresh token that invalidates the old one. This is exactly why the broker exists as a single writer: if multiple pods shared the credentials file, the first one to refresh would invalidate everyone else's copy.
+Three distinct things live in `.credentials.json`, with very different lifetimes and very different "who refreshes them" answers:
 
-The broker calls `claude -p ok` when an incoming `/token` request finds the current access token expiring within 5 minutes. That command triggers the CLI's internal refresh flow and writes the rotated credentials back to `.credentials.json`. Broker logs will show:
+| Value | Typical lifetime | Who keeps it fresh | Your involvement |
+|---|---|---|---|
+| `accessToken` (the short-lived bearer sent to `api.anthropic.com`) | ~8 hours from issuance | The broker, automatically, on demand | None. You never handle it |
+| `refreshToken` (the long-lived credential the broker uses to mint new access tokens) | Weeks to months, rotates on use | The broker writes the new one back to `.credentials.json` atomically after every refresh | None in normal operation |
+| The initial seed (the first `(accessToken, refreshToken)` pair) | Produced once by `claude setup-token` on your workstation | You | **Once at initial bootstrap.** Re-run only on the rare failure modes in [Rotation and re-bootstrap](#rotation-and-re-bootstrap) |
+
+### What the broker does on every `/token` request
+
+1. Read `.credentials.json`.
+2. Is the current `accessToken` expiring within 5 minutes? If no → return it as-is.
+3. If yes → run `claude -p ok`. That command causes the CLI to use the current `refreshToken`, obtain a new `accessToken` + new `refreshToken` from Anthropic, and atomically write the rotated pair back to `.credentials.json`.
+4. Re-read the file and return the new `accessToken`.
+
+You are not in that loop. The broker is the single writer of `.credentials.json`, so the rotation never races - which is exactly why concurrent workspaces cannot share a credentials file directly and why this component exists.
+
+Broker logs during a refresh:
 
 ```
 INFO koolna-token-broker triggering claude refresh
 ```
 
-Refresh failures show as:
+Broker logs during a refresh failure:
 
 ```
 WARNING koolna-token-broker claude refresh exited N: ...
 ```
 
-If you see repeated refresh failures, the refresh token chain is broken (Anthropic revoked the grant, rate-limiting, incident, etc.). Recovery is **re-bootstrap from scratch**: repeat the bootstrap procedure above with a fresh `claude setup-token` run on your workstation.
+A healthy broker only logs refreshes every ~8 hours (when the previous access token nears expiry) and otherwise serves tokens from the cached file.
+
+### When users see the 8-hour limit
+
+A long-running tmux shell captured its `CLAUDE_CODE_OAUTH_TOKEN` env var at shell launch. That env var is a snapshot - it does not auto-update in place. So if a single shell stays alive past the ~8-hour mark, the in-shell token is stale even though the broker has a fresh one.
+
+The blessed refresh path is to open a new tmux pane (`Ctrl-B c`): the new pane goes through `koolna-auth-init`, hits the broker, and exports a fresh token. Or inside an existing shell:
+
+```sh
+export CLAUDE_CODE_OAUTH_TOKEN=$(curl -sf "$KOOLNA_TOKEN_BROKER_URL/token")
+```
+
+This is a user-level convenience for long-running shells, not an admin bootstrap concern.
 
 ## Troubleshooting
 
