@@ -91,8 +91,8 @@ func TestBuildPodSpec_XDGAndMiseEnvVars(t *testing.T) {
 	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
 
 	want := map[string]string{
-		"XDG_CACHE_HOME":          "/cache",
-		"MISE_CACHE_DIR":          "/cache/mise",
+		"XDG_CACHE_HOME":            "/cache",
+		"MISE_CACHE_DIR":            "/cache/mise",
 		"MISE_TRUSTED_CONFIG_PATHS": "/workspace",
 	}
 

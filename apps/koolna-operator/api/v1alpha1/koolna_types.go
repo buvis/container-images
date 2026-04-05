@@ -51,6 +51,13 @@ type KoolnaSpec struct {
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
 	Suspended       bool                        `json:"suspended,omitempty"`
 	DeletionPolicy  DeletionPolicy              `json:"deletionPolicy,omitempty"`
+
+	// ClaudeAuth enables automatic Claude Code authentication for this
+	// workspace. When true, the operator injects KOOLNA_TOKEN_BROKER_URL into
+	// the tmux sidecar so every new shell fetches a fresh OAuth access token
+	// from the in-cluster koolna-token-broker. The broker must be deployed
+	// and bootstrapped via `claude setup-token`.
+	ClaudeAuth bool `json:"claudeAuth,omitempty"`
 }
 
 // KoolnaPhase indicates the current lifecycle phase of a Koolna.

@@ -44,6 +44,7 @@ import (
 const (
 	finalizerName    = "koolna.buvis.net/finalizer"
 	sharedSecretName = "koolna-credentials"
+	tokenBrokerURL   = "http://koolna-token-broker.koolna.svc.cluster.local:8080"
 	proxyCACMName    = "koolna-cache-ca"
 	proxyCAVolName   = "proxy-ca"
 )
@@ -729,13 +730,24 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 
 	repoURL := resolveRepoURL(koolna.Spec.Repo)
 
+	// When Claude Auth is enabled, the token broker owns the
+	// .claude/.credentials.json file. Remove it from the sidecar's credential
+	// sync list so the polling loop does not clobber broker-managed state.
+	credentialPaths := ".claude/.credentials.json,.codex"
+	if koolna.Spec.ClaudeAuth {
+		credentialPaths = ".codex"
+	}
+
 	sidecarEnv := []corev1.EnvVar{
 		{Name: "KOOLNA_AUTH_SECRET", Value: authSecretName(koolna)},
 		{Name: "KOOLNA_SHARED_SECRET", Value: sharedSecretName},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 		{Name: "KOOLNA_SHELL", Value: shell},
-		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.codex"},
+		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: credentialPaths},
 		{Name: "REPO_URL", Value: repoURL},
+	}
+	if koolna.Spec.ClaudeAuth {
+		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "KOOLNA_TOKEN_BROKER_URL", Value: tokenBrokerURL})
 	}
 	if koolna.Spec.SSHPublicKey != "" {
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "KOOLNA_SSH_PUBKEY", Value: koolna.Spec.SSHPublicKey})

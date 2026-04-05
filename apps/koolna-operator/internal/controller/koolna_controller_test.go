@@ -1354,6 +1354,57 @@ var _ = Describe("Koolna Controller", func() {
 				}
 			}
 		})
+
+		It("should inject KOOLNA_TOKEN_BROKER_URL on sidecar and strip .claude from credential paths when claudeAuth is true", func() {
+			koolna.Spec.ClaudeAuth = true
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-claude-auth", dotfiles)
+
+			var sidecar *corev1.Container
+			for i := range pod.Spec.Containers {
+				if pod.Spec.Containers[i].Name == "tmux-sidecar" {
+					sidecar = &pod.Spec.Containers[i]
+					break
+				}
+			}
+			Expect(sidecar).NotTo(BeNil(), "expected tmux-sidecar container")
+
+			var brokerURL, credPaths string
+			for _, e := range sidecar.Env {
+				switch e.Name {
+				case "KOOLNA_TOKEN_BROKER_URL":
+					brokerURL = e.Value
+				case "KOOLNA_CREDENTIAL_PATHS":
+					credPaths = e.Value
+				}
+			}
+			Expect(brokerURL).To(Equal("http://koolna-token-broker.koolna.svc.cluster.local:8080"))
+			Expect(credPaths).To(Equal(".codex"))
+		})
+
+		It("should not inject KOOLNA_TOKEN_BROKER_URL and should keep .claude in credential paths when claudeAuth is false", func() {
+			koolna.Spec.ClaudeAuth = false
+			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
+			pod := buildPodSpec(koolna, "vol-test-no-claude-auth", dotfiles)
+
+			var sidecar *corev1.Container
+			for i := range pod.Spec.Containers {
+				if pod.Spec.Containers[i].Name == "tmux-sidecar" {
+					sidecar = &pod.Spec.Containers[i]
+					break
+				}
+			}
+			Expect(sidecar).NotTo(BeNil(), "expected tmux-sidecar container")
+
+			var credPaths string
+			for _, e := range sidecar.Env {
+				Expect(e.Name).NotTo(Equal("KOOLNA_TOKEN_BROKER_URL"), "KOOLNA_TOKEN_BROKER_URL should not be set when claudeAuth is false")
+				if e.Name == "KOOLNA_CREDENTIAL_PATHS" {
+					credPaths = e.Value
+				}
+			}
+			Expect(credPaths).To(Equal(".claude/.credentials.json,.codex"))
+		})
 	})
 
 	Context("SSH public key wiring", func() {
