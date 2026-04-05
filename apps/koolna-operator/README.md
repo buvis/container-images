@@ -22,7 +22,16 @@ spec:
   initCommand: ""            # optional init script, independent of dotfiles
   suspended: false           # true = delete pod, keep PVC
   deletionPolicy: Retain     # Retain or Delete PVC on CR deletion
+  claudeAuth: false          # opt-in: auto-authenticate Claude Code via token broker
 ```
+
+## Integrations
+
+### Claude authentication
+
+Setting `spec.claudeAuth: true` opts a workspace into automatic Claude Code authentication. Every new tmux shell fetches a fresh OAuth access token from the in-cluster `koolna-token-broker` and exports it as `CLAUDE_CODE_OAUTH_TOKEN`. No browser prompts, no copy-paste URLs.
+
+Requires the broker to be deployed and bootstrapped. See [docs/claude-auth.md](docs/claude-auth.md) for the full flow, setup instructions, and troubleshooting.
 
 ## Dotfiles
 

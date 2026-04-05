@@ -2,6 +2,8 @@
 
 Single-writer HTTP broker that serves short-lived Claude OAuth access tokens to koolna workspace pods. It owns the `~/.claude/.credentials.json` file backing the Claude CLI and triggers refresh when the current access token is close to expiry.
 
+For the full end-to-end auth flow, architecture, and troubleshooting see [koolna-operator's claude-auth doc](../koolna-operator/docs/claude-auth.md).
+
 ## Why
 
 Claude CLI uses rotating refresh tokens. If multiple pods share a credentials file, the first one to refresh invalidates every other copy ([anthropics/claude-code#24317](https://github.com/anthropics/claude-code/issues/24317), [#27933](https://github.com/anthropics/claude-code/issues/27933)). The broker is the single writer: workspace pods hold no credentials state and fetch a fresh access token on every new shell.
