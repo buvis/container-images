@@ -1,0 +1,27 @@
+#!/bin/sh
+# koolna-auth-init: fetch a fresh Claude OAuth access token from the token
+# broker and export it as CLAUDE_CODE_OAUTH_TOKEN, then exec the remaining
+# arguments.
+#
+# This runs in the koolna-tmux sidecar before nsenter, so the exported token
+# lives in the calling process's environment and is inherited by the nsenter'd
+# shell spawned inside the main container.
+#
+# When KOOLNA_TOKEN_BROKER_URL is unset the script is a no-op exec, so it is
+# safe to use unconditionally in NSENTER_CMD.
+set -eu
+
+if [ -n "${KOOLNA_TOKEN_BROKER_URL:-}" ]; then
+  if TOKEN=$(curl -sf --max-time 5 "$KOOLNA_TOKEN_BROKER_URL/token" 2>/dev/null); then
+    if [ -n "$TOKEN" ]; then
+      CLAUDE_CODE_OAUTH_TOKEN="$TOKEN"
+      export CLAUDE_CODE_OAUTH_TOKEN
+    else
+      echo "koolna-auth-init: broker returned empty token, shell will start unauthenticated" >&2
+    fi
+  else
+    echo "koolna-auth-init: token broker unreachable at $KOOLNA_TOKEN_BROKER_URL, shell will start unauthenticated" >&2
+  fi
+fi
+
+exec "$@"

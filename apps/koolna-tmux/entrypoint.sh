@@ -406,7 +406,11 @@ if ! $NSENTER_USER sh -c "command -v $KOOLNA_SHELL" >/dev/null 2>&1; then
   KOOLNA_SHELL="/bin/sh"
 fi
 
-NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
+if [ -n "${KOOLNA_TOKEN_BROKER_URL:-}" ]; then
+  NSENTER_CMD="/usr/local/bin/koolna-auth-init $NSENTER_USER $KOOLNA_SHELL -l"
+else
+  NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
+fi
 
 # Bootstrap mise tools inside the main container
 if $NSENTER_USER sh -c 'command -v mise >/dev/null 2>&1'; then
