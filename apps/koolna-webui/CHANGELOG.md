@@ -3,9 +3,17 @@
 
 ## 2026-04-05
 
+### Changed
+
+- reduce xterm font size from 14 to 13
+
 ### Fixed
 
 - prefix koolna mounts
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-02
 
