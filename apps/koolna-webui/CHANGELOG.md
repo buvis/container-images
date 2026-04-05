@@ -1,6 +1,18 @@
 # Changelog — koolna-webui
 
 
+## 2026-04-05
+
+### Fixed
+
+- prefix koolna mounts
+
+## 2026-04-02
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-01
 
 ### Fixed
