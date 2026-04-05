@@ -1,6 +1,12 @@
 # Changelog — koolna-tmux
 
 
+## 2026-04-05
+
+### Added
+
+- add koolna-auth-init for opt-in Claude token injection
+
 ## 2026-04-02
 
 ### Fixed
@@ -11,6 +17,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
