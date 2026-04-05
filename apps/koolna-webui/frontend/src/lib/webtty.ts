@@ -1,7 +1,7 @@
 export type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
 
 export interface RawTerminalCallbacks {
-  onData: (data: Uint8Array) => void;
+  onData: (data: Uint8Array<ArrayBuffer>) => void;
   onStatus: (status: ConnectionStatus) => void;
 }
 
@@ -44,7 +44,7 @@ export class RawTerminal {
     }
   }
 
-  sendInput(data: Uint8Array): void {
+  sendInput(data: Uint8Array<ArrayBuffer>): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(data);
     }
