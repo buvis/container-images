@@ -126,6 +126,10 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		log.Info("dotfilesRepo uses legacy owner/repo format, use full URL instead", "dotfilesRepo", koolna.Spec.DotfilesRepo)
 	}
 
+	if koolna.Spec.ClaudeAuth {
+		log.Info("claude authentication enabled, sidecar will fetch tokens from broker", "brokerURL", tokenBrokerURL)
+	}
+
 	pvc, err := r.reconcilePVC(ctx, &koolna)
 	if err != nil {
 		log.Error(err, "unable to reconcile PVC", "name", req.NamespacedName)
