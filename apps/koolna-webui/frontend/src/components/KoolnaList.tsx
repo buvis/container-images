@@ -206,9 +206,9 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
             </p>
             <div className="mb-6 rounded-xl border border-white/10 bg-slate-900/80 p-4 font-mono text-xs text-white/80">
               <p># macOS</p>
-              <p>umount ~/mnt/{mountTarget}</p>
+              <p>umount ~/mnt/koolna/{mountTarget}</p>
               <p># Linux</p>
-              <p>fusermount -u ~/mnt/{mountTarget}</p>
+              <p>fusermount -u ~/mnt/koolna/{mountTarget}</p>
             </div>
             <div className="flex gap-3">
               <a
