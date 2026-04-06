@@ -7,27 +7,20 @@ ARG USER_GID=$USER_UID
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  build-essential \
   curl \
   git \
-  tmux \
   ca-certificates \
   gnupg \
   dirmngr \
   lsb-release \
   sudo \
-  vim \
+  neovim \
   less \
   lazygit \
   vifm \
-  python3 \
-  python3-pip \
-  python3-venv \
-  pipx \
   zsh \
   fish \
-  && rm -rf /var/lib/apt/lists/* \
-  && rm -f /usr/lib/python*/EXTERNALLY-MANAGED
+  && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
   && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
@@ -49,13 +42,10 @@ ENV PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/usr/local/bin:$PATH"
 ENV MISE_DATA_DIR="$HOME/.local/share/mise"
 ENV MISE_CONFIG_DIR="$HOME/.config/mise"
 ENV MISE_CACHE_DIR="$HOME/.cache/mise"
-ENV MISE_NODE_DEFAULT_PACKAGES_FILE="$HOME/.default-npm-packages"
 ENV MISE_TRUSTED_CONFIG_PATHS="$HOME/workspace"
 ENV MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS="false"
 
-COPY --chown=${USERNAME}:${USERNAME} assets/config/.default-npm-packages /home/$USERNAME/.default-npm-packages
 COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERNAME/.config/mise/config.toml
-COPY --chown=${USERNAME}:${USERNAME} assets/config/tmux.conf /home/$USERNAME/.tmux.conf
 
 RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
   && echo 'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"' >> ~/.profile \
@@ -64,21 +54,9 @@ RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
   && sh /tmp/mise-install.sh \
   && rm /tmp/mise-install.sh
 
-# Import Node.js release signing keys for GPG verification
-RUN gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 \
-  && gpg --batch --export 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 | gpg --import
-
-RUN bash -c 'eval "$(mise activate bash)" && mise install'
-
 USER root
 
 RUN cp /home/$USERNAME/.local/bin/mise /usr/local/bin/mise
-
-COPY assets/lib/whatwedo /usr/local/lib/whatwedo
-COPY assets/bin/whatwedo /usr/local/bin/whatwedo
-
-RUN chmod +x /usr/local/lib/whatwedo \
-  && chmod +x /usr/local/bin/whatwedo
 
 WORKDIR $HOME
 
