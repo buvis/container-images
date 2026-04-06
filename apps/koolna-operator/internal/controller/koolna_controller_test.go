@@ -58,9 +58,11 @@ var _ = Describe("Koolna Controller", func() {
 			})
 		}
 		// Clean up child resources (envtest doesn't run GC)
-		pvc := &corev1.PersistentVolumeClaim{}
-		if err := k8sClient.Get(ctx, types.NamespacedName{Name: name + "-workspace", Namespace: namespace}, pvc); err == nil {
-			_ = k8sClient.Delete(ctx, pvc)
+		for _, pvcSuffix := range []string{"-workspace", "-cache"} {
+			pvc := &corev1.PersistentVolumeClaim{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: name + pvcSuffix, Namespace: namespace}, pvc); err == nil {
+				_ = k8sClient.Delete(ctx, pvc)
+			}
 		}
 		pod := &corev1.Pod{}
 		if err := k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, pod); err == nil {

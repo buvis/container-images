@@ -81,7 +81,7 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	svcName := koolna.Name
 	var (
 		pvcName      string
-		cchPVCName   string
+		cachePVCName   string
 		pod          *corev1.Pod
 	)
 
@@ -109,7 +109,7 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	}
 
 	defer func() {
-		if statusErr := r.updateStatus(ctx, &koolna, pod, pvcName, cchPVCName, svcName, err); statusErr != nil {
+		if statusErr := r.updateStatus(ctx, &koolna, pod, pvcName, cachePVCName, svcName, err); statusErr != nil {
 			log.Error(statusErr, "unable to update Koolna status")
 			if err == nil {
 				err = statusErr
@@ -145,10 +145,10 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	}
 
 	if cachePVC != nil {
-		cchPVCName = cachePVC.Name
+		cachePVCName = cachePVC.Name
 	}
 
-	pod, err = r.reconcilePod(ctx, &koolna, pvcName, cchPVCName)
+	pod, err = r.reconcilePod(ctx, &koolna, pvcName, cachePVCName)
 	if err != nil {
 		log.Error(err, "unable to reconcile pod", "name", req.NamespacedName)
 		return ctrl.Result{}, err
