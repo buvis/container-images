@@ -443,3 +443,4 @@ tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
 
 echo "tmux sidecar ready"
 exec sleep infinity
+
