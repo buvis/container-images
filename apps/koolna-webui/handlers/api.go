@@ -992,10 +992,10 @@ func (h *APIHandler) ClaudeAuthStatus(w http.ResponseWriter, r *http.Request) {
 
 // ClaudeAuthBootstrap proxies POST /bootstrap on the token broker.
 //
-// The request body is expected to be the full contents of
-// ~/.claude/.credentials.json produced by `claude setup-token`. The broker
-// validates the JSON shape and persists it atomically to its PVC. The token
-// value is never logged in this handler.
+// The request body is a JSON object with a "token" field containing the
+// plain-text OAuth token produced by `claude setup-token`. The broker
+// validates the format and persists it to its PVC. The token value is
+// never logged in this handler.
 func (h *APIHandler) ClaudeAuthBootstrap(w http.ResponseWriter, r *http.Request) {
 	body, err := readLimitedBody(r, bootstrapMaxBytes)
 	if err != nil {
@@ -1003,32 +1003,32 @@ func (h *APIHandler) ClaudeAuthBootstrap(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Pre-validate JSON shape client-side so obviously bad inputs don't need a round trip.
 	var parsed struct {
-		ClaudeAiOauth struct {
-			AccessToken  string `json:"accessToken"`
-			RefreshToken string `json:"refreshToken"`
-			ExpiresAt    any    `json:"expiresAt"`
-		} `json:"claudeAiOauth"`
+		Token string `json:"token"`
 	}
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		respondError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON: %w", err))
 		return
 	}
-	if parsed.ClaudeAiOauth.AccessToken == "" || parsed.ClaudeAiOauth.RefreshToken == "" || parsed.ClaudeAiOauth.ExpiresAt == nil {
-		respondError(w, http.StatusBadRequest, fmt.Errorf("credentials must contain claudeAiOauth with accessToken, refreshToken, and expiresAt"))
+	token := strings.TrimSpace(parsed.Token)
+	if token == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("token field is required"))
+		return
+	}
+	if !strings.HasPrefix(token, "sk-ant-") {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("token does not match expected format (sk-ant-*)"))
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenBrokerBaseURL+"/bootstrap", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenBrokerBaseURL+"/bootstrap", strings.NewReader(token))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "text/plain")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		respondError(w, http.StatusBadGateway, fmt.Errorf("token broker unreachable: %w", err))

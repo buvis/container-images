@@ -49,15 +49,14 @@ export function Settings() {
   const handleClaudeAuthSubmit = async () => {
     setClaudeAuthSubmitting(true)
     setClaudeAuthError(null)
-    try {
-      JSON.parse(claudeAuthInput)
-    } catch (err) {
-      setClaudeAuthError(`Pasted value is not valid JSON: ${(err as Error).message}`)
+    const token = claudeAuthInput.trim()
+    if (!token.startsWith('sk-ant-')) {
+      setClaudeAuthError('Token should start with sk-ant-')
       setClaudeAuthSubmitting(false)
       return
     }
     try {
-      await bootstrapClaudeAuth(claudeAuthInput)
+      await bootstrapClaudeAuth(token)
       setClaudeAuthInput('')
       setClaudeAuthEditing(false)
       reloadClaudeAuthStatus()
@@ -233,32 +232,30 @@ export function Settings() {
           )}
         </div>
         <p className="mb-4 text-sm text-white/60">
-          Seeds the in-cluster token broker with a Claude OAuth credentials file. Workspaces
-          with &quot;Enable Claude authentication&quot; checked will fetch tokens from this broker
-          at every tmux shell launch. Bootstrap once; the broker auto-refreshes afterwards.
+          Seeds the in-cluster token broker with a Claude OAuth token. Workspaces
+          with &quot;Enable Claude authentication&quot; checked will fetch this token
+          at every tmux shell launch. The token is valid for ~1 year. Bootstrap once,
+          replace when it expires or is revoked.
         </p>
 
         {(!claudeAuthStatus?.bootstrapped || claudeAuthEditing) && (
           <div className="space-y-3">
             <div className="rounded-xl border border-white/10 bg-slate-900/40 p-4 text-sm text-white/70">
-              <p className="mb-2 font-semibold text-white/80">How to get the credentials file</p>
+              <p className="mb-2 font-semibold text-white/80">How to get the token</p>
               <ol className="list-decimal space-y-1 pl-5">
-                <li>On a Linux workstation with Claude Pro or Max, run <code className="rounded bg-white/10 px-1">claude setup-token</code> and complete the browser OAuth flow.</li>
-                <li>Open the file that was created: <code className="rounded bg-white/10 px-1">cat ~/.claude/.credentials.json</code></li>
-                <li>Paste the entire JSON contents into the box below.</li>
+                <li>On a workstation with Claude Pro or Max, run <code className="rounded bg-white/10 px-1">claude setup-token</code>.</li>
+                <li>Complete the browser OAuth flow.</li>
+                <li>Copy the printed token (starts with <code className="rounded bg-white/10 px-1">sk-ant-</code>) and paste it below.</li>
               </ol>
-              <p className="mt-2 text-xs text-white/50">
-                macOS users: <code className="rounded bg-white/10 px-1">setup-token</code> writes to the Keychain instead of a file. Use Linux or WSL.
-              </p>
             </div>
 
-            <textarea
+            <input
+              type="password"
               value={claudeAuthInput}
               onChange={(e) => setClaudeAuthInput(e.target.value)}
-              className={`${INPUT_BASE} ${INPUT_OK} min-h-[8rem] resize-y font-mono text-xs`}
-              placeholder='{"claudeAiOauth":{"accessToken":"sk-ant-oat01-...","refreshToken":"sk-ant-ort01-...","expiresAt":...,"scopes":[...]}}'
-              rows={6}
-              spellCheck={false}
+              className={`${INPUT_BASE} ${INPUT_OK} font-mono text-xs`}
+              placeholder="sk-ant-oat01-..."
+              autoComplete="off"
             />
 
             {claudeAuthError && (

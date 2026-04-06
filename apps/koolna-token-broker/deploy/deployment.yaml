@@ -25,7 +25,7 @@ spec:
             - containerPort: 8080
           env:
             - name: HOME
-              value: /home/node
+              value: /home/broker
           resources:
             requests:
               cpu: 50m
@@ -34,7 +34,7 @@ spec:
               memory: 256Mi
           volumeMounts:
             - name: data
-              mountPath: /home/node
+              mountPath: /home/broker
           readinessProbe:
             httpGet:
               path: /health
