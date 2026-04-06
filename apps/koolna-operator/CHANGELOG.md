@@ -5,8 +5,26 @@
 
 ### Added
 
-- persistent cache volume: replace EmptyDir with PVC for /cache mount
-- cacheSize and cacheStorageClass fields on Koolna CRD
+- delete cache PVC on CR deletion with Delete policy
+- replace EmptyDir with PVC for cache volume
+- add cacheSize and cacheStorageClass CRD fields
+- add webui-driven broker bootstrap with paste-credentials flow
+
+### Changed
+
+- remove slop from recent changes
+- rename cchPVCName and fix cleanupKoolna helper
+- replace token broker with koolna-env-defaults Secret injection
+
+### Fixed
+
+- simplify to plain token from setup-token (1 year validity, no refresh needed)
+
+### Documentation
+
+- add cacheSize to sample CR
+- add cache PVC fields and manual cleanup docs
+- add changelog for cache PVC feature
 
 ## 2026-04-05
 
@@ -17,6 +35,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - document Claude authentication flow, broker bootstrap, and opt-in
 
 ## 2026-04-02

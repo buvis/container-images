@@ -1,11 +1,25 @@
 # Changelog — koolna-tmux
 
 
+## 2026-04-06
+
+### Changed
+
+- replace token broker with koolna-env-defaults Secret injection
+
+### Fixed
+
+- bootstrap claude config on first run when CLAUDE_CODE_OAUTH_TOKEN is set
+
 ## 2026-04-05
 
 ### Added
 
 - add koolna-auth-init for opt-in Claude token injection
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-02
 
