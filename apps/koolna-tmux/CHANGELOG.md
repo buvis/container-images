@@ -17,10 +17,6 @@
 
 - add koolna-auth-init for opt-in Claude token injection
 
-### Documentation
-
-- update changelogs [skip ci]
-
 ## 2026-04-02
 
 ### Fixed
