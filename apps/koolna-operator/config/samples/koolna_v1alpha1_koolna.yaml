@@ -11,6 +11,7 @@ spec:
   dotfilesBareDir: .cfg
   image: ghcr.io/buvis/koolna-base:latest
   storage: 10Gi
+  cacheSize: 5Gi
   resources:
     limits:
       cpu: '2'
