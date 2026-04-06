@@ -209,3 +209,22 @@ export async function updateKoolnaEnv(name: string, payload: EnvVarsPayload): Pr
   })
   return parseResponse<EnvVarsPayload>(response)
 }
+
+export interface ClaudeAuthStatus {
+  bootstrapped: boolean
+  expiresAt: number | null
+}
+
+export async function getClaudeAuthStatus(): Promise<ClaudeAuthStatus> {
+  const response = await fetch('/api/claude-auth/status')
+  return parseResponse<ClaudeAuthStatus>(response)
+}
+
+export async function bootstrapClaudeAuth(credentialsJson: string): Promise<{ ok: boolean }> {
+  const response = await fetch('/api/claude-auth/bootstrap', {
+    method: 'POST',
+    headers: jsonHeaders(),
+    body: credentialsJson,
+  })
+  return parseResponse<{ ok: boolean }>(response)
+}

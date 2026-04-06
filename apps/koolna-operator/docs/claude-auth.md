@@ -107,10 +107,18 @@ The broker transparently handles refresh token rotation behind this. It is the s
 
 ## Bootstrap
 
-See [apps/koolna-token-broker/README.md](../../koolna-token-broker/README.md) for the full admin bootstrap procedure. Summary:
-1. On your workstation: `claude setup-token`.
-2. `kubectl cp` the resulting `~/.claude/.credentials.json` into the broker pod at `/home/node/.claude/.credentials.json`.
-3. Restart the broker deployment.
+Two equivalent paths. See [apps/koolna-token-broker/README.md](../../koolna-token-broker/README.md) for the full procedure including prerequisites and troubleshooting.
+
+**Webui (recommended):**
+1. On a Linux workstation: `claude setup-token`, then `cat ~/.claude/.credentials.json`.
+2. In the webui, navigate to **Settings → Claude authentication**.
+3. Paste the JSON contents into the textarea, click **Bootstrap broker**.
+4. Status badge flips to **Bootstrapped**.
+
+**CLI fallback:**
+1. `claude setup-token` on a Linux workstation.
+2. `kubectl -n koolna cp ~/.claude/.credentials.json <broker-pod>:/home/node/.claude/.credentials.json`.
+3. `kubectl -n koolna rollout restart deploy/koolna-token-broker`.
 4. Verify with `curl http://koolna-token-broker:8080/token` from an in-cluster debug pod.
 
 ## Troubleshooting

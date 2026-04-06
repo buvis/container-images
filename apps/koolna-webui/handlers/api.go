@@ -95,6 +95,8 @@ func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
 
 const defaultsConfigMapName = "koolna-defaults"
 const envDefaultsSecretName = "koolna-env-defaults"
+const tokenBrokerBaseURL = "http://koolna-token-broker.koolna.svc.cluster.local:8080"
+const bootstrapMaxBytes = 16 * 1024
 
 type envVarEntry struct {
 	Name  string `json:"name"`
@@ -123,6 +125,8 @@ func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/env-defaults", h.UpdateEnvDefaults).Methods("PUT")
 	r.HandleFunc("/api/koolnas/{name}/env", h.GetKoolnaEnv).Methods("GET")
 	r.HandleFunc("/api/koolnas/{name}/env", h.UpdateKoolnaEnv).Methods("PUT")
+	r.HandleFunc("/api/claude-auth/status", h.ClaudeAuthStatus).Methods("GET")
+	r.HandleFunc("/api/claude-auth/bootstrap", h.ClaudeAuthBootstrap).Methods("POST")
 }
 
 type defaultsResponse struct {
@@ -957,4 +961,102 @@ func respondJSON(w http.ResponseWriter, status int, payload interface{}) {
 
 func respondError(w http.ResponseWriter, status int, err error) {
 	respondJSON(w, status, map[string]string{"error": err.Error()})
+}
+
+// ClaudeAuthStatus proxies GET /status on the token broker.
+func (h *APIHandler) ClaudeAuthStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, tokenBrokerBaseURL+"/status", nil)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		respondError(w, http.StatusBadGateway, fmt.Errorf("token broker unreachable: %w", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	body := &bytes.Buffer{}
+	if _, err := body.ReadFrom(http.MaxBytesReader(w, resp.Body, bootstrapMaxBytes)); err != nil {
+		respondError(w, http.StatusBadGateway, fmt.Errorf("reading broker response: %w", err))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = w.Write(body.Bytes())
+}
+
+// ClaudeAuthBootstrap proxies POST /bootstrap on the token broker.
+//
+// The request body is expected to be the full contents of
+// ~/.claude/.credentials.json produced by `claude setup-token`. The broker
+// validates the JSON shape and persists it atomically to its PVC. The token
+// value is never logged in this handler.
+func (h *APIHandler) ClaudeAuthBootstrap(w http.ResponseWriter, r *http.Request) {
+	body, err := readLimitedBody(r, bootstrapMaxBytes)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// Pre-validate JSON shape client-side so obviously bad inputs don't need a round trip.
+	var parsed struct {
+		ClaudeAiOauth struct {
+			AccessToken  string `json:"accessToken"`
+			RefreshToken string `json:"refreshToken"`
+			ExpiresAt    any    `json:"expiresAt"`
+		} `json:"claudeAiOauth"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("invalid JSON: %w", err))
+		return
+	}
+	if parsed.ClaudeAiOauth.AccessToken == "" || parsed.ClaudeAiOauth.RefreshToken == "" || parsed.ClaudeAiOauth.ExpiresAt == nil {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("credentials must contain claudeAiOauth with accessToken, refreshToken, and expiresAt"))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenBrokerBaseURL+"/bootstrap", bytes.NewReader(body))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		respondError(w, http.StatusBadGateway, fmt.Errorf("token broker unreachable: %w", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody := &bytes.Buffer{}
+	if _, err := respBody.ReadFrom(http.MaxBytesReader(w, resp.Body, bootstrapMaxBytes)); err != nil {
+		respondError(w, http.StatusBadGateway, fmt.Errorf("reading broker response: %w", err))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	_, _ = w.Write(respBody.Bytes())
+}
+
+func readLimitedBody(r *http.Request, limit int64) ([]byte, error) {
+	if r.Body == nil {
+		return nil, fmt.Errorf("missing request body")
+	}
+	defer r.Body.Close()
+	limited := &bytes.Buffer{}
+	if _, err := limited.ReadFrom(http.MaxBytesReader(nil, r.Body, limit)); err != nil {
+		return nil, fmt.Errorf("reading body: %w", err)
+	}
+	if limited.Len() == 0 {
+		return nil, fmt.Errorf("empty request body")
+	}
+	return limited.Bytes(), nil
 }

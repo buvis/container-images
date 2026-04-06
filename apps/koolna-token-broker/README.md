@@ -17,9 +17,28 @@ Claude CLI uses rotating refresh tokens. If multiple pods share a credentials fi
 
 ## Bootstrap
 
-**How often is this needed? Once.** You run `claude setup-token` a single time, seed the file into the broker's PVC, and the broker takes it from there. From that point on, every request for a fresh access token is served from the broker's own refresh loop - you are not in the critical path. You only re-run the bootstrap if the refresh chain breaks, which is rare (account changes, PVC loss, Anthropic revocation). See [Frequency and lifetime](#frequency-and-lifetime) below for a concrete model of what refreshes automatically and what does not.
+**How often is this needed? Once.** You run `claude setup-token` a single time, seed the file into the broker, and the broker takes it from there. From that point on, every request for a fresh access token is served from the broker's own refresh loop - you are not in the critical path. You only re-run the bootstrap if the refresh chain breaks, which is rare (account changes, PVC loss, Anthropic revocation). See [Frequency and lifetime](#frequency-and-lifetime) below for a concrete model of what refreshes automatically and what does not.
 
 This image ships the Claude CLI but no credentials. The broker starts up, sees there is no `~/.claude/.credentials.json`, and serves `503 no token available - broker not bootstrapped` until an administrator seeds it. The seeding is **interactive and cannot be automated**: Claude's OAuth flow requires a real browser to grant consent.
+
+There are two equivalent paths for seeding the broker. The webui path is the blessed one; the kubectl cp path is the CLI-only fallback.
+
+### Path A (recommended): bootstrap via webui
+
+1. On a Linux workstation with Claude Pro or Max, run `claude setup-token` and complete the browser OAuth. A file is written at `~/.claude/.credentials.json`. macOS users: see the caveat under Path B and fall back to Path B, because setup-token writes to the Keychain instead of the file on macOS.
+2. Print the file contents:
+   ```sh
+   cat ~/.claude/.credentials.json
+   ```
+3. Open the webui, navigate to **Settings → Claude authentication**. The section shows the broker status. If it says "Not bootstrapped" (amber badge), paste the JSON contents into the textarea and click **Bootstrap broker**.
+4. The webui's backend `POST /api/claude-auth/bootstrap` validates the payload client-side and server-side, forwards to the broker's `POST /bootstrap` endpoint, and the broker atomically writes the credentials to its PVC.
+5. The status badge flips to "Bootstrapped" (green). Workspaces with `claudeAuth: true` can now fetch tokens.
+
+The credentials JSON never touches disk in the webui pod - it is held only as the HTTP request body and forwarded to the broker. The broker is the single writer.
+
+### Path B (fallback): bootstrap via kubectl cp
+
+Use this path if you do not have access to the webui, or when writing runbooks that need to be scriptable outside a browser.
 
 ### Prerequisites
 

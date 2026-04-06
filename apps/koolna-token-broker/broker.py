@@ -25,6 +25,7 @@ CREDS_FILE = Path(os.environ.get("HOME", "/home/node")) / ".claude" / ".credenti
 REFRESH_BUFFER_SECONDS = 300
 REFRESH_TIMEOUT_SECONDS = 30
 LISTEN_PORT = 8080
+BOOTSTRAP_MAX_BYTES = 16 * 1024
 
 _refresh_lock = threading.Lock()
 _logger = logging.getLogger("koolna-token-broker")
@@ -99,6 +100,42 @@ def _get_current_token() -> str | None:
     return access_token
 
 
+def _validate_credentials_payload(raw: bytes) -> tuple[dict | None, str | None]:
+    """Parse and validate a credentials JSON payload from a bootstrap request.
+
+    Returns (parsed_dict, None) on success or (None, error_message) on failure.
+    """
+    if len(raw) > BOOTSTRAP_MAX_BYTES:
+        return None, f"payload exceeds {BOOTSTRAP_MAX_BYTES} bytes"
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        return None, f"invalid JSON: {exc.msg}"
+    if not isinstance(payload, dict):
+        return None, "payload must be a JSON object"
+    oauth = payload.get("claudeAiOauth")
+    if not isinstance(oauth, dict):
+        return None, "missing or invalid 'claudeAiOauth' object"
+    for required in ("accessToken", "refreshToken", "expiresAt"):
+        if required not in oauth:
+            return None, f"missing 'claudeAiOauth.{required}'"
+    if not isinstance(oauth["accessToken"], str) or not oauth["accessToken"]:
+        return None, "'claudeAiOauth.accessToken' must be a non-empty string"
+    if not isinstance(oauth["refreshToken"], str) or not oauth["refreshToken"]:
+        return None, "'claudeAiOauth.refreshToken' must be a non-empty string"
+    if not isinstance(oauth["expiresAt"], (int, float)):
+        return None, "'claudeAiOauth.expiresAt' must be a number"
+    return payload, None
+
+
+def _write_credentials_atomic(payload: dict) -> None:
+    """Write credentials JSON to CREDS_FILE atomically via tmp file + rename."""
+    CREDS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = CREDS_FILE.with_suffix(CREDS_FILE.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload))
+    os.replace(tmp_path, CREDS_FILE)
+
+
 class _TokenHandler(http.server.BaseHTTPRequestHandler):
     server_version = "koolna-token-broker/0.1"
 
@@ -107,6 +144,14 @@ class _TokenHandler(http.server.BaseHTTPRequestHandler):
             self._handle_token()
         elif self.path == "/health":
             self._handle_health()
+        elif self.path == "/status":
+            self._handle_status()
+        else:
+            self.send_error(404)
+
+    def do_POST(self) -> None:
+        if self.path == "/bootstrap":
+            self._handle_bootstrap()
         else:
             self.send_error(404)
 
@@ -131,6 +176,57 @@ class _TokenHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(503)
             body = b"no credentials\n"
         self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_status(self) -> None:
+        """Return JSON describing whether the broker is bootstrapped.
+
+        Never includes token values. Safe to expose to any caller that can
+        reach the broker service.
+        """
+        _, expires_at = _extract(_read_credentials())
+        status = {
+            "bootstrapped": expires_at is not None,
+            "expiresAt": expires_at,
+        }
+        body = json.dumps(status).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_bootstrap(self) -> None:
+        """Accept a credentials JSON payload and atomically replace CREDS_FILE.
+
+        Held under the refresh lock so we cannot clobber an in-flight refresh.
+        """
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            self.send_error(400, "missing or empty body")
+            return
+        if length > BOOTSTRAP_MAX_BYTES:
+            self.send_error(413, f"payload exceeds {BOOTSTRAP_MAX_BYTES} bytes")
+            return
+        raw = self.rfile.read(length)
+        payload, err = _validate_credentials_payload(raw)
+        if err is not None or payload is None:
+            self.send_error(400, err or "invalid payload")
+            return
+        with _refresh_lock:
+            try:
+                _write_credentials_atomic(payload)
+            except OSError as exc:
+                _logger.error("bootstrap: failed to write credentials: %s", exc)
+                self.send_error(500, "failed to persist credentials")
+                return
+        _logger.info("bootstrap: credentials accepted, expiresAt=%s", payload["claudeAiOauth"]["expiresAt"])
+        body = b'{"ok":true}\n'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
