@@ -278,10 +278,6 @@ var _ = Describe("Koolna Controller", func() {
 
 		AfterEach(func() {
 			cleanupKoolna(resourceName, "default")
-			cachePvc := &corev1.PersistentVolumeClaim{}
-			if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
-				_ = k8sClient.Delete(ctx, cachePvc)
-			}
 		})
 
 		It("should delete PVC when Koolna is deleted", func() {
@@ -425,13 +421,7 @@ var _ = Describe("Koolna Controller", func() {
 	Context("Cache PVC lifecycle", func() {
 		It("should create cache PVC with default 5Gi size", func() {
 			const resourceName = "test-cache-default"
-			defer func() {
-				cleanupKoolna(resourceName, "default")
-				cachePvc := &corev1.PersistentVolumeClaim{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
-					_ = k8sClient.Delete(ctx, cachePvc)
-				}
-			}()
+			defer func() { cleanupKoolna(resourceName, "default") }()
 
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{
@@ -467,13 +457,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should create cache PVC with custom size", func() {
 			const resourceName = "test-cache-custom"
-			defer func() {
-				cleanupKoolna(resourceName, "default")
-				cachePvc := &corev1.PersistentVolumeClaim{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
-					_ = k8sClient.Delete(ctx, cachePvc)
-				}
-			}()
+			defer func() { cleanupKoolna(resourceName, "default") }()
 
 			q := resource.MustParse("10Gi")
 			koolna := &koolnav1alpha1.Koolna{
@@ -511,13 +495,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should create cache PVC with custom storage class", func() {
 			const resourceName = "test-cache-sc"
-			defer func() {
-				cleanupKoolna(resourceName, "default")
-				cachePvc := &corev1.PersistentVolumeClaim{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
-					_ = k8sClient.Delete(ctx, cachePvc)
-				}
-			}()
+			defer func() { cleanupKoolna(resourceName, "default") }()
 
 			sc := "fast-ssd"
 			koolna := &koolnav1alpha1.Koolna{
@@ -555,13 +533,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should set cache PVC owner reference to Koolna CR", func() {
 			const resourceName = "test-cache-owner"
-			defer func() {
-				cleanupKoolna(resourceName, "default")
-				cachePvc := &corev1.PersistentVolumeClaim{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
-					_ = k8sClient.Delete(ctx, cachePvc)
-				}
-			}()
+			defer func() { cleanupKoolna(resourceName, "default") }()
 
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{
@@ -598,13 +570,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should set cachePVCName in status after reconcile", func() {
 			const resourceName = "test-cache-status"
-			defer func() {
-				cleanupKoolna(resourceName, "default")
-				cachePvc := &corev1.PersistentVolumeClaim{}
-				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
-					_ = k8sClient.Delete(ctx, cachePvc)
-				}
-			}()
+			defer func() { cleanupKoolna(resourceName, "default") }()
 
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{

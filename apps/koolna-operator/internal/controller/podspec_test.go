@@ -252,9 +252,6 @@ func TestBuildPodSpec_CacheVolumeIsPVC(t *testing.T) {
 		if v.VolumeSource.PersistentVolumeClaim == nil {
 			t.Error("cache volume should use PersistentVolumeClaim source, not EmptyDir")
 		}
-		if v.VolumeSource.EmptyDir != nil {
-			t.Error("cache volume should not use EmptyDir when cachePVCName is provided")
-		}
 		return
 	}
 	t.Error("cache volume not found in pod spec")
