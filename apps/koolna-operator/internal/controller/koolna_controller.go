@@ -255,14 +255,17 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 
 func (r *KoolnaReconciler) handleDeletion(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
 	// Pod and Service are deleted by owner reference GC
-	// PVC: check deletionPolicy
+	// PVCs: check deletionPolicy
 	if koolna.Spec.DeletionPolicy == koolnav1alpha1.DeletionPolicyDelete {
-		pvc := &corev1.PersistentVolumeClaim{}
-		pvcName := workspacePVCName(koolna)
-		if err := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: koolna.Namespace}, pvc); err == nil {
-			return r.Delete(ctx, pvc)
-		} else if !apierrors.IsNotFound(err) {
-			return err
+		for _, name := range []string{workspacePVCName(koolna), cachePVCName(koolna)} {
+			pvc := &corev1.PersistentVolumeClaim{}
+			if err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: koolna.Namespace}, pvc); err == nil {
+				if err := r.Delete(ctx, pvc); err != nil {
+					return err
+				}
+			} else if !apierrors.IsNotFound(err) {
+				return err
+			}
 		}
 	}
 	return nil
