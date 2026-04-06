@@ -15,6 +15,8 @@ spec:
   gitSecretRef: git-creds    # secret with username/token keys
   image: ghcr.io/buvis/koolna-base:latest
   storage: 10Gi              # workspace PVC size
+  cacheSize: 5Gi             # cache PVC size (default: 5Gi)
+  cacheStorageClass: ""      # cache PVC storage class (default: cluster default)
   dotfilesMethod: bare-git   # none | bare-git | clone | command
   dotfilesRepo: https://github.com/owner/dots  # URL for bare-git/clone
   dotfilesBareDir: .cfg      # bare-git only, default: .cfg
@@ -70,23 +72,30 @@ Each Koolna pod uses two volumes:
 | Volume | Type | Mount | Contents |
 |--------|------|-------|----------|
 | `workspace` | PVC | `$HOME/workspace` (subPath) | repo checkout, `.koolna/` (git credentials, SSH host keys) |
-| `cache` | emptyDir | `$HOME/.cache` | disposable caches, build artifacts, temp files |
+| `cache` | PVC | `/cache` | tool caches, mise installs, build artifacts |
 
 Everything else under `$HOME` lives on the container filesystem and is rebuilt on pod restart (dotfiles, tool installs via mise, shell config).
 
 **Persistent paths** (survive pod restart via PVC):
-- `$HOME/workspace/` - repo checkout, uncommitted work
-- `$HOME/workspace/.koolna/.git-credentials` - git credential store
-- `$HOME/workspace/.koolna/.gitconfig` - git user identity
-- `$HOME/workspace/.koolna/ssh/` - SSH host keys (root-owned)
-
-**Disposable paths** (emptyDir, lost on pod restart):
-- `$HOME/.cache/` - package manager caches, build artifacts
+- `/workspace/` - repo checkout, uncommitted work
+- `/cache/.koolna/.git-credentials` - git credential store
+- `/cache/.koolna/.gitconfig` - git user identity
+- `/cache/` - mise installs, cargo registry, pip cache
 
 **Ephemeral paths** (container filesystem, rebuilt on startup):
 - `$HOME/.cfg` or `$HOME/.dotfiles` - dotfiles (re-applied by sidecar)
 - `$HOME/.local/share/mise/` - tool installs (reinstalled by mise)
 - `$HOME/.ssh/authorized_keys` - written from KOOLNA_SSH_PUBKEY env var
+
+## Cache Management
+
+The cache PVC persists tool installations (mise, cargo, pip) across pod restarts. To reset the cache (e.g., after a corrupted install), delete the cache PVC manually:
+
+```sh
+kubectl delete pvc my-env-cache -n koolna
+```
+
+The operator recreates the PVC on next reconcile. Tools will be re-installed on next pod startup.
 
 ## Lifecycle
 
