@@ -54,6 +54,19 @@ spec:
             properties:
               branch:
                 type: string
+              cacheSize:
+                anyOf:
+                - type: integer
+                - type: string
+                default: 5Gi
+                description: CacheSize is the storage capacity for the persistent
+                  cache volume.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              cacheStorageClass:
+                description: CacheStorageClass overrides the default storage class
+                  for the cache PVC.
+                type: string
               deletionPolicy:
                 description: DeletionPolicy governs how associated resources are handled
                   when a Koolna is deleted.
@@ -156,6 +169,10 @@ spec:
           status:
             description: status defines the observed state of Koolna
             properties:
+              cachePvcName:
+                description: CachePVCName is the name of the persistent volume claim
+                  used for the cache volume.
+                type: string
               conditions:
                 description: |-
                   conditions represent the current state of the Koolna resource.

@@ -51,6 +51,15 @@ type KoolnaSpec struct {
 	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
 	Suspended       bool                        `json:"suspended,omitempty"`
 	DeletionPolicy  DeletionPolicy              `json:"deletionPolicy,omitempty"`
+
+	// CacheSize is the storage capacity for the persistent cache volume.
+	// +optional
+	// +kubebuilder:default="5Gi"
+	CacheSize *resource.Quantity `json:"cacheSize,omitempty"`
+
+	// CacheStorageClass overrides the default storage class for the cache PVC.
+	// +optional
+	CacheStorageClass *string `json:"cacheStorageClass,omitempty"`
 }
 
 // KoolnaPhase indicates the current lifecycle phase of a Koolna.
@@ -76,6 +85,9 @@ type KoolnaStatus struct {
 
 	// PVCName is the name of the persistent volume claim used by the Koolna workspace.
 	PVCName string `json:"pvcName,omitempty"`
+
+	// CachePVCName is the name of the persistent volume claim used for the cache volume.
+	CachePVCName string `json:"cachePvcName,omitempty"`
 
 	// ServiceName is the load balancer or clusterIP service fronting the Koolna pod.
 	ServiceName string `json:"serviceName,omitempty"`
