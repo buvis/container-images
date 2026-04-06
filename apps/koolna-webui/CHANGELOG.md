@@ -1,6 +1,24 @@
 # Changelog — koolna-webui
 
 
+## 2026-04-06
+
+### Added
+
+- add webui-driven broker bootstrap with paste-credentials flow
+
+### Changed
+
+- replace token broker with koolna-env-defaults Secret injection
+
+### Fixed
+
+- simplify to plain token from setup-token (1 year validity, no refresh needed)
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-05
 
 ### Added
