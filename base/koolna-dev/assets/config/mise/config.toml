@@ -1,0 +1,12 @@
+[tools]
+node = "24"
+pnpm = "latest"
+deno = "latest"
+python = "latest"
+uv = "latest"
+ruff = "latest"
+poetry = "latest"
+rust = "latest"
+
+[settings]
+experimental = true
