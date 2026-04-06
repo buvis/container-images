@@ -21,8 +21,8 @@ jobs:
     name: Get changes
     runs-on: ubuntu-24.04
     outputs:
-      base_matrix: '{"container": ${{ steps.reduce.outputs.base_containers || '[]' }} }'
-      stack_matrix: '{"container": ${{ steps.reduce.outputs.stack_containers || '[]' }} }'
+      base_matrix: '{"container": ${{ steps.reduce.outputs.base_containers }} }'
+      stack_matrix: '{"container": ${{ steps.reduce.outputs.stack_containers }} }'
       has_base: ${{ steps.reduce.outputs.has_base }}
       has_stack: ${{ steps.reduce.outputs.has_stack }}
       has_changes: ${{ steps.filter.outputs.changed }}
