@@ -39,8 +39,14 @@ jobs:
       - id: reduce
         if: steps.filter.outputs.changed == 'true'
         run: |
-          CONTAINERS=$(jq --raw-output '.changed_files | fromjson | .[] |= sub("(?<filepath>(?<first_directory>(?<root1>[/]?)[^/]+/)(?<second_directory>(?<root2>[/]?)[^/]+)(?<extra_paths>.+))"; "\(.second_directory)") | unique' changes.json)
-          echo containers=$CONTAINERS >> $GITHUB_OUTPUT
+          ALL=$(jq --raw-output '.changed_files | fromjson | .[] |= sub("(?<filepath>(?<first_directory>(?<root1>[/]?)[^/]+/)(?<second_directory>(?<root2>[/]?)[^/]+)(?<extra_paths>.+))"; "\(.second_directory)") | unique | .[]' changes.json)
+          EXISTING="[]"
+          for c in $ALL; do
+            if [ -d "./apps/$c" ] || [ -d "./base/$c" ]; then
+              EXISTING=$(echo "$EXISTING" | jq --arg c "$c" '. + [$c]')
+            fi
+          done
+          echo containers=$EXISTING >> $GITHUB_OUTPUT
 
   hadolint:
     name: Run hadolint
