@@ -425,12 +425,10 @@ export LC_CTYPE=C.UTF-8
 
 # Bootstrap Claude config so the first interactive `claude` run skips the
 # login menu. Non-interactive mode (-p) uses CLAUDE_CODE_OAUTH_TOKEN directly
-# and creates ~/.claude/ as a side effect, which is all interactive mode needs.
+# and initialises ~/.claude/ state as a side effect.
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && $NSENTER_USER sh -c 'command -v claude >/dev/null 2>&1'; then
-  if ! $NSENTER_USER sh -c 'test -d "$HOME/.claude"'; then
-    echo "bootstrapping claude config..."
-    $NSENTER_USER "$KOOLNA_SHELL" -lc 'claude -p "ok" >/dev/null 2>&1' || echo "claude bootstrap failed (non-fatal)"
-  fi
+  echo "bootstrapping claude config..."
+  $NSENTER_USER "$KOOLNA_SHELL" -lc 'claude -p "ok" >/dev/null 2>&1' || echo "claude bootstrap failed (non-fatal)"
 fi
 
 echo "creating tmux sessions"
