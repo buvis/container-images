@@ -407,11 +407,18 @@ var _ = Describe("Koolna Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Checking PVC still exists (finalizer did not delete it)")
+			By("Checking workspace PVC still exists (finalizer did not delete it)")
 			Expect(k8sClient.Get(ctx, types.NamespacedName{
 				Name:      resourceName + "-workspace",
 				Namespace: "default",
 			}, pvc)).To(Succeed())
+
+			By("Checking cache PVC still exists (finalizer did not delete it)")
+			cachePvc := &corev1.PersistentVolumeClaim{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName + "-cache",
+				Namespace: "default",
+			}, cachePvc)).To(Succeed())
 		})
 	})
 
