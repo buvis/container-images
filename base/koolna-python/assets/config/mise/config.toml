@@ -1,0 +1,8 @@
+[tools]
+python = "latest"
+uv = "latest"
+ruff = "latest"
+poetry = "latest"
+
+[settings]
+experimental = true
