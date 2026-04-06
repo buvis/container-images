@@ -28,6 +28,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -79,8 +80,9 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 
 	svcName := koolna.Name
 	var (
-		pvcName string
-		pod     *corev1.Pod
+		pvcName      string
+		cchPVCName   string
+		pod          *corev1.Pod
 	)
 
 	// Handle deletion
@@ -107,7 +109,7 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	}
 
 	defer func() {
-		if statusErr := r.updateStatus(ctx, &koolna, pod, pvcName, svcName, err); statusErr != nil {
+		if statusErr := r.updateStatus(ctx, &koolna, pod, pvcName, cchPVCName, svcName, err); statusErr != nil {
 			log.Error(statusErr, "unable to update Koolna status")
 			if err == nil {
 				err = statusErr
@@ -136,7 +138,17 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		pvcName = pvc.Name
 	}
 
-	pod, err = r.reconcilePod(ctx, &koolna, pvcName)
+	cachePVC, err := r.reconcileCachePVC(ctx, &koolna)
+	if err != nil {
+		log.Error(err, "unable to reconcile cache PVC", "name", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+
+	if cachePVC != nil {
+		cchPVCName = cachePVC.Name
+	}
+
+	pod, err = r.reconcilePod(ctx, &koolna, pvcName, cchPVCName)
 	if err != nil {
 		log.Error(err, "unable to reconcile pod", "name", req.NamespacedName)
 		return ctrl.Result{}, err
@@ -155,8 +167,9 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	return result, nil
 }
 
-func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alpha1.Koolna, pod *corev1.Pod, pvcName, svcName string, reconcileErr error) error {
+func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alpha1.Koolna, pod *corev1.Pod, pvcName, cachePVCName, svcName string, reconcileErr error) error {
 	koolna.Status.PVCName = pvcName
+	koolna.Status.CachePVCName = cachePVCName
 	koolna.Status.ServiceName = svcName
 	koolna.Status.CurrentBranch = koolna.Spec.Branch
 	koolna.Status.LastReconciled = metav1.Now()
@@ -299,6 +312,56 @@ func (r *KoolnaReconciler) reconcilePVC(ctx context.Context, koolna *koolnav1alp
 	return pvc, nil
 }
 
+func (r *KoolnaReconciler) reconcileCachePVC(ctx context.Context, koolna *koolnav1alpha1.Koolna) (*corev1.PersistentVolumeClaim, error) {
+	name := cachePVCName(koolna)
+	pvc := &corev1.PersistentVolumeClaim{}
+
+	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: koolna.Namespace}, pvc)
+	if err == nil {
+		return pvc, nil
+	}
+
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	cacheSize := resource.MustParse("5Gi")
+	if koolna.Spec.CacheSize != nil {
+		cacheSize = *koolna.Spec.CacheSize
+	}
+
+	pvc = &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: koolna.Namespace,
+			Labels: map[string]string{
+				"koolna.buvis.net/name": koolna.Name,
+			},
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			StorageClassName: koolna.Spec.CacheStorageClass,
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: cacheSize,
+				},
+			},
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(koolna, pvc, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	if err := r.Create(ctx, pvc); err != nil {
+		return nil, err
+	}
+
+	return pvc, nil
+}
+
 func (r *KoolnaReconciler) reconcileService(ctx context.Context, koolna *koolnav1alpha1.Koolna) (*corev1.Service, error) {
 	svcName := koolna.Name
 	svc := &corev1.Service{}
@@ -353,7 +416,7 @@ func (r *KoolnaReconciler) reconcileService(ctx context.Context, koolna *koolnav
 	return svc, nil
 }
 
-func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alpha1.Koolna, pvcName string) (*corev1.Pod, error) {
+func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string) (*corev1.Pod, error) {
 	pods := &corev1.PodList{}
 	if err := r.List(ctx, pods,
 		client.InNamespace(koolna.Namespace),
@@ -378,7 +441,7 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	}
 
 	dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-	pod := buildPodSpec(koolna, pvcName, dotfiles)
+	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles)
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -720,7 +783,7 @@ func proxyCAVolumeMount() corev1.VolumeMount {
 	}
 }
 
-func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfilesConfig) *corev1.Pod {
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig) *corev1.Pod {
 	shareProcessNamespace := true
 
 	shell := koolna.Spec.Shell
@@ -837,7 +900,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName string, dotfiles dotfil
 			},
 			Volumes: []corev1.Volume{
 				buildWorkspaceVolume(pvcName),
-				{Name: cacheVolumeName, VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+				buildCacheVolume(cachePVCName),
 				buildProxyCAVolume(),
 			},
 		},
@@ -855,6 +918,17 @@ func buildWorkspaceVolume(pvcName string) corev1.Volume {
 	}
 }
 
+func buildCacheVolume(cachePVCName string) corev1.Volume {
+	return corev1.Volume{
+		Name: cacheVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: cachePVCName,
+			},
+		},
+	}
+}
+
 func boolPtr(b bool) *bool { return &b }
 
 func authSecretName(koolna *koolnav1alpha1.Koolna) string {
@@ -863,6 +937,10 @@ func authSecretName(koolna *koolnav1alpha1.Koolna) string {
 
 func workspacePVCName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-workspace"
+}
+
+func cachePVCName(koolna *koolnav1alpha1.Koolna) string {
+	return koolna.Name + "-cache"
 }
 
 func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace string) error {
