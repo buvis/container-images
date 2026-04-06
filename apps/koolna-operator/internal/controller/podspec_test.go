@@ -24,7 +24,7 @@ func minimalKoolna() *koolnav1alpha1.Koolna {
 
 func TestBuildPodSpec_WorkspaceMount(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
 	var wsFound, cacheFound bool
 	for _, c := range pod.Spec.Containers {
@@ -51,7 +51,7 @@ func TestBuildPodSpec_WorkspaceMount(t *testing.T) {
 
 func TestBuildPodSpec_WorkingDir(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name == "koolna" {
@@ -66,7 +66,7 @@ func TestBuildPodSpec_WorkingDir(t *testing.T) {
 
 func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "koolna" {
@@ -88,7 +88,7 @@ func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 
 func TestBuildPodSpec_XDGAndMiseEnvVars(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
 	want := map[string]string{
 		"XDG_CACHE_HOME":            "/cache",
@@ -118,7 +118,7 @@ func TestBuildPodSpec_XDGAndMiseEnvVars(t *testing.T) {
 
 func TestBuildPodSpec_NoRunAsUserOrGroup(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "koolna" {
@@ -139,7 +139,7 @@ func TestBuildPodSpec_NoRunAsUserOrGroup(t *testing.T) {
 
 func TestBuildPodSpec_SidecarNoUserEnvVars(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
 	forbidden := []string{"KOOLNA_HOME", "KOOLNA_UID", "KOOLNA_USERNAME"}
 
@@ -230,4 +230,76 @@ func TestBuildGitCloneInitContainer_WithGitSecret(t *testing.T) {
 	if strings.Contains(script, "chown") {
 		t.Error("init container script should not contain chown even with git secret")
 	}
+}
+
+func TestCachePVCName(t *testing.T) {
+	koolna := minimalKoolna()
+	got := cachePVCName(koolna)
+	want := "test-cache"
+	if got != want {
+		t.Errorf("cachePVCName: got %q, want %q", got, want)
+	}
+}
+
+func TestBuildPodSpec_CacheVolumeIsPVC(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	for _, v := range pod.Spec.Volumes {
+		if v.Name != cacheVolumeName {
+			continue
+		}
+		if v.VolumeSource.PersistentVolumeClaim == nil {
+			t.Error("cache volume should use PersistentVolumeClaim source, not EmptyDir")
+		}
+		if v.VolumeSource.EmptyDir != nil {
+			t.Error("cache volume should not use EmptyDir when cachePVCName is provided")
+		}
+		return
+	}
+	t.Error("cache volume not found in pod spec")
+}
+
+func TestBuildPodSpec_CacheVolumeMount(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	containers := []string{"koolna", "tmux-sidecar"}
+	for _, name := range containers {
+		var found bool
+		for _, c := range pod.Spec.Containers {
+			if c.Name != name {
+				continue
+			}
+			for _, vm := range c.VolumeMounts {
+				if vm.Name == cacheVolumeName && vm.MountPath == "/cache" {
+					found = true
+				}
+			}
+		}
+		if !found {
+			t.Errorf("container %q: expected VolumeMount for cache volume at /cache", name)
+		}
+	}
+}
+
+func TestBuildPodSpec_CacheVolumeClaimName(t *testing.T) {
+	koolna := minimalKoolna()
+	cacheName := "my-custom-cache"
+	pod := buildPodSpec(koolna, "test-workspace", cacheName, dotfilesConfig{})
+
+	for _, v := range pod.Spec.Volumes {
+		if v.Name != cacheVolumeName {
+			continue
+		}
+		if v.VolumeSource.PersistentVolumeClaim == nil {
+			t.Fatal("cache volume: PersistentVolumeClaim source is nil")
+		}
+		got := v.VolumeSource.PersistentVolumeClaim.ClaimName
+		if got != cacheName {
+			t.Errorf("cache volume claim name: got %q, want %q", got, cacheName)
+		}
+		return
+	}
+	t.Error("cache volume not found in pod spec")
 }
