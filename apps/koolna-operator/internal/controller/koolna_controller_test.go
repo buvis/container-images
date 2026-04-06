@@ -276,6 +276,10 @@ var _ = Describe("Koolna Controller", func() {
 
 		AfterEach(func() {
 			cleanupKoolna(resourceName, "default")
+			cachePvc := &corev1.PersistentVolumeClaim{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
+				_ = k8sClient.Delete(ctx, cachePvc)
+			}
 		})
 
 		It("should delete PVC when Koolna is deleted", func() {
@@ -337,6 +341,19 @@ var _ = Describe("Koolna Controller", func() {
 				// Check if marked for deletion (has DeletionTimestamp)
 				return err == nil && freshPvc.DeletionTimestamp != nil
 			}, timeout, interval).Should(BeTrue())
+
+			By("Checking cache PVC was also deleted")
+			Eventually(func() bool {
+				freshPvc := &corev1.PersistentVolumeClaim{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      resourceName + "-cache",
+					Namespace: "default",
+				}, freshPvc)
+				if errors.IsNotFound(err) {
+					return true
+				}
+				return err == nil && freshPvc.DeletionTimestamp != nil
+			}, timeout, interval).Should(BeTrue())
 		})
 	})
 
@@ -393,6 +410,220 @@ var _ = Describe("Koolna Controller", func() {
 				Name:      resourceName + "-workspace",
 				Namespace: "default",
 			}, pvc)).To(Succeed())
+		})
+	})
+
+	Context("Cache PVC lifecycle", func() {
+		It("should create cache PVC with default 5Gi size", func() {
+			const resourceName = "test-cache-default"
+			defer func() {
+				cleanupKoolna(resourceName, "default")
+				cachePvc := &corev1.PersistentVolumeClaim{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
+					_ = k8sClient.Delete(ctx, cachePvc)
+				}
+			}()
+
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+
+			By("Creating the Koolna resource")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking cache PVC was created with default 5Gi size")
+			pvc := &corev1.PersistentVolumeClaim{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName + "-cache",
+				Namespace: "default",
+			}, pvc)).To(Succeed())
+			Expect(pvc.Spec.Resources.Requests[corev1.ResourceStorage]).To(Equal(resource.MustParse("5Gi")))
+		})
+
+		It("should create cache PVC with custom size", func() {
+			const resourceName = "test-cache-custom"
+			defer func() {
+				cleanupKoolna(resourceName, "default")
+				cachePvc := &corev1.PersistentVolumeClaim{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
+					_ = k8sClient.Delete(ctx, cachePvc)
+				}
+			}()
+
+			q := resource.MustParse("10Gi")
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+					CacheSize:    &q,
+				},
+			}
+
+			By("Creating the Koolna resource")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking cache PVC was created with custom 10Gi size")
+			pvc := &corev1.PersistentVolumeClaim{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName + "-cache",
+				Namespace: "default",
+			}, pvc)).To(Succeed())
+			Expect(pvc.Spec.Resources.Requests[corev1.ResourceStorage]).To(Equal(resource.MustParse("10Gi")))
+		})
+
+		It("should create cache PVC with custom storage class", func() {
+			const resourceName = "test-cache-sc"
+			defer func() {
+				cleanupKoolna(resourceName, "default")
+				cachePvc := &corev1.PersistentVolumeClaim{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
+					_ = k8sClient.Delete(ctx, cachePvc)
+				}
+			}()
+
+			sc := "fast-ssd"
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:              "https://github.com/owner/repo",
+					Branch:            "main",
+					GitSecretRef:      "git-creds",
+					Image:             "ghcr.io/buvis/koolna-base:latest",
+					Storage:           resource.MustParse("1Gi"),
+					CacheStorageClass: &sc,
+				},
+			}
+
+			By("Creating the Koolna resource")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking cache PVC has custom storage class")
+			pvc := &corev1.PersistentVolumeClaim{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName + "-cache",
+				Namespace: "default",
+			}, pvc)).To(Succeed())
+			Expect(pvc.Spec.StorageClassName).To(Equal(&sc))
+		})
+
+		It("should set cache PVC owner reference to Koolna CR", func() {
+			const resourceName = "test-cache-owner"
+			defer func() {
+				cleanupKoolna(resourceName, "default")
+				cachePvc := &corev1.PersistentVolumeClaim{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
+					_ = k8sClient.Delete(ctx, cachePvc)
+				}
+			}()
+
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+
+			By("Creating the Koolna resource")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking cache PVC has owner reference to Koolna CR")
+			pvc := &corev1.PersistentVolumeClaim{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName + "-cache",
+				Namespace: "default",
+			}, pvc)).To(Succeed())
+			Expect(pvc.OwnerReferences).To(HaveLen(1))
+			Expect(pvc.OwnerReferences[0].Name).To(Equal(resourceName))
+		})
+
+		It("should set cachePVCName in status after reconcile", func() {
+			const resourceName = "test-cache-status"
+			defer func() {
+				cleanupKoolna(resourceName, "default")
+				cachePvc := &corev1.PersistentVolumeClaim{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-cache", Namespace: "default"}, cachePvc); err == nil {
+					_ = k8sClient.Delete(ctx, cachePvc)
+				}
+			}()
+
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					GitSecretRef: "git-creds",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+				},
+			}
+
+			By("Creating the Koolna resource")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking status has cachePVCName set")
+			updated := &koolnav1alpha1.Koolna{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, updated)).To(Succeed())
+			Expect(updated.Status.CachePVCName).To(Equal(resourceName + "-cache"))
 		})
 	})
 
