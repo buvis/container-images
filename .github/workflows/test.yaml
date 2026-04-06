@@ -21,7 +21,10 @@ jobs:
     name: Get changes
     runs-on: ubuntu-24.04
     outputs:
-      matrix: '{"container": ${{ steps.reduce.outputs.containers }} }'
+      base_matrix: '{"container": ${{ steps.reduce.outputs.base_containers || '[]' }} }'
+      stack_matrix: '{"container": ${{ steps.reduce.outputs.stack_containers || '[]' }} }'
+      has_base: ${{ steps.reduce.outputs.has_base }}
+      has_stack: ${{ steps.reduce.outputs.has_stack }}
       has_changes: ${{ steps.filter.outputs.changed }}
     steps:
       - name: Checkout
@@ -46,7 +49,27 @@ jobs:
               EXISTING=$(echo "$EXISTING" | jq --arg c "$c" '. + [$c]')
             fi
           done
-          echo containers=$EXISTING >> $GITHUB_OUTPUT
+
+          DEP_MAP='{"koolna-base":["koolna-rust","koolna-python","koolna-node"]}'
+          EXPANDED="$EXISTING"
+          for parent in $(echo "$DEP_MAP" | jq -r 'keys[]'); do
+            if echo "$EXPANDED" | jq -e --arg p "$parent" 'index($p)' > /dev/null 2>&1; then
+              for child in $(echo "$DEP_MAP" | jq -r --arg p "$parent" '.[$p][]'); do
+                if [ -d "./apps/$child" ] || [ -d "./base/$child" ]; then
+                  EXPANDED=$(echo "$EXPANDED" | jq --arg c "$child" 'if index($c) then . else . + [$c] end')
+                fi
+              done
+            fi
+          done
+
+          STACK_NAMES=$(echo "$DEP_MAP" | jq '[.[][]] | unique')
+          BASE=$(echo "$EXPANDED" | jq --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c) | not)]')
+          STACK=$(echo "$EXPANDED" | jq --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c))]')
+
+          echo "base_containers=$BASE" >> $GITHUB_OUTPUT
+          echo "stack_containers=$STACK" >> $GITHUB_OUTPUT
+          if [ "$(echo "$BASE" | jq length)" -gt 0 ]; then echo "has_base=true" >> $GITHUB_OUTPUT; else echo "has_base=false" >> $GITHUB_OUTPUT; fi
+          if [ "$(echo "$STACK" | jq length)" -gt 0 ]; then echo "has_stack=true" >> $GITHUB_OUTPUT; else echo "has_stack=false" >> $GITHUB_OUTPUT; fi
 
   hadolint:
     name: Run hadolint
@@ -64,15 +87,89 @@ jobs:
           filter_mode: diff_context
           fail_level: error
 
-  build:
-    name: Build
+  build-base:
+    name: Build base
     runs-on: ubuntu-24.04
-    if: needs.changes.outputs.has_changes == 'true'
+    if: needs.changes.outputs.has_base == 'true'
     needs:
       - hadolint
       - changes
     strategy:
-      matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.changes.outputs.base_matrix) }}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Prepare
+        id: prep
+        run: |
+          if test -f "./apps/${{ matrix.container }}/Dockerfile"; then
+            CATEGORY="apps"
+          else
+            CATEGORY="base"
+          fi
+          echo "category=${CATEGORY}" >> $GITHUB_OUTPUT
+          VERSION=$(cat ./${CATEGORY}/${{ matrix.container }}/VERSION)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          if test -f "./${CATEGORY}/${{ matrix.container }}/goss.yaml"; then
+            echo "goss=true" >> $GITHUB_OUTPUT
+          else
+            echo "goss=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        with:
+          version: latest
+          driver-opts: image=moby/buildkit:latest
+
+      - name: Set up goss/dgoss
+        uses: e1himself/goss-installation-action@3b8340a7c772f8064444f48b0df4c2a80d2e50fc # v1.3.0
+        if: ${{ steps.prep.outputs.goss == 'true' }}
+        with:
+          version: "v0.3.16"
+
+      - name: Build test image
+        if: ${{ steps.prep.outputs.goss == 'true' }}
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          build-args: VERSION=${{ steps.prep.outputs.version }}
+          context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
+          file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
+          load: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
+
+      - name: Run GOSS tests
+        if: ${{ steps.prep.outputs.goss == 'true' }}
+        env:
+          GOSS_FILE: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/goss.yaml
+        run: |
+          dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
+
+      - name: Build
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          build-args: VERSION=${{ steps.prep.outputs.version }}
+          context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
+          file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
+          push: false
+
+  build-stack:
+    name: Build stack
+    runs-on: ubuntu-24.04
+    if: >-
+      always() &&
+      needs.changes.outputs.has_stack == 'true' &&
+      needs.hadolint.result != 'failure' &&
+      needs.build-base.result != 'failure'
+    needs:
+      - hadolint
+      - changes
+      - build-base
+    strategy:
+      matrix: ${{ fromJson(needs.changes.outputs.stack_matrix) }}
       fail-fast: false
     steps:
       - name: Checkout
@@ -135,12 +232,12 @@ jobs:
 
   test-success:
     name: Test
-    needs: [hadolint, build]
+    needs: [hadolint, build-base, build-stack]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build.result }}" == "failure" ]]; then
+          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build-base.result }}" == "failure" || "${{ needs.build-stack.result }}" == "failure" ]]; then
             exit 1
           fi

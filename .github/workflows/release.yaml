@@ -25,7 +25,11 @@ jobs:
     name: Get changes
     runs-on: ubuntu-24.04
     outputs:
-      matrix: '{"container": ${{ steps.reduce.outputs.containers }} }'
+      base_matrix: '{"container": ${{ steps.reduce.outputs.base_containers || '[]' }} }'
+      stack_matrix: '{"container": ${{ steps.reduce.outputs.stack_containers || '[]' }} }'
+      all_containers: ${{ steps.reduce.outputs.all_containers }}
+      has_base: ${{ steps.reduce.outputs.has_base }}
+      has_stack: ${{ steps.reduce.outputs.has_stack }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -47,17 +51,150 @@ jobs:
               EXISTING=$(echo "$EXISTING" | jq --arg c "$c" '. + [$c]')
             fi
           done
-          echo containers=$EXISTING >> $GITHUB_OUTPUT
 
-  build:
-    name: Build
+          DEP_MAP='{"koolna-base":["koolna-rust","koolna-python","koolna-node"]}'
+          EXPANDED="$EXISTING"
+          for parent in $(echo "$DEP_MAP" | jq -r 'keys[]'); do
+            if echo "$EXPANDED" | jq -e --arg p "$parent" 'index($p)' > /dev/null 2>&1; then
+              for child in $(echo "$DEP_MAP" | jq -r --arg p "$parent" '.[$p][]'); do
+                if [ -d "./apps/$child" ] || [ -d "./base/$child" ]; then
+                  EXPANDED=$(echo "$EXPANDED" | jq --arg c "$child" 'if index($c) then . else . + [$c] end')
+                fi
+              done
+            fi
+          done
+
+          STACK_NAMES=$(echo "$DEP_MAP" | jq '[.[][]] | unique')
+          BASE=$(echo "$EXPANDED" | jq --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c) | not)]')
+          STACK=$(echo "$EXPANDED" | jq --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c))]')
+
+          echo "base_containers=$BASE" >> $GITHUB_OUTPUT
+          echo "stack_containers=$STACK" >> $GITHUB_OUTPUT
+          echo "all_containers=$EXPANDED" >> $GITHUB_OUTPUT
+          if [ "$(echo "$BASE" | jq length)" -gt 0 ]; then echo "has_base=true" >> $GITHUB_OUTPUT; else echo "has_base=false" >> $GITHUB_OUTPUT; fi
+          if [ "$(echo "$STACK" | jq length)" -gt 0 ]; then echo "has_stack=true" >> $GITHUB_OUTPUT; else echo "has_stack=false" >> $GITHUB_OUTPUT; fi
+
+  build-base:
+    name: Build base
     runs-on: ubuntu-24.04
     needs:
       - changes
     strategy:
-      matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.changes.outputs.base_matrix) }}
       fail-fast: false
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: needs.changes.outputs.has_base == 'true' && !contains(github.event.head_commit.message, '[skip ci]')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Prepare
+        id: prep
+        run: |
+          if test -f "./apps/${{ matrix.container }}/Dockerfile"; then
+            CATEGORY="apps"
+          else
+            CATEGORY="base"
+          fi
+          echo "category=${CATEGORY}" >> $GITHUB_OUTPUT
+          VERSION=$(cat ./${CATEGORY}/${{ matrix.container }}/VERSION)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          PLATFORM=$(cat ./${CATEGORY}/${{ matrix.container }}/PLATFORM)
+          echo "platform=${PLATFORM}" >> $GITHUB_OUTPUT
+          if test -f "./${CATEGORY}/${{ matrix.container }}/goss.yaml"; then
+            echo "goss=true" >> $GITHUB_OUTPUT
+          else
+            echo "goss=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
+        with:
+          platforms: amd64,arm64,arm
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        with:
+          version: latest
+          driver-opts: image=moby/buildkit:latest
+
+      - name: Cache Docker layers
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
+          restore-keys: |
+            ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
+
+      - name: Set up goss/dgoss
+        uses: e1himself/goss-installation-action@3b8340a7c772f8064444f48b0df4c2a80d2e50fc # v1.3.0
+        if: ${{ steps.prep.outputs.goss == 'true' }}
+        with:
+          version: "v0.3.16"
+
+      - name: Build and Load local test-container
+        if: ${{ steps.prep.outputs.goss == 'true' }}
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          build-args: VERSION=${{ steps.prep.outputs.version }}
+          context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
+          file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
+          load: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
+          cache-from: "type=local,src=/tmp/.buildx-cache"
+          cache-to: "type=local,dest=/tmp/.buildx-cache,mode=max"
+
+      - name: Run GOSS tests
+        if: ${{ steps.prep.outputs.goss == 'true' }}
+        env:
+          GOSS_FILE: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/goss.yaml
+        run: |
+          dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
+
+      - name: Build and Push
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          build-args: VERSION=${{ steps.prep.outputs.version }}
+          context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
+          file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
+          platforms: ${{ steps.prep.outputs.platform }}
+          push: true
+          tags: |
+            buvis/${{ matrix.container }}:latest
+            buvis/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:v${{ steps.prep.outputs.version }}
+          cache-from: "type=local,src=/tmp/.buildx-cache"
+          cache-to: "type=local,dest=/tmp/.buildx-cache,mode=max"
+
+  build-stack:
+    name: Build stack
+    runs-on: ubuntu-24.04
+    if: >-
+      always() &&
+      needs.changes.outputs.has_stack == 'true' &&
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      needs.build-base.result != 'failure'
+    needs:
+      - changes
+      - build-base
+    strategy:
+      matrix: ${{ fromJson(needs.changes.outputs.stack_matrix) }}
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -159,8 +296,13 @@ jobs:
   changelog:
     name: Changelog
     runs-on: ubuntu-24.04
-    needs: [changes, build]
-    if: github.ref == 'refs/heads/master' && !contains(github.event.head_commit.message, '[skip ci]')
+    needs: [changes, build-base, build-stack]
+    if: >-
+      always() &&
+      github.ref == 'refs/heads/master' &&
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      needs.build-base.result != 'failure' &&
+      needs.build-stack.result != 'failure'
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -170,9 +312,9 @@ jobs:
 
       - name: Generate changelogs
         env:
-          MATRIX: ${{ needs.changes.outputs.matrix }}
+          ALL_CONTAINERS: ${{ needs.changes.outputs.all_containers }}
         run: |
-          for CONTAINER in $(echo "${MATRIX}" | jq -r '.container[]'); do
+          for CONTAINER in $(echo "${ALL_CONTAINERS}" | jq -r '.[]'); do
             if test -f "./apps/${CONTAINER}/Dockerfile"; then
               CATEGORY="apps"
             else
@@ -197,9 +339,9 @@ jobs:
       - name: Create or update GitHub Releases
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
-          MATRIX: ${{ needs.changes.outputs.matrix }}
+          ALL_CONTAINERS: ${{ needs.changes.outputs.all_containers }}
         run: |
-          for CONTAINER in $(echo "${MATRIX}" | jq -r '.container[]'); do
+          for CONTAINER in $(echo "${ALL_CONTAINERS}" | jq -r '.[]'); do
             if test -f "./apps/${CONTAINER}/Dockerfile"; then
               CATEGORY="apps"
             else
