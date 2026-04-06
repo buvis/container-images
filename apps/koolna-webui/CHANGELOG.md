@@ -18,6 +18,7 @@
 ### Documentation
 
 - update changelogs [skip ci]
+- update changelogs [skip ci]
 
 ## 2026-04-05
 
