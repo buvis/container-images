@@ -5,17 +5,27 @@
 
 ### Changed
 
+- remove slop from recent changes
 - replace token broker with koolna-env-defaults Secret injection
 
 ### Fixed
 
+- always run claude bootstrap when token is set (dotfiles may precreate ~/.claude)
 - bootstrap claude config on first run when CLAUDE_CODE_OAUTH_TOKEN is set
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-05
 
 ### Added
 
 - add koolna-auth-init for opt-in Claude token injection
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-02
 
