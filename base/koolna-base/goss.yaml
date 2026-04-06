@@ -1,0 +1,14 @@
+---
+command:
+  mise --version:
+    exit-status: 0
+  git --version:
+    exit-status: 0
+  kubectl version --client:
+    exit-status: 0
+  nvim --version:
+    exit-status: 0
+  lazygit --version:
+    exit-status: 0
+  vifm --version:
+    exit-status: 0

@@ -1,0 +1,10 @@
+---
+command:
+  rustc --version:
+    exit-status: 0
+  cargo --version:
+    exit-status: 0
+  zoxide --version:
+    exit-status: 0
+  rumdl --version:
+    exit-status: 0

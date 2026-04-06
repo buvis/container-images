@@ -1,0 +1,10 @@
+---
+command:
+  node --version:
+    exit-status: 0
+  npm --version:
+    exit-status: 0
+  pnpm --version:
+    exit-status: 0
+  deno --version:
+    exit-status: 0
