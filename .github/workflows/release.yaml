@@ -48,7 +48,7 @@ jobs:
           EXISTING="[]"
           for c in $ALL; do
             if [ -d "./apps/$c" ] || [ -d "./base/$c" ]; then
-              EXISTING=$(echo "$EXISTING" | jq --arg c "$c" '. + [$c]')
+              EXISTING=$(echo "$EXISTING" | jq -c --arg c "$c" '. + [$c]')
             fi
           done
 
@@ -58,19 +58,19 @@ jobs:
             if echo "$EXPANDED" | jq -e --arg p "$parent" 'index($p)' > /dev/null 2>&1; then
               for child in $(echo "$DEP_MAP" | jq -r --arg p "$parent" '.[$p][]'); do
                 if [ -d "./apps/$child" ] || [ -d "./base/$child" ]; then
-                  EXPANDED=$(echo "$EXPANDED" | jq --arg c "$child" 'if index($c) then . else . + [$c] end')
+                  EXPANDED=$(echo "$EXPANDED" | jq -c --arg c "$child" 'if index($c) then . else . + [$c] end')
                 fi
               done
             fi
           done
 
-          STACK_NAMES=$(echo "$DEP_MAP" | jq '[.[][]] | unique')
-          BASE=$(echo "$EXPANDED" | jq --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c) | not)]')
-          STACK=$(echo "$EXPANDED" | jq --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c))]')
+          STACK_NAMES=$(echo "$DEP_MAP" | jq -c '[.[][]] | unique')
+          BASE=$(echo "$EXPANDED" | jq -c --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c) | not)]')
+          STACK=$(echo "$EXPANDED" | jq -c --argjson stack "$STACK_NAMES" '[.[] | select(. as $c | $stack | index($c))]')
 
           echo "base_containers=$BASE" >> $GITHUB_OUTPUT
           echo "stack_containers=$STACK" >> $GITHUB_OUTPUT
-          echo "all_containers=$EXPANDED" >> $GITHUB_OUTPUT
+          echo "all_containers=$(echo "$EXPANDED" | jq -c '.')" >> $GITHUB_OUTPUT
           if [ "$(echo "$BASE" | jq length)" -gt 0 ]; then echo "has_base=true" >> $GITHUB_OUTPUT; else echo "has_base=false" >> $GITHUB_OUTPUT; fi
           if [ "$(echo "$STACK" | jq length)" -gt 0 ]; then echo "has_stack=true" >> $GITHUB_OUTPUT; else echo "has_stack=false" >> $GITHUB_OUTPUT; fi
 
