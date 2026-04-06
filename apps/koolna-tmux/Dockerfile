@@ -11,6 +11,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 COPY entrypoint.sh /entrypoint.sh
-COPY koolna-auth-init /usr/local/bin/koolna-auth-init
-RUN chmod +x /entrypoint.sh /usr/local/bin/koolna-auth-init
+RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

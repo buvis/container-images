@@ -54,14 +54,6 @@ spec:
             properties:
               branch:
                 type: string
-              claudeAuth:
-                description: |-
-                  ClaudeAuth enables automatic Claude Code authentication for this
-                  workspace. When true, the operator injects KOOLNA_TOKEN_BROKER_URL into
-                  the tmux sidecar so every new shell fetches a fresh OAuth access token
-                  from the in-cluster koolna-token-broker. The broker must be deployed
-                  and bootstrapped via `claude setup-token`.
-                type: boolean
               deletionPolicy:
                 description: DeletionPolicy governs how associated resources are handled
                   when a Koolna is deleted.

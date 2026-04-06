@@ -39,7 +39,6 @@ export interface CreateKoolnaRequest {
   gitEmail?: string
   sshPublicKey?: string
   envVars?: EnvVar[]
-  claudeAuth?: boolean
 }
 
 export interface DotfilesDefaults {
@@ -210,20 +209,3 @@ export async function updateKoolnaEnv(name: string, payload: EnvVarsPayload): Pr
   return parseResponse<EnvVarsPayload>(response)
 }
 
-export interface ClaudeAuthStatus {
-  bootstrapped: boolean
-}
-
-export async function getClaudeAuthStatus(): Promise<ClaudeAuthStatus> {
-  const response = await fetch('/api/claude-auth/status')
-  return parseResponse<ClaudeAuthStatus>(response)
-}
-
-export async function bootstrapClaudeAuth(token: string): Promise<{ ok: boolean }> {
-  const response = await fetch('/api/claude-auth/bootstrap', {
-    method: 'POST',
-    headers: jsonHeaders(),
-    body: JSON.stringify({ token }),
-  })
-  return parseResponse<{ ok: boolean }>(response)
-}

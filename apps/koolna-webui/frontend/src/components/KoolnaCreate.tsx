@@ -29,7 +29,6 @@ type FormState = {
   gitName: string
   gitEmail: string
   sshPublicKey: string
-  claudeAuth: boolean
 }
 
 type ValidatableField = 'name' | 'repo' | 'branch' | 'image' | 'storage'
@@ -105,7 +104,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     gitName: '',
     gitEmail: '',
     sshPublicKey: '',
-    claudeAuth: false,
   })
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ValidatableField, true>>>({})
   const [touched, setTouched] = useState<Partial<Record<ValidatableField, true>>>({})
@@ -241,7 +239,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     if (formState.gitUsername.trim()) payload.gitUsername = formState.gitUsername.trim()
     if (formState.gitToken.trim()) payload.gitToken = formState.gitToken.trim()
     if (formState.sshPublicKey.trim()) payload.sshPublicKey = formState.sshPublicKey.trim()
-    if (formState.claudeAuth) payload.claudeAuth = true
     if (envVars.length > 0) {
       payload.envVars = envVars.filter((v) => v.name.trim() && /^[A-Z_][A-Z0-9_]*$/.test(v.name))
     }
@@ -472,26 +469,6 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             placeholder="Paste contents of ~/.ssh/id_ed25519.pub"
             rows={2}
           />
-        </div>
-
-        <div>
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={formState.claudeAuth}
-              onChange={(event) => setFormState((prev) => ({ ...prev, claudeAuth: event.target.checked }))}
-              className="mt-1 h-4 w-4 cursor-pointer rounded border-white/20 bg-slate-900/60 text-sky-500 focus:ring-1 focus:ring-sky-400"
-            />
-            <span>
-              <span className="block text-sm font-semibold text-white/80">
-                Enable Claude authentication
-              </span>
-              <span className="mt-1 block text-xs text-white/50">
-                Automatically injects CLAUDE_CODE_OAUTH_TOKEN into every tmux shell from the cluster's token broker.
-                No OAuth login prompts. Requires the broker to be bootstrapped by an admin.
-              </span>
-            </span>
-          </label>
         </div>
 
         <div>
