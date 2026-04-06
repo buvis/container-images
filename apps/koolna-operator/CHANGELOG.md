@@ -1,6 +1,13 @@
 # Changelog — koolna-operator
 
 
+## 2026-04-06
+
+### Added
+
+- persistent cache volume: replace EmptyDir with PVC for /cache mount
+- cacheSize and cacheStorageClass fields on Koolna CRD
+
 ## 2026-04-05
 
 ### Added
