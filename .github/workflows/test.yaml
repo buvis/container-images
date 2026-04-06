@@ -50,7 +50,7 @@ jobs:
             fi
           done
 
-          DEP_MAP='{"koolna-base":["koolna-rust","koolna-python","koolna-node"]}'
+          DEP_MAP=$(cat .github/dep-map.json)
           EXPANDED="$EXISTING"
           for parent in $(echo "$DEP_MAP" | jq -r 'keys[]'); do
             if echo "$EXPANDED" | jq -e --arg p "$parent" 'index($p)' > /dev/null 2>&1; then

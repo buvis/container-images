@@ -1,0 +1,3 @@
+{
+  "koolna-base": ["koolna-rust", "koolna-python", "koolna-node"]
+}
