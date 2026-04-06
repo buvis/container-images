@@ -2,13 +2,13 @@
 
 ## [Unreleased]
 
-### Changed
-
-- **koolna-base**: strip to slim foundation, remove build-essential, python3, node, tmux, vim, whatwedo
-
 ### Added
 
 - **koolna-base**: add neovim
+
+### Changed
+
+- **koolna-base**: strip to slim foundation, remove build-essential, python3, node, tmux, vim, whatwedo
 
 ## 2026-03-30
 
