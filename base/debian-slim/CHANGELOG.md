@@ -1,6 +1,18 @@
 # Changelog — debian-slim
 
 
+## 2026-04-07
+
+### Changed
+
+- Updated to vstable-20260406-slim (#365)
+
+## 2026-03-30
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-03-22
 
 ### Documentation
