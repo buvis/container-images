@@ -103,7 +103,16 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
             {koolnas.map((koolna) => (
               <tr key={koolna.name} className="hover:bg-white/5">
                 <td className="px-4 py-3 font-medium text-white">{koolna.name}</td>
-                <td className="px-4 py-3 text-white/70">{koolna.repo}</td>
+                <td className="px-4 py-3 text-white/70">
+                  <a
+                    href={koolna.repo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-white/30 underline-offset-2 transition hover:text-white hover:decoration-white/60"
+                  >
+                    {koolna.repo}
+                  </a>
+                </td>
                 <td className="px-4 py-3 text-white/70">{koolna.branch}</td>
                 <td className="px-4 py-3">
                   <span
