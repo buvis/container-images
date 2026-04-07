@@ -801,7 +801,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 		{Name: "KOOLNA_SHARED_SECRET", Value: sharedSecretName},
 		{Name: "KOOLNA_NAMESPACE", Value: koolna.Namespace},
 		{Name: "KOOLNA_SHELL", Value: shell},
-		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.codex"},
+		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.claude.json,.codex"},
 		{Name: "REPO_URL", Value: repoURL},
 	}
 	if koolna.Spec.SSHPublicKey != "" {
