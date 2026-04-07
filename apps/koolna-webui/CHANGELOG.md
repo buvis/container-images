@@ -9,7 +9,11 @@
 
 ### Fixed
 
-- remove WebGL terminal renderer to fix incorrect 256-color rendering
+- remove WebGL renderer to fix 256-color rendering
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-06
 
