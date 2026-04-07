@@ -1,7 +1,7 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
-import { WebglAddon } from '@xterm/addon-webgl';
+
 
 export class XtermAdapter {
   readonly term: Terminal;
@@ -29,12 +29,6 @@ export class XtermAdapter {
     this.term.loadAddon(weblinksAddon);
 
     this.term.open(container);
-
-    try {
-      this.term.loadAddon(new WebglAddon());
-    } catch {
-      // WebGL not available, DOM renderer used
-    }
 
     this.fitAddon.fit();
     this.term.focus();

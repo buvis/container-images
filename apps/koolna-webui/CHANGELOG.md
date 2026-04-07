@@ -7,6 +7,10 @@
 
 - make repository link clickable in koolna list
 
+### Fixed
+
+- remove WebGL terminal renderer to fix incorrect 256-color rendering
+
 ## 2026-04-06
 
 ### Added
