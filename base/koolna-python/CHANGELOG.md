@@ -1,12 +1,18 @@
 # Changelog — koolna-python
 
-## [Unreleased]
 
-### Changed
-
-- **koolna-python**: pin koolna-base by digest for reproducible builds
-- **koolna-python**: add explicit USER directive instead of relying on inherited base
+## 2026-04-06
 
 ### Added
 
-- **koolna-python**: initial release with python, uv, ruff, poetry via mise
+- add Python development image with uv, ruff, poetry
+
+### Fixed
+
+- pin stack Dockerfiles to koolna-base digest for reproducible builds
+- add explicit USER directives in koolna-python and koolna-node Dockerfiles
+
+### Documentation
+
+- update changelogs for image hardening changes
+- add changelogs for base slim-down and new stack images

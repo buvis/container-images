@@ -1,20 +1,29 @@
 # Changelog — koolna-base
 
-## [Unreleased]
+
+## 2026-04-06
 
 ### Added
 
-- **koolna-base**: add neovim
+- strip to slim foundation for stack image split
 
 ### Changed
 
-- **koolna-base**: strip to slim foundation, remove build-essential, python3, node, tmux, vim, whatwedo
+- reorder CHANGELOG sections per convention
+
+### Documentation
+
+- add changelogs for base slim-down and new stack images
 
 ## 2026-03-30
 
 ### Fixed
 
 - remove claude-code from default npm packages
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-03-28
 

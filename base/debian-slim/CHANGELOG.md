@@ -7,6 +7,10 @@
 
 - Updated to vstable-20260406-slim (#365)
 
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-03-30
 
 ### Documentation
