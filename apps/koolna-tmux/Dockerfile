@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
+ENV TERM=xterm-256color
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
