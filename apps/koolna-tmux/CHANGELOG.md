@@ -9,10 +9,12 @@
 
 ### Fixed
 
+- set TERM for 256-color tmux client attach
 - enable 256-color support in tmux sessions
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
