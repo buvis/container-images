@@ -9,10 +9,11 @@
 
 ### Fixed
 
-- enable 256-color support in tmux sessions so terminal apps render correct colors
+- enable 256-color support in tmux sessions
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-04-06
