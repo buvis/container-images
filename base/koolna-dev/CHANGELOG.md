@@ -7,6 +7,10 @@
 
 - add cargo bin to PATH for cargo-binstall tools
 
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-06
 
 ### Added
