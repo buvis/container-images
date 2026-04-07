@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 USER $USERNAME
 
 ENV HOME=/home/$USERNAME
+ENV PATH="$HOME/.cargo/bin:$PATH"
 ENV MISE_NODE_DEFAULT_PACKAGES_FILE="$HOME/.default-npm-packages"
 
 # --- Node.js GPG keys ---

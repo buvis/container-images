@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 USER $USERNAME
 
 ENV HOME=/home/$USERNAME
+ENV PATH="$HOME/.cargo/bin:$PATH"
 
 COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERNAME/.config/mise/config.toml
 
