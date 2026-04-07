@@ -1,6 +1,16 @@
 # Changelog — koolna-operator
 
 
+## 2026-04-07
+
+### Added
+
+- add .claude.json to credential sync paths for interactive login
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-06
 
 ### Added
