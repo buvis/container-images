@@ -267,13 +267,36 @@ restore_credentials() {
   unset IFS
 }
 
-sync_credentials() {
-  ns="${KOOLNA_NAMESPACE:-default}"
-  secret_name="$KOOLNA_AUTH_SECRET"
+upsert_secret() {
+  secret_name="$1" ns="$2" data_fields="$3" labels="$4"
 
   TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
   CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
   API_SERVER="https://kubernetes.default.svc"
+
+  payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\", \"labels\": {$labels}}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
+
+  resp=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    --cacert "$CA_CERT" \
+    "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name" \
+    -d "$payload")
+  if [ "$resp" = "404" ]; then
+    resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Content-Type: application/json" \
+      --cacert "$CA_CERT" \
+      "$API_SERVER/api/v1/namespaces/$ns/secrets" \
+      -d "$payload")
+  fi
+  if [ "$resp" != "200" ] && [ "$resp" != "201" ]; then
+    echo "credential-sync: failed ($resp) syncing to $ns/$secret_name"
+  fi
+}
+
+sync_credentials() {
+  ns="${KOOLNA_NAMESPACE:-default}"
 
   data_fields=""
 
@@ -312,25 +335,11 @@ sync_credentials() {
     return
   fi
 
-  payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\", \"labels\": {\"koolna.buvis.net/type\": \"credentials\"}}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
+  # Sync to per-workspace secret
+  upsert_secret "$KOOLNA_AUTH_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
 
-  resp=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
-    --cacert "$CA_CERT" \
-    "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name" \
-    -d "$payload")
-  if [ "$resp" = "404" ]; then
-    resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "Content-Type: application/json" \
-      --cacert "$CA_CERT" \
-      "$API_SERVER/api/v1/namespaces/$ns/secrets" \
-      -d "$payload")
-  fi
-  if [ "$resp" != "200" ] && [ "$resp" != "201" ]; then
-    echo "credential-sync: failed ($resp) syncing to $ns/$secret_name"
-  fi
+  # Also sync to shared secret so new workspaces restore these credentials
+  upsert_secret "$KOOLNA_SHARED_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
 }
 
 if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
