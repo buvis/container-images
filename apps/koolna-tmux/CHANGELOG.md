@@ -7,6 +7,10 @@
 
 - sync credentials to shared secret for cross-workspace reuse
 
+### Fixed
+
+- enable 256-color support in tmux sessions so terminal apps render correct colors
+
 ### Documentation
 
 - update changelogs [skip ci]

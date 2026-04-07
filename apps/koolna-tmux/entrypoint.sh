@@ -440,15 +440,19 @@ if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && $NSENTER_USER sh -c 'command -v clau
   $NSENTER_USER "$KOOLNA_SHELL" -lc 'claude -p "ok" >/dev/null 2>&1' || echo "claude bootstrap failed (non-fatal)"
 fi
 
-echo "creating tmux sessions"
-tmux new-session -d -s manager "$NSENTER_CMD"
-tmux new-session -d -s worker "$NSENTER_CMD"
-
 echo "configuring tmux defaults"
-tmux set -g remain-on-exit on
-tmux set-hook -g pane-died 'respawn-pane'
-tmux set -g set-clipboard on
+cat > /tmp/tmux.conf <<'EOF'
+set -g default-terminal "tmux-256color"
+set -g remain-on-exit on
+set-hook -g pane-died 'respawn-pane'
+set -g set-clipboard on
+EOF
+
+echo "creating tmux sessions"
+tmux -f /tmp/tmux.conf new-session -d -s manager "$NSENTER_CMD"
+tmux new-session -d -s worker "$NSENTER_CMD"
 tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
+rm -f /tmp/tmux.conf
 
 echo "tmux sidecar ready"
 exec sleep infinity
