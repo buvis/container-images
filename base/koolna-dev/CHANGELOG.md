@@ -1,7 +1,14 @@
-# Changelog
+# Changelog — koolna-dev
 
-## 0.1.0
+
+## 2026-04-07
+
+### Fixed
+
+- add cargo bin to PATH for cargo-binstall tools
+
+## 2026-04-06
 
 ### Added
 
-- Initial universal image combining Node.js, Python, and Rust toolchains
+- add universal image combining Node.js, Python, and Rust

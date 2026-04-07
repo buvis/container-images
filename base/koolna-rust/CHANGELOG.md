@@ -1,12 +1,24 @@
 # Changelog — koolna-rust
 
-## [Unreleased]
 
-### Changed
+## 2026-04-07
 
-- **koolna-rust**: pin koolna-base by digest for reproducible builds
-- **koolna-rust**: pin cargo-binstall installer to v1.17.9 with SHA256 verification
+### Fixed
+
+- add cargo bin to PATH for cargo-binstall tools
+
+## 2026-04-06
 
 ### Added
 
-- **koolna-rust**: initial release with rust toolchain, build-essential, cargo-binstall, zoxide, rumdl
+- add Rust development image with cargo-binstall tools
+
+### Fixed
+
+- pin stack Dockerfiles to koolna-base digest for reproducible builds
+- pin cargo-binstall installer to v1.17.9 with SHA256 verification
+
+### Documentation
+
+- update changelogs for image hardening changes
+- add changelogs for base slim-down and new stack images
