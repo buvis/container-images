@@ -1,16 +1,21 @@
 # Changelog — koolna-node
 
-## [Unreleased]
 
-### Changed
-
-- **koolna-node**: pin koolna-base by digest for reproducible builds
-- **koolna-node**: add explicit USER directives instead of relying on inherited base
-
-### Fixed
-
-- **koolna-node**: add GPG keyserver fallback for CI reliability
+## 2026-04-06
 
 ### Added
 
-- **koolna-node**: initial release with node 24, pnpm, deno, tree-sitter-cli
+- add Node.js development image with pnpm, deno
+
+### Fixed
+
+- run GPG key import as user, not root, to fix keyring location
+- pin stack Dockerfiles to koolna-base digest for reproducible builds
+- add explicit USER directives in koolna-python and koolna-node Dockerfiles
+- add GPG keyserver fallback for CI reliability
+- remove redundant GPG re-import
+
+### Documentation
+
+- update changelogs for image hardening changes
+- add changelogs for base slim-down and new stack images
