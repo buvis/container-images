@@ -1,6 +1,16 @@
 # Changelog — koolna-tmux
 
 
+## 2026-04-07
+
+### Added
+
+- sync credentials to shared secret for cross-workspace reuse
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-06
 
 ### Changed
