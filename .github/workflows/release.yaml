@@ -140,10 +140,12 @@ jobs:
             ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
 
       - name: Set up goss/dgoss
-        uses: e1himself/goss-installation-action@3b8340a7c772f8064444f48b0df4c2a80d2e50fc # v1.3.0
         if: ${{ steps.prep.outputs.goss == 'true' }}
-        with:
-          version: "v0.3.16"
+        run: |
+          curl -fsSL "https://github.com/goss-org/goss/releases/download/v0.3.16/goss-linux-amd64" -o /usr/local/bin/goss
+          chmod +x /usr/local/bin/goss
+          curl -fsSL "https://github.com/goss-org/goss/releases/download/v0.3.16/dgoss" -o /usr/local/bin/dgoss
+          chmod +x /usr/local/bin/dgoss
 
       - name: Build and Load local test-container
         if: ${{ steps.prep.outputs.goss == 'true' }}
@@ -252,10 +254,12 @@ jobs:
             ${{ secrets.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container }}
 
       - name: Set up goss/dgoss
-        uses: e1himself/goss-installation-action@3b8340a7c772f8064444f48b0df4c2a80d2e50fc # v1.3.0
         if: ${{ steps.prep.outputs.goss == 'true' }}
-        with:
-          version: "v0.3.16"
+        run: |
+          curl -fsSL "https://github.com/goss-org/goss/releases/download/v0.3.16/goss-linux-amd64" -o /usr/local/bin/goss
+          chmod +x /usr/local/bin/goss
+          curl -fsSL "https://github.com/goss-org/goss/releases/download/v0.3.16/dgoss" -o /usr/local/bin/dgoss
+          chmod +x /usr/local/bin/dgoss
 
       - name: Build and Load local test-container
         if: ${{ steps.prep.outputs.goss == 'true' }}
