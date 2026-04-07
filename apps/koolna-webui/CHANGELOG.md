@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-04-07
+
+### Added
+
+- make repository link clickable in koolna list
+
 ## 2026-04-06
 
 ### Added
@@ -17,6 +23,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
