@@ -214,12 +214,13 @@ restore_credential_file() {
   val="$1" key="$2" dest="$3"
   [ -z "$val" ] && return
   dir=$(dirname "$dest")
-  mkdir -p "$dir"
-  chown "$KOOLNA_UID:$KOOLNA_GID" "$dir"
-  if ! echo "$val" | base64 -d > "$dest" 2>/dev/null; then
+  $NSENTER_ROOT mkdir -p "$dir"
+  $NSENTER_ROOT chown "$KOOLNA_UID:$KOOLNA_GID" "$dir"
+  if ! echo "$val" | $NSENTER_USER sh -c "base64 -d > '$dest'" 2>/dev/null; then
     echo "credential-restore: failed decoding $key"
   else
-    chown "$KOOLNA_UID:$KOOLNA_GID" "$dest"
+    $NSENTER_ROOT chown "$KOOLNA_UID:$KOOLNA_GID" "$dest"
+    echo "credential-restore: wrote $dest"
   fi
 }
 
@@ -305,21 +306,20 @@ sync_credentials() {
     unset IFS
     full_path="$HOME/$cred_path"
 
-    if [ -f "$full_path" ]; then
+    if $NSENTER_USER sh -c "[ -f '$full_path' ]"; then
       key=$(path_to_key "$cred_path")
-      encoded=$(base64 < "$full_path" | tr -d '\n')
+      encoded=$($NSENTER_USER sh -c "base64 < '$full_path' | tr -d '\\n'")
       entry="\"$key\": \"$encoded\""
       if [ -n "$data_fields" ]; then
         data_fields="$data_fields, $entry"
       else
         data_fields="$entry"
       fi
-    elif [ -d "$full_path" ]; then
-      for file in "$full_path"/*; do
-        [ -f "$file" ] || continue
-        fname=$(basename "$file")
+    elif $NSENTER_USER sh -c "[ -d '$full_path' ]"; then
+      for fname in $($NSENTER_USER sh -c "ls '$full_path'" 2>/dev/null); do
+        $NSENTER_USER sh -c "[ -f '$full_path/$fname' ]" || continue
         key=$(path_to_key "$cred_path/$fname")
-        encoded=$(base64 < "$file" | tr -d '\n')
+        encoded=$($NSENTER_USER sh -c "base64 < '$full_path/$fname' | tr -d '\\n'")
         entry="\"$key\": \"$encoded\""
         if [ -n "$data_fields" ]; then
           data_fields="$data_fields, $entry"
@@ -432,17 +432,20 @@ fi
 export LANG=C.UTF-8
 export LC_CTYPE=C.UTF-8
 
-# Bootstrap Claude config so the first interactive `claude` run skips the
-# login menu. Non-interactive mode (-p) uses CLAUDE_CODE_OAUTH_TOKEN directly
-# and initialises ~/.claude/ state as a side effect.
-if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && $NSENTER_USER sh -c 'command -v claude >/dev/null 2>&1'; then
-  echo "bootstrapping claude config..."
-  $NSENTER_USER "$KOOLNA_SHELL" -lc 'claude -p "ok" >/dev/null 2>&1' || echo "claude bootstrap failed (non-fatal)"
+# Ensure Claude onboarding is marked complete so interactive `claude` skips
+# the theme picker / login banner. Credentials come from koolna-credentials
+# Secret via restore_credentials().
+if $NSENTER_USER sh -c 'command -v claude >/dev/null 2>&1'; then
+  if ! $NSENTER_USER sh -c "[ -f '$HOME/.claude.json' ]"; then
+    echo "writing claude onboarding config..."
+    $NSENTER_USER sh -c "printf '%s' '{\"hasCompletedOnboarding\":true}' > '$HOME/.claude.json'"
+  fi
 fi
 
 echo "configuring tmux defaults"
 cat > /tmp/tmux.conf <<'EOF'
 set -g default-terminal "tmux-256color"
+set -g terminal-features[0] "xterm*:256:clipboard:ccolour:cstyle:focus:title"
 set -g remain-on-exit on
 set-hook -g pane-died 'respawn-pane'
 set -g set-clipboard on
