@@ -26,6 +26,7 @@ const HomePage = () => {
           className="absolute right-0 top-0 flex h-10 w-10 items-center justify-center rounded-xl text-text-muted transition hover:text-accent"
           onClick={() => navigate('/settings')}
           title="Settings"
+          aria-label="Settings"
         >
           <CogwheelIcon />
         </button>
