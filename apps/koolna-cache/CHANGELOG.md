@@ -1,6 +1,18 @@
 # Changelog — koolna-cache
 
 
+## 2026-04-08
+
+### Fixed
+
+- update remaining tmux-sidecar references missed in rename
+
+## 2026-04-07
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-02
 
 ### Fixed

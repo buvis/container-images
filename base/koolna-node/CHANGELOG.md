@@ -1,6 +1,18 @@
 # Changelog — koolna-node
 
 
+## 2026-04-08
+
+### Changed
+
+- pin mise tool versions and add renovate datasource comments
+
+## 2026-04-07
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-06
 
 ### Added

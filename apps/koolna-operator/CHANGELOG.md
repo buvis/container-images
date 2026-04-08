@@ -1,10 +1,19 @@
 # Changelog — koolna-operator
 
-## [Unreleased]
+
+## 2026-04-08
 
 ### Changed
 
-- **koolna-operator**: rename sidecar container from tmux-sidecar to session-manager, update image to koolna-session-manager
+- rename koolna-tmux to koolna-session-manager
+
+### Fixed
+
+- update remaining tmux-sidecar references missed in rename
+
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-07
 
