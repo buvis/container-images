@@ -1,12 +1,12 @@
-[tools]
-node = "24"
-pnpm = "latest"
-deno = "latest"
-python = "latest"
-uv = "latest"
-ruff = "latest"
-poetry = "latest"
-rust = "latest"
-
 [settings]
 experimental = true
+
+[tools]
+node = "24.14.1"
+pnpm = "10.33.0"
+deno = "2.7.11"
+python = "3.14.3"
+uv = "0.11.3"
+ruff = "0.15.9"
+poetry = "2.3.3"
+rust = "1.94.1"

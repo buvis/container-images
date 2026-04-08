@@ -1,8 +1,8 @@
-[tools]
-python = "latest"
-uv = "latest"
-ruff = "latest"
-poetry = "latest"
-
 [settings]
 experimental = true
+
+[tools]
+python = "3.14.3"
+uv = "0.11.3"
+ruff = "0.15.9"
+poetry = "2.3.3"

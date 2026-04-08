@@ -1,2 +1,5 @@
 [settings]
 experimental = true
+
+[tools]
+"github:neovim/neovim" = "0.12.1"

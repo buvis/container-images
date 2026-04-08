@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   dirmngr \
   lsb-release \
   sudo \
-  neovim \
   less \
   lazygit \
   vifm \
@@ -22,7 +21,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   fish \
   && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
+# renovate: datasource=github-releases depName=kubernetes/kubernetes extractVersion=^v(?<version>.+)$
+ARG KUBECTL_VERSION=1.35.3
+# renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)$
+ARG MISE_VERSION=2026.3.17
+RUN curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
   && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
   && rm /tmp/kubectl
 
@@ -49,10 +52,10 @@ COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERN
 
 RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
   && echo 'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"' >> ~/.profile \
-  && MISE_VERSION="2026.3.17" \
   && curl -fsSL "https://mise.jdx.dev/v${MISE_VERSION}/install.sh" -o /tmp/mise-install.sh \
   && sh /tmp/mise-install.sh \
-  && rm /tmp/mise-install.sh
+  && rm /tmp/mise-install.sh \
+  && mise install
 
 USER root
 
