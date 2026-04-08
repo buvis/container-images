@@ -7,6 +7,10 @@
 
 - add 256-color terminal feature for tmux clients
 
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-07
 
 ### Added
