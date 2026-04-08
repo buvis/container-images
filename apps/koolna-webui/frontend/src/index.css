@@ -27,7 +27,7 @@
   --color-create-hover: oklch(72% 0.19 145);
   --color-danger: oklch(60% 0.2 25);
   --color-danger-hover: oklch(67% 0.2 25);
-  --color-warning: oklch(72% 0.14 70);
+  --color-warning: oklch(72% 0.15 55);
   --color-phase-running: oklch(72% 0.17 155);
   --color-phase-pending: oklch(75% 0.14 80);
   --color-phase-suspended: oklch(55% 0.01 60);
