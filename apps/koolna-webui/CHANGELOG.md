@@ -1,29 +1,38 @@
 # Changelog — koolna-webui
 
 
-## [Unreleased]
-
-### Added
-
-- **koolna-webui**: redesign UI with warm dark theme, mobile card view, icon action buttons, and cogwheel settings
-
-### Fixed
-
-- **koolna-webui**: avoid ref access during render in EnvVarEditor initializer
-
 ## 2026-04-08
 
 ### Added
 
+- replace hardcoded Tailwind colors with design tokens in Terminal and Keypad
+- update env var editor with token classes
+- update settings form with token classes and amber save button
+- update create form with token classes and green submit button
+- add mobile card view, icon action buttons, and responsive mount modal
+- replace header buttons with cogwheel icon and onCreate prop
+- add warm dark utility design tokens and system font stack
 - redesign settings with git identity, image, and storage defaults
+
+### Changed
+
+- remove slop from recent changes
 
 ### Fixed
 
+- add 44px mobile input height for tap target compliance
+- add aria-label to icon-only action buttons for accessibility
+- shift warning token hue to distinguish from accent
+- replace raw emerald-400 with phase-running design token
+- increase mobile tap targets to 44px for icon buttons and modal close
+- avoid ref access during render in EnvVarEditor initializer
 - update remaining tmux-sidecar references missed in rename
 - add 256-color terminal feature for tmux clients
 
 ### Documentation
 
+- add changelog entries for koolna-webui UI redesign
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
