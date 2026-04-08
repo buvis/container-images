@@ -19,7 +19,7 @@ const IMAGE_OPTIONS = [
 
 const DOTFILES_METHODS: DotfilesMethod[] = ['none', 'bare-git', 'clone', 'command']
 
-const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1'
+const INPUT_BASE = 'mt-2 h-11 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1 sm:h-auto'
 const INPUT_OK = 'border-border bg-surface focus:border-accent focus:ring-accent'
 
 export function Settings() {

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { EnvVar } from '../api/koolna'
 
-const INPUT_BASE = 'w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1'
+const INPUT_BASE = 'h-11 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1 sm:h-auto'
 const INPUT_OK = 'border-border bg-surface focus:border-accent focus:ring-accent'
 const INPUT_ERR = 'border-danger/60 bg-danger/5 focus:border-danger focus:ring-danger'
 const NAME_PATTERN = /^[A-Z_][A-Z0-9_]*$/

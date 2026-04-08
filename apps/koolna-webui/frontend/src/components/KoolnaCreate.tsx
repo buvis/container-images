@@ -61,7 +61,7 @@ function isFieldInvalid(field: ValidatableField, state: FormState): boolean {
   }
 }
 
-const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1'
+const INPUT_BASE = 'mt-2 h-11 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1 sm:h-auto'
 const INPUT_OK = 'border-border bg-surface focus:border-accent focus:ring-accent'
 const INPUT_ERR = 'border-danger/60 bg-danger/5 focus:border-danger focus:ring-danger'
 
