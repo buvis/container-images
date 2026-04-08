@@ -876,8 +876,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
 				},
 				{
-					Name:    "tmux-sidecar",
-					Image:   "ghcr.io/buvis/koolna-tmux:latest",
+					Name:    "session-manager",
+					Image:   "ghcr.io/buvis/koolna-session-manager:latest",
 					Command: []string{"/entrypoint.sh"},
 					EnvFrom: envFrom,
 					Env:     sidecarEnv,

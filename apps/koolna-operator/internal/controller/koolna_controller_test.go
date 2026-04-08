@@ -138,8 +138,8 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(koolnaContainer.SecurityContext).To(BeNil())
 
 			sidecar := pod.Spec.Containers[1]
-			Expect(sidecar.Name).To(Equal("tmux-sidecar"))
-			Expect(sidecar.Image).To(Equal("ghcr.io/buvis/koolna-tmux:latest"))
+			Expect(sidecar.Name).To(Equal("session-manager"))
+			Expect(sidecar.Image).To(Equal("ghcr.io/buvis/koolna-session-manager:latest"))
 			Expect(sidecar.SecurityContext.Capabilities.Add).To(ContainElement(corev1.Capability("SYS_PTRACE")))
 			Expect(sidecar.VolumeMounts).To(HaveLen(3))
 			Expect(sidecar.VolumeMounts[0].Name).To(Equal("workspace"))
@@ -148,7 +148,7 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecar.VolumeMounts[1].MountPath).To(Equal("/cache"))
 			Expect(sidecar.VolumeMounts[2].Name).To(Equal("proxy-ca"))
 
-			By("Checking env vars are on tmux-sidecar, not koolna")
+			By("Checking env vars are on session-manager, not koolna")
 			Expect(koolnaContainer.Env).NotTo(BeEmpty())
 			sidecarEnvMap := map[string]string{}
 			for _, e := range sidecar.Env {

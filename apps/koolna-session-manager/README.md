@@ -1,6 +1,6 @@
-# koolna-tmux
+# koolna-session-manager
 
-Lightweight sidecar that manages tmux sessions for koolna dev pods. Runs alongside the main container, sharing the PID namespace.
+Lightweight sidecar that manages dev pod sessions for koolna. Handles tmux sessions, SSH/sshd, credential sync, dotfiles installation, mise tool bootstrap, and environment propagation via nsenter. Runs alongside the main container, sharing the PID namespace.
 
 ## What it does
 
@@ -35,7 +35,7 @@ The tmux sessions need to run shells inside the main container's filesystem (whe
 
 The scope is limited:
 
-- Applies only to the `tmux-sidecar` container, not the dev environment
+- Applies only to the `session-manager` container, not the dev environment
 - The sidecar has no exposed ports and no user-facing shell
 - The sidecar runs a single-purpose entrypoint script, not an interactive workload
 

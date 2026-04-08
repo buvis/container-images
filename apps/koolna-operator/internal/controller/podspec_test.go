@@ -144,19 +144,19 @@ func TestBuildPodSpec_SidecarNoUserEnvVars(t *testing.T) {
 	forbidden := []string{"KOOLNA_HOME", "KOOLNA_UID", "KOOLNA_USERNAME"}
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "tmux-sidecar" {
+		if c.Name != "session-manager" {
 			continue
 		}
 		for _, e := range c.Env {
 			for _, name := range forbidden {
 				if e.Name == name {
-					t.Errorf("tmux-sidecar should not have env var %s", name)
+					t.Errorf("session-manager should not have env var %s", name)
 				}
 			}
 		}
 		return
 	}
-	t.Error("tmux-sidecar container not found")
+	t.Error("session-manager container not found")
 }
 
 func TestBuildGitCloneInitContainer_WorkspaceMount(t *testing.T) {
@@ -261,7 +261,7 @@ func TestBuildPodSpec_CacheVolumeMount(t *testing.T) {
 	koolna := minimalKoolna()
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
-	containers := []string{"koolna", "tmux-sidecar"}
+	containers := []string{"koolna", "session-manager"}
 	for _, name := range containers {
 		var found bool
 		for _, c := range pod.Spec.Containers {

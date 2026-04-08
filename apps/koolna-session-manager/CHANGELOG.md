@@ -1,5 +1,10 @@
-# Changelog — koolna-tmux
+# Changelog — koolna-session-manager
 
+## [Unreleased]
+
+### Changed
+
+- **koolna-session-manager**: rename from koolna-tmux to reflect broader scope (tmux, SSH, credentials, dotfiles, mise, nsenter)
 
 ## 2026-04-08
 
