@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import type { EnvVar } from '../api/koolna'
 
-const INPUT_BASE = 'w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
-const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:ring-sky-400'
-const INPUT_ERR = 'border-rose-500/60 bg-rose-500/5 focus:border-rose-400 focus:ring-rose-400'
+const INPUT_BASE = 'w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1'
+const INPUT_OK = 'border-border bg-surface focus:border-accent focus:ring-accent'
+const INPUT_ERR = 'border-danger/60 bg-danger/5 focus:border-danger focus:ring-danger'
 const NAME_PATTERN = /^[A-Z_][A-Z0-9_]*$/
 
 interface Row {
@@ -53,7 +53,7 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
   return (
     <div className="space-y-3">
       {rows.length === 0 ? (
-        <p className="text-sm text-white/40">No environment variables</p>
+        <p className="text-sm text-text-muted">No environment variables</p>
       ) : (
         rows.map((row) => (
           <div key={row.id} className="flex items-start gap-2">
@@ -66,13 +66,13 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
                   className={`${INPUT_BASE} ${isNameInvalid(row.name) ? INPUT_ERR : INPUT_OK} font-mono text-xs`}
                 />
                 {defaultNames.has(row.name) && (
-                  <span className="shrink-0 rounded-md bg-sky-500/20 px-1.5 py-0.5 text-[0.625rem] font-medium text-sky-300">
+                  <span className="shrink-0 rounded-md bg-accent/20 px-1.5 py-0.5 text-[0.625rem] font-medium text-accent">
                     default
                   </span>
                 )}
               </div>
               {isNameInvalid(row.name) && (
-                <p className="mt-1 text-xs text-rose-400">Must match A-Z, 0-9, _ (start with letter or _)</p>
+                <p className="mt-1 text-xs text-danger">Must match A-Z, 0-9, _ (start with letter or _)</p>
               )}
             </div>
             <div className="flex-1">
@@ -86,7 +86,7 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
             <button
               type="button"
               onClick={() => removeRow(row.id)}
-              className="mt-1 shrink-0 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-xs text-rose-300 transition hover:border-rose-500/60 hover:bg-rose-500/20"
+              className="mt-1 shrink-0 rounded-lg border border-danger/30 bg-danger/10 px-2 py-1.5 text-xs text-danger transition hover:border-danger/60 hover:bg-danger/20"
               title="Remove variable"
             >
               Remove
@@ -97,7 +97,7 @@ export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
       <button
         type="button"
         onClick={addRow}
-        className="rounded-xl border border-dashed border-white/20 bg-white/5 px-4 py-2 text-sm text-white/60 transition hover:border-white/40 hover:text-white"
+        className="rounded-xl border border-dashed border-border bg-surface px-4 py-2 text-sm text-text-muted transition hover:border-text-muted hover:text-text"
       >
         + Add variable
       </button>
