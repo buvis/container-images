@@ -16,6 +16,7 @@
 
 ### Changed
 
+- bump to v0.2.0 for UI redesign release
 - remove slop from recent changes
 
 ### Fixed
