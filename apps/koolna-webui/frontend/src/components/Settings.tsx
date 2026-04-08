@@ -19,8 +19,8 @@ const IMAGE_OPTIONS = [
 
 const DOTFILES_METHODS: DotfilesMethod[] = ['none', 'bare-git', 'clone', 'command']
 
-const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
-const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:ring-sky-400'
+const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1'
+const INPUT_OK = 'border-border bg-surface focus:border-accent focus:ring-accent'
 
 export function Settings() {
   const [defaults, setDefaults] = useState<DotfilesDefaults>({})
@@ -36,7 +36,7 @@ export function Settings() {
         setDefaults(d)
         setEnvVars(env.vars)
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load settings'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load settings'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -51,7 +51,7 @@ export function Settings() {
       ])
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
       setSaving(false)
@@ -60,8 +60,8 @@ export function Settings() {
 
   if (loading) {
     return (
-      <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-6 shadow-lg shadow-black/40">
-        <p className="text-sm text-white/60">Loading settings...</p>
+      <section className="rounded-2xl border border-border bg-surface p-6 shadow-lg shadow-black/40">
+        <p className="text-sm text-text-muted">Loading settings...</p>
       </section>
     )
   }
@@ -69,20 +69,20 @@ export function Settings() {
   return (
     <section className="space-y-5">
       {error && (
-        <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm text-rose-200">
+        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
           {error}
         </div>
       )}
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-6 shadow-lg shadow-black/40">
-        <h3 className="mb-4 text-base font-semibold text-white">Defaults</h3>
-        <p className="mb-4 text-sm text-white/50">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-lg shadow-black/40">
+        <h3 className="mb-4 text-base font-semibold text-text">Defaults</h3>
+        <p className="mb-4 text-sm text-text-muted">
           These values pre-populate the create form for every new koolna.
         </p>
         <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-git-name">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="settings-git-name">
                 Committer name
               </label>
               <input
@@ -94,7 +94,7 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-git-email">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="settings-git-email">
                 Committer email
               </label>
               <input
@@ -107,7 +107,7 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-git-username">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="settings-git-username">
                 Username
               </label>
               <input
@@ -120,9 +120,9 @@ export function Settings() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-default-branch">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="settings-default-branch">
                 Default branch
               </label>
               <input
@@ -134,7 +134,7 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-storage">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="settings-storage">
                 Storage
               </label>
               <input
@@ -148,7 +148,7 @@ export function Settings() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="settings-image">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="settings-image">
               Image
             </label>
             <input
@@ -167,10 +167,10 @@ export function Settings() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="settings-ssh-pubkey">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="settings-ssh-pubkey">
               SSH public key
             </label>
-            <p className="mb-1 text-xs text-white/50">
+            <p className="mb-1 text-xs text-text-muted">
               Added to authorized_keys in the pod. Required for SSHFS workspace mounting.
             </p>
             <textarea
@@ -184,7 +184,7 @@ export function Settings() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white/80">
+            <label className="text-sm font-semibold text-text-muted">
               Environment variables
             </label>
             <div className="mt-2">
@@ -193,7 +193,7 @@ export function Settings() {
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-method">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="settings-dotfiles-method">
               Dotfiles
             </label>
             <select
@@ -209,9 +209,9 @@ export function Settings() {
           </div>
 
           {(defaults.dotfilesMethod === 'bare-git' || defaults.dotfilesMethod === 'clone') && (
-            <div className={`grid gap-4 ${defaults.dotfilesMethod === 'bare-git' ? 'md:grid-cols-2' : ''}`}>
+            <div className={`grid gap-4 ${defaults.dotfilesMethod === 'bare-git' ? 'sm:grid-cols-2' : ''}`}>
               <div>
-                <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-repo">
+                <label className="text-sm font-semibold text-text-muted" htmlFor="settings-dotfiles-repo">
                   Dotfiles repository
                 </label>
                 <input
@@ -225,7 +225,7 @@ export function Settings() {
 
               {defaults.dotfilesMethod === 'bare-git' && (
                 <div>
-                  <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-baredir">
+                  <label className="text-sm font-semibold text-text-muted" htmlFor="settings-dotfiles-baredir">
                     Bare repo dir
                   </label>
                   <input
@@ -242,7 +242,7 @@ export function Settings() {
 
           {defaults.dotfilesMethod === 'command' && (
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-command">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="settings-dotfiles-command">
                 Dotfiles command
               </label>
               <input
@@ -256,7 +256,7 @@ export function Settings() {
           )}
 
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="settings-init-command">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="settings-init-command">
               Init command
             </label>
             <input
@@ -275,7 +275,7 @@ export function Settings() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center justify-center rounded-2xl border border-transparent bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center rounded-2xl border border-transparent bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving && (
             <span className="mr-2 h-3 w-3 animate-spin rounded-full border border-t-white border-white/20" />
