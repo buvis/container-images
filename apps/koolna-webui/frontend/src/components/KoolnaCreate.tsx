@@ -61,21 +61,21 @@ function isFieldInvalid(field: ValidatableField, state: FormState): boolean {
   }
 }
 
-const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
-const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:ring-sky-400'
-const INPUT_ERR = 'border-rose-500/60 bg-rose-500/5 focus:border-rose-400 focus:ring-rose-400'
+const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-text transition focus:outline-none focus:ring-1'
+const INPUT_OK = 'border-border bg-surface focus:border-accent focus:ring-accent'
+const INPUT_ERR = 'border-danger/60 bg-danger/5 focus:border-danger focus:ring-danger'
 
 function FieldHelp({ field }: { field: ValidatableField }) {
   return (
     <div className="group relative inline-block">
       <span
-        className="ml-1.5 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-rose-500/20 text-[0.625rem] font-bold leading-none text-rose-300"
+        className="ml-1.5 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-danger/20 text-[0.625rem] font-bold leading-none text-danger"
         aria-label={`Help for ${field}`}
       >
         !
       </span>
-      <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-slate-800 px-3 py-2 text-xs text-white/80 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
-        <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-white/10 bg-slate-800" />
+      <div className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-text-muted opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+        <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-border bg-surface-raised" />
         {FIELD_HELP[field]}
       </div>
     </div>
@@ -264,14 +264,14 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-6 shadow-lg shadow-black/40">
+    <section className="rounded-2xl border border-border bg-surface p-6 shadow-lg shadow-black/40">
       <header className="mb-6">
-        <h2 className="text-lg font-semibold text-white">Create a Koolna</h2>
-        <p className="text-sm text-white/70">Provision a fresh development stack.</p>
+        <h2 className="text-lg font-semibold text-text">Create a Koolna</h2>
+        <p className="text-sm text-text-muted">Provision a fresh development stack.</p>
       </header>
 
       {apiError && (
-        <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm text-rose-200">
+        <div className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
           {apiError}
         </div>
       )}
@@ -279,7 +279,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <div>
           <div className="flex items-center">
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-name">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-name">
               Name
             </label>
             {showHelp('name') && <FieldHelp field="name" />}
@@ -296,7 +296,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
         <div>
           <div className="flex items-center">
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-repo">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-repo">
               Repository
             </label>
             {showHelp('repo') && <FieldHelp field="repo" />}
@@ -311,10 +311,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-name">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-git-name">
                 Committer name
               </label>
               {showHelp('gitName') && <FieldHelp field="gitName" />}
@@ -330,7 +330,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </div>
           <div>
             <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-email">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-git-email">
                 Committer email
               </label>
               {showHelp('gitEmail') && <FieldHelp field="gitEmail" />}
@@ -347,7 +347,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </div>
           <div>
             <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-username">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-git-username">
                 Username
               </label>
               {showHelp('gitUsername') && <FieldHelp field="gitUsername" />}
@@ -363,7 +363,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </div>
           <div>
             <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-git-token">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-git-token">
                 Personal access token
               </label>
               {showHelp('gitToken') && <FieldHelp field="gitToken" />}
@@ -380,10 +380,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-branch">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-branch">
                 Branch
               </label>
               {showHelp('branch') && <FieldHelp field="branch" />}
@@ -407,7 +407,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
           <div>
             <div className="flex items-center">
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-storage">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-storage">
                 Storage
               </label>
               {showHelp('storage') && <FieldHelp field="storage" />}
@@ -424,7 +424,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
         <div>
           <div className="flex items-center">
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-image">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-image">
               Image
             </label>
             {showHelp('image') && <FieldHelp field="image" />}
@@ -448,7 +448,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-shell">
+          <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-shell">
             Shell
           </label>
           <input
@@ -461,10 +461,10 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-ssh-pubkey">
+          <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-ssh-pubkey">
             SSH public key (optional)
           </label>
-          <p className="mb-1 text-xs text-white/50">
+          <p className="mb-1 text-xs text-text-muted">
             Added to authorized_keys in the pod. Required for SSHFS workspace mounting.
           </p>
           <textarea
@@ -478,7 +478,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80">
+          <label className="text-sm font-semibold text-text-muted">
             Environment variables
           </label>
           <div className="mt-2">
@@ -487,7 +487,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-method">
+          <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-dotfiles-method">
             Dotfiles
           </label>
           <select
@@ -503,9 +503,9 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         </div>
 
         {(formState.dotfilesMethod === 'bare-git' || formState.dotfilesMethod === 'clone') && (
-          <div className={`grid gap-4 ${formState.dotfilesMethod === 'bare-git' ? 'md:grid-cols-2' : ''}`}>
+          <div className={`grid gap-4 ${formState.dotfilesMethod === 'bare-git' ? 'sm:grid-cols-2' : ''}`}>
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-repo">
+              <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-dotfiles-repo">
                 Repository
               </label>
               <input
@@ -520,7 +520,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             {formState.dotfilesMethod === 'bare-git' && (
               <div>
                 <div className="flex items-center">
-                  <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-baredir">
+                  <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-dotfiles-baredir">
                     Bare repo dir
                   </label>
                   {showHelp('dotfilesBareDir') && <FieldHelp field="dotfilesBareDir" />}
@@ -540,7 +540,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
 
         {formState.dotfilesMethod === 'command' && (
           <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-command">
+            <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-dotfiles-command">
               Command
             </label>
             <input
@@ -554,7 +554,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
         )}
 
         <div>
-          <label className="text-sm font-semibold text-white/80" htmlFor="koolna-dotfiles-init">
+          <label className="text-sm font-semibold text-text-muted" htmlFor="koolna-dotfiles-init">
             Init command (optional)
           </label>
           <input
@@ -570,7 +570,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center justify-center rounded-2xl border border-transparent bg-sky-500 px-5 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-2xl border border-transparent bg-create px-5 py-2 text-sm font-semibold text-white transition hover:bg-create-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading && (
               <span className="mr-2 h-3 w-3 animate-spin rounded-full border border-t-white border-white/20" />
@@ -581,7 +581,7 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-2xl border border-white/20 bg-white/5 px-5 py-2 text-sm font-semibold text-white transition hover:border-white/40"
+              className="rounded-2xl border border-border bg-surface-raised px-5 py-2 text-sm font-semibold text-text transition hover:border-text-muted"
             >
               Cancel
             </button>
