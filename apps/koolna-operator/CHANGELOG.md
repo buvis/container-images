@@ -5,6 +5,7 @@
 
 ### Changed
 
+- trigger CI for session-manager and operator images
 - rename koolna-tmux to koolna-session-manager
 
 ### Fixed
@@ -13,6 +14,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
 
