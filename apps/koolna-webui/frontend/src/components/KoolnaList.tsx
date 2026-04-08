@@ -77,6 +77,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
         className="flex h-11 w-11 items-center justify-center rounded-lg border border-phase-running/30 bg-phase-running/10 text-phase-running transition hover:border-phase-running/50 sm:h-8 sm:w-8"
         onClick={onResume}
         title="Resume"
+        aria-label="Resume"
       >
         <PlayIcon />
       </button>
@@ -86,6 +87,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
         className="flex h-11 w-11 items-center justify-center rounded-lg border border-warning/30 bg-warning/10 text-warning transition hover:border-warning/50 sm:h-8 sm:w-8"
         onClick={onPause}
         title="Pause"
+        aria-label="Pause"
       >
         <PauseIcon />
       </button>
@@ -96,6 +98,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
       onClick={onMount}
       disabled={koolna.phase !== 'Running' || !koolna.sshPublicKey}
       title={koolna.phase !== 'Running' ? 'Pod not running' : !koolna.sshPublicKey ? 'Set SSH public key in Settings to enable mounting' : 'Mount'}
+      aria-label="Mount"
     >
       <MountIcon />
     </button>
@@ -104,6 +107,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
       className="flex h-11 w-11 items-center justify-center rounded-lg border border-danger/30 bg-danger/10 text-danger transition hover:border-danger/50 sm:h-8 sm:w-8"
       onClick={onDelete}
       title="Delete"
+      aria-label="Delete"
     >
       <TrashIcon />
     </button>
@@ -299,6 +303,7 @@ const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
                 onClick={() => setMountTarget(null)}
                 className="flex h-11 w-11 items-center justify-center rounded-lg text-text-muted transition hover:text-text sm:hidden"
                 title="Close"
+                aria-label="Close"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                   <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
