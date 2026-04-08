@@ -283,7 +283,7 @@ export function Settings() {
           Save settings
         </button>
         {saved && (
-          <span className="text-sm text-emerald-400">Saved</span>
+          <span className="text-sm text-phase-running">Saved</span>
         )}
       </div>
     </section>
