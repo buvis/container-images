@@ -3,5 +3,12 @@
   "extends": ["github>tbouska/renovate-config", "customManagers:dockerfileVersions"],
   "mise": {
     "managerFilePatterns": ["**/assets/config/mise/config.toml"]
-  }
+  },
+  "packageRules": [
+    {
+      "matchPackageNames": ["python"],
+      "matchManagers": ["mise"],
+      "groupName": "python"
+    }
+  ]
 }
