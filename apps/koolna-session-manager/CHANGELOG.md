@@ -6,3 +6,7 @@
 ### Changed
 
 - rename koolna-tmux to koolna-session-manager
+
+### Documentation
+
+- update changelogs [skip ci]

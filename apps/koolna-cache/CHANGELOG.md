@@ -7,6 +7,10 @@
 
 - update remaining tmux-sidecar references missed in rename
 
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-07
 
 ### Documentation
