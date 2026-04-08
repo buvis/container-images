@@ -74,7 +74,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
     {koolna.suspended ? (
       <button
         type="button"
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-phase-running/30 bg-phase-running/10 text-phase-running transition hover:border-phase-running/50 sm:h-8 sm:w-8"
+        className="flex h-11 w-11 items-center justify-center rounded-lg border border-phase-running/30 bg-phase-running/10 text-phase-running transition hover:border-phase-running/50 sm:h-8 sm:w-8"
         onClick={onResume}
         title="Resume"
       >
@@ -83,7 +83,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
     ) : (
       <button
         type="button"
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-warning/30 bg-warning/10 text-warning transition hover:border-warning/50 sm:h-8 sm:w-8"
+        className="flex h-11 w-11 items-center justify-center rounded-lg border border-warning/30 bg-warning/10 text-warning transition hover:border-warning/50 sm:h-8 sm:w-8"
         onClick={onPause}
         title="Pause"
       >
@@ -92,7 +92,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
     )}
     <button
       type="button"
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent transition hover:border-accent/50 disabled:opacity-40 disabled:pointer-events-none sm:h-8 sm:w-8"
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent transition hover:border-accent/50 disabled:opacity-40 disabled:pointer-events-none sm:h-8 sm:w-8"
       onClick={onMount}
       disabled={koolna.phase !== 'Running' || !koolna.sshPublicKey}
       title={koolna.phase !== 'Running' ? 'Pod not running' : !koolna.sshPublicKey ? 'Set SSH public key in Settings to enable mounting' : 'Mount'}
@@ -101,7 +101,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
     </button>
     <button
       type="button"
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-danger/30 bg-danger/10 text-danger transition hover:border-danger/50 sm:h-8 sm:w-8"
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-danger/30 bg-danger/10 text-danger transition hover:border-danger/50 sm:h-8 sm:w-8"
       onClick={onDelete}
       title="Delete"
     >
@@ -297,7 +297,7 @@ const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
               <button
                 type="button"
                 onClick={() => setMountTarget(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition hover:text-text sm:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-text-muted transition hover:text-text sm:hidden"
                 title="Close"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
