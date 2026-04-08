@@ -1,6 +1,12 @@
 # Changelog — koolna-webui
 
 
+## 2026-04-08
+
+### Fixed
+
+- add 256-color terminal feature for tmux clients
+
 ## 2026-04-07
 
 ### Added
@@ -13,6 +19,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-04-06
