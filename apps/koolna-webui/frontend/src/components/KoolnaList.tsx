@@ -9,6 +9,7 @@ import {
 } from '../api/koolna'
 
 type KoolnaListProps = {
+  onCreate: () => void
   onTerminal: (name: string, session: string) => void
 }
 
@@ -19,7 +20,7 @@ const phaseBadgeStyles: Record<Koolna['phase'], string> = {
   Failed: 'border border-rose-400/40 bg-rose-500/10 text-rose-300',
 }
 
-const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
+const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
   const [koolnas, setKoolnas] = useState<Koolna[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -74,12 +75,21 @@ const KoolnaList = ({ onTerminal }: KoolnaListProps) => {
           <h2 className="text-lg font-semibold text-white">Koolnas</h2>
           <p className="text-sm text-white/60">Manage active environments.</p>
         </div>
-        {loading && (
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/70">
-            <span className="h-3 w-3 animate-spin rounded-full border border-t-white border-white/20" />
-            Refreshing
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {loading && (
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/70">
+              <span className="h-3 w-3 animate-spin rounded-full border border-t-white border-white/20" />
+              Refreshing
+            </div>
+          )}
+          <button
+            type="button"
+            className="rounded-2xl border border-transparent bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400"
+            onClick={onCreate}
+          >
+            New Koolna
+          </button>
+        </div>
       </div>
 
       {error && (
