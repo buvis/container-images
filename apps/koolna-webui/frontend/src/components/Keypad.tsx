@@ -52,7 +52,7 @@ export function Keypad({ onKey }: KeypadProps) {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-2 bg-surface border-t border-gray-800 touch-manipulation md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 p-2 bg-surface border-t border-border touch-manipulation md:hidden">
       <input
         ref={inputRef}
         type="text"
@@ -83,7 +83,7 @@ function KeyButton({ children, onClick }: { children: React.ReactNode; onClick: 
     <button
       type="button"
       onClick={onClick}
-      className="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-200 font-mono text-sm py-2 px-1 rounded transition-colors"
+      className="bg-surface-raised hover:bg-border active:bg-text-muted/20 text-text font-mono text-sm py-2 px-1 rounded transition-colors"
     >
       {children}
     </button>

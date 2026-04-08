@@ -16,9 +16,9 @@ function buildWebsocketUrl(name: string, session: string): string {
 }
 
 const statusColors: Record<ConnectionStatus, string> = {
-  connected: 'text-green-400',
-  disconnected: 'text-red-400',
-  reconnecting: 'text-yellow-400',
+  connected: 'text-phase-running',
+  disconnected: 'text-danger',
+  reconnecting: 'text-phase-pending',
 };
 
 export function Terminal({ name, session, onBack }: TerminalProps) {
@@ -78,14 +78,14 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
 
   return (
     <div className="h-screen flex flex-col bg-bg">
-      <header className="flex items-center justify-between px-4 py-2 bg-surface border-b border-gray-800">
+      <header className="flex items-center justify-between px-4 py-2 bg-surface border-b border-border">
         <button
           onClick={onBack}
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-text-muted hover:text-text transition-colors"
         >
           ← Back
         </button>
-        <span className="text-gray-300 font-mono">{session}</span>
+        <span className="text-text-muted font-mono">{session}</span>
         <span className={`font-mono text-sm ${statusColors[status]}`}>
           {status}
         </span>
