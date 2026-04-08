@@ -30,7 +30,7 @@ spec:
 
 The operator injects env vars from the `koolna-env-defaults` Secret into every workspace pod. The webui Settings page manages this Secret. Per-workspace env vars (from `envSecretRef`) override defaults with the same key.
 
-This is how cluster-wide sensitive values like `CLAUDE_CODE_OAUTH_TOKEN` are distributed to all workspaces without embedding them in CRD specs or images. See [docs/claude-auth.md](docs/claude-auth.md) for the Claude authentication setup.
+This is how cluster-wide sensitive values are distributed to all workspaces without embedding them in CRD specs or images. See [docs/claude-auth.md](docs/claude-auth.md) for the Claude authentication setup.
 
 ## Dotfiles
 
@@ -63,7 +63,7 @@ Repo fields accept full HTTPS URLs (any git host). Legacy `owner/repo` format is
 
 The `initCommand` field runs an arbitrary shell command after dotfiles setup (or on its own if dotfiles are not configured).
 
-Dotfiles are installed by the tmux sidecar (as root, writing into `$HOME`). The bare-git clone cache at `$HOME/.dotfiles-cache` is ephemeral and re-cloned on pod restart.
+Dotfiles are installed by the session-manager sidecar (as root, writing into `$HOME`). The bare-git clone cache at `$HOME/.dotfiles-cache` is ephemeral and re-cloned on pod restart.
 
 ## Storage Layout
 

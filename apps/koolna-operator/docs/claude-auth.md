@@ -2,57 +2,50 @@
 
 ## What it does
 
-`CLAUDE_CODE_OAUTH_TOKEN` is stored as a cluster-wide default environment variable in the `koolna-env-defaults` Secret. The operator injects this Secret into every workspace pod via `envFrom`. The token reaches user shells through the tmux sidecar's nsenter (same path as `SSL_CERT_FILE`, `CARGO_HTTP_TIMEOUT`, and other operator-managed env vars).
-
-Claude Code reads `CLAUDE_CODE_OAUTH_TOKEN` at startup and runs authenticated. No OAuth URLs, no browser prompts, nothing to configure per workspace.
+Claude Code credentials are stored in the `koolna-credentials` shared Secret. The session-manager sidecar restores them into each workspace pod on startup via `restore_credentials()`. Interactive `claude` picks up the credentials from `~/.claude/.credentials.json` and runs on your subscription (no API billing).
 
 ## Setup
 
-1. On any workstation with Claude Pro or Max: `claude setup-token`.
-2. Complete the browser OAuth flow.
-3. In the webui, open **Settings**. Under **Claude authentication**, paste the printed token and click **Save settings**.
-
-The token is valid for ~1 year. Replace when it expires or is revoked.
+1. Log in to Claude Code on your Mac (run `claude` and complete the OAuth flow once).
+2. Run `seed-claude-credentials.bash` from the clusters repo. This extracts your Keychain credentials and writes them to the `koolna-credentials` Secret.
+3. New workspaces pick up credentials automatically. Existing workspaces sync within 30 seconds.
 
 ## How it works
 
 ```
-admin: claude setup-token → paste into webui Settings
-                                      │
-                                      ▼
-                         koolna-env-defaults Secret
-                         (key: CLAUDE_CODE_OAUTH_TOKEN)
-                                      │
-                         operator injects via envFrom
-                                      │
-              ┌───────────────────────┼───────────────────────┐
-              │                       │                       │
-     workspace A              workspace B              workspace C
-     sidecar env has          sidecar env has          sidecar env has
-     CLAUDE_CODE_             CLAUDE_CODE_             CLAUDE_CODE_
-     OAUTH_TOKEN              OAUTH_TOKEN              OAUTH_TOKEN
-              │                       │                       │
-         nsenter                 nsenter                 nsenter
-              │                       │                       │
-     user shell inherits     user shell inherits     user shell inherits
-     the token               the token               the token
+mac: claude login -> Keychain stores OAuth tokens
+                          |
+         seed-claude-credentials.bash
+                          |
+                          v
+              koolna-credentials Secret
+              (key: claude---credentials.json)
+                          |
+            sidecar restore_credentials()
+                          |
+           +──────────────+──────────────+
+           |              |              |
+      workspace A    workspace B    workspace C
+      ~/.claude/     ~/.claude/     ~/.claude/
+      .credentials   .credentials   .credentials
+      .json          .json          .json
+           |              |              |
+      interactive    interactive    interactive
+      claude works   claude works   claude works
 ```
 
-No broker, no sidecar wrapper, no per-workspace opt-in. The token is a cluster-wide default that every workspace receives automatically.
+The sidecar also writes `~/.claude.json` with `hasCompletedOnboarding: true` so the interactive banner is skipped. When a user logs in inside a workspace, the sidecar syncs the credentials back to the shared Secret for other workspaces.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| `claude` prints an OAuth URL inside a workspace | Check `echo $CLAUDE_CODE_OAUTH_TOKEN` in the shell. If empty, verify the Secret exists: `kubectl -n koolna get secret koolna-env-defaults -o jsonpath='{.data.CLAUDE_CODE_OAUTH_TOKEN}'`. If the key is missing, paste the token in webui Settings. If the key exists, restart the workspace pod (the env is set at pod creation time). |
-| `claude` returns 401 | Token expired (~1 year) or revoked. Re-run `claude setup-token` and paste the new token in Settings. Restart workspace pods to pick up the change. |
+| `claude` shows login menu | Check `ls ~/.claude/.credentials.json`. If missing, verify the Secret exists: `kubectl -n koolna get secret koolna-credentials -o jsonpath='{.data}'`. If empty, re-run `seed-claude-credentials.bash`. If the Secret has data, check sidecar logs for restore errors. |
+| `claude` returns 401 | Credentials expired. Re-run `seed-claude-credentials.bash` from your Mac after logging in again. Restart workspace pods to pick up new credentials. |
+| API billing instead of subscription | You may have `CLAUDE_CODE_OAUTH_TOKEN` set as an env var. Remove it from `koolna-env-defaults` Secret and restart the pod. Subscription auth uses file-based credentials, not env vars. |
 
 ## Security notes
 
-- The token is stored as a K8s Secret (`koolna-env-defaults`). K8s Secrets are base64-encoded, not encrypted at rest unless you configure etcd encryption.
-- The webui Settings page masks the token value (password input). The webui backend reads and writes it via the standard K8s Secret API.
-- Every workspace pod receives the token. If a workspace pod is compromised, the attacker gets the token. Rotate by re-running `claude setup-token` and saving the new value in Settings.
-
-## Alternative: Console API key
-
-For pay-per-use billing instead of Pro/Max subscription, add `ANTHROPIC_API_KEY=sk-ant-api03-...` in webui Settings under **Default environment variables** (the regular env var editor, not the Claude token field). Do not set both `ANTHROPIC_API_KEY` and `CLAUDE_CODE_OAUTH_TOKEN` simultaneously.
+- Credentials are stored as a K8s Secret (`koolna-credentials`). K8s Secrets are base64-encoded, not encrypted at rest unless you configure etcd encryption.
+- Every workspace pod receives the credentials via sidecar restore. If a workspace pod is compromised, the attacker gets the OAuth tokens.
+- To rotate: log in again on your Mac and re-run `seed-claude-credentials.bash`.

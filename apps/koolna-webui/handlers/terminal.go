@@ -132,7 +132,7 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 		Name(podName).
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
-			Container: "tmux-sidecar",
+			Container: "session-manager",
 			Command:   []string{"tmux", "-2", "attach-session", "-t", session},
 			Stdin:     true,
 			Stdout:    true,
