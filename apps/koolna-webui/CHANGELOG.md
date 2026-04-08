@@ -1,6 +1,16 @@
 # Changelog — koolna-webui
 
 
+## [Unreleased]
+
+### Added
+
+- **koolna-webui**: redesign UI with warm dark theme, mobile card view, icon action buttons, and cogwheel settings
+
+### Fixed
+
+- **koolna-webui**: avoid ref access during render in EnvVarEditor initializer
+
 ## 2026-04-08
 
 ### Added
