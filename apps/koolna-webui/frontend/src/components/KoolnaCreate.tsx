@@ -3,6 +3,7 @@ import { createKoolna, type CreateKoolnaRequest, type DotfilesMethod, type EnvVa
 import { EnvVarEditor } from './EnvVarEditor'
 
 const IMAGE_OPTIONS = [
+  'ghcr.io/buvis/koolna-dev:latest',
   'ghcr.io/buvis/koolna-base:latest',
   'ghcr.io/buvis/koolna-base:python',
   'ghcr.io/buvis/koolna-base:node',
@@ -117,6 +118,11 @@ export function KoolnaCreate({ onCreated, onCancel }: KoolnaCreateProps) {
     getDefaults().then((defaults) => {
       setFormState((prev) => ({
         ...prev,
+        gitName: defaults.gitName ?? prev.gitName,
+        gitEmail: defaults.gitEmail ?? prev.gitEmail,
+        gitUsername: defaults.gitUsername ?? prev.gitUsername,
+        image: defaults.image ?? prev.image,
+        storage: defaults.storage ?? prev.storage,
         branch: defaults.defaultBranch ?? prev.branch,
         dotfilesMethod: defaults.dotfilesMethod ?? prev.dotfilesMethod,
         dotfilesRepo: defaults.dotfilesRepo ?? prev.dotfilesRepo,

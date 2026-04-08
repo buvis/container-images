@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   type DotfilesDefaults,
+  type DotfilesMethod,
   type EnvVar,
   getDefaults,
   getEnvDefaults,
@@ -9,16 +10,21 @@ import {
 } from '../api/koolna'
 import { EnvVarEditor } from './EnvVarEditor'
 
+const IMAGE_OPTIONS = [
+  'ghcr.io/buvis/koolna-dev:latest',
+  'ghcr.io/buvis/koolna-base:latest',
+  'ghcr.io/buvis/koolna-base:python',
+  'ghcr.io/buvis/koolna-base:node',
+] as const
+
+const DOTFILES_METHODS: DotfilesMethod[] = ['none', 'bare-git', 'clone', 'command']
+
 const INPUT_BASE = 'mt-2 w-full rounded-xl border px-4 py-2 text-sm text-white transition focus:outline-none focus:ring-1'
 const INPUT_OK = 'border-white/10 bg-slate-900/60 focus:border-sky-400 focus:ring-sky-400'
-
-const CLAUDE_TOKEN_KEY = 'CLAUDE_CODE_OAUTH_TOKEN'
 
 export function Settings() {
   const [defaults, setDefaults] = useState<DotfilesDefaults>({})
   const [envVars, setEnvVars] = useState<EnvVar[]>([])
-  const [claudeToken, setClaudeToken] = useState('')
-  const [claudeTokenStored, setClaudeTokenStored] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,11 +34,7 @@ export function Settings() {
     Promise.all([getDefaults(), getEnvDefaults()])
       .then(([d, env]) => {
         setDefaults(d)
-        const claudeEntry = env.vars.find((v) => v.name === CLAUDE_TOKEN_KEY)
-        if (claudeEntry) {
-          setClaudeTokenStored(claudeEntry.value)
-        }
-        setEnvVars(env.vars.filter((v) => v.name !== CLAUDE_TOKEN_KEY))
+        setEnvVars(env.vars)
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load settings'))
       .finally(() => setLoading(false))
@@ -43,21 +45,10 @@ export function Settings() {
     setError(null)
     setSaved(false)
     try {
-      const vars = [...envVars]
-      const token = claudeToken.trim()
-      if (token) {
-        vars.push({ name: CLAUDE_TOKEN_KEY, value: token })
-      } else if (claudeTokenStored) {
-        vars.push({ name: CLAUDE_TOKEN_KEY, value: claudeTokenStored })
-      }
       await Promise.all([
         updateDefaults(defaults),
-        updateEnvDefaults({ vars }),
+        updateEnvDefaults({ vars: envVars }),
       ])
-      if (token) {
-        setClaudeTokenStored(token)
-        setClaudeToken('')
-      }
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -76,7 +67,7 @@ export function Settings() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       {error && (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm text-rose-200">
           {error}
@@ -84,62 +75,51 @@ export function Settings() {
       )}
 
       <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-6 shadow-lg shadow-black/40">
-        <h3 className="mb-4 text-base font-semibold text-white">Dotfiles and defaults</h3>
+        <h3 className="mb-4 text-base font-semibold text-white">Defaults</h3>
+        <p className="mb-4 text-sm text-white/50">
+          These values pre-populate the create form for every new koolna.
+        </p>
         <div className="space-y-4">
-          <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-repo">
-              Dotfiles repository
-            </label>
-            <input
-              id="settings-dotfiles-repo"
-              value={defaults.dotfilesRepo ?? ''}
-              onChange={(e) => setDefaults({ ...defaults, dotfilesRepo: e.target.value })}
-              className={`${INPUT_BASE} ${INPUT_OK}`}
-              placeholder="https://github.com/owner/dotfiles"
-            />
-          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-method">
-                Method
-              </label>
-              <select
-                id="settings-dotfiles-method"
-                value={defaults.dotfilesMethod ?? 'none'}
-                onChange={(e) => setDefaults({ ...defaults, dotfilesMethod: e.target.value as DotfilesDefaults['dotfilesMethod'] })}
-                className={`${INPUT_BASE} ${INPUT_OK}`}
-              >
-                <option value="none">none</option>
-                <option value="bare-git">bare-git</option>
-                <option value="clone">clone</option>
-                <option value="command">command</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-baredir">
-                Bare repo dir
+              <label className="text-sm font-semibold text-white/80" htmlFor="settings-git-name">
+                Committer name
               </label>
               <input
-                id="settings-dotfiles-baredir"
-                value={defaults.dotfilesBareDir ?? ''}
-                onChange={(e) => setDefaults({ ...defaults, dotfilesBareDir: e.target.value })}
+                id="settings-git-name"
+                value={defaults.gitName ?? ''}
+                onChange={(e) => setDefaults({ ...defaults, gitName: e.target.value })}
                 className={`${INPUT_BASE} ${INPUT_OK}`}
-                placeholder=".cfg"
+                placeholder="Jane Doe"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="settings-git-email">
+                Committer email
+              </label>
+              <input
+                id="settings-git-email"
+                type="email"
+                value={defaults.gitEmail ?? ''}
+                onChange={(e) => setDefaults({ ...defaults, gitEmail: e.target.value })}
+                className={`${INPUT_BASE} ${INPUT_OK}`}
+                placeholder="jane@example.com"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="settings-git-username">
+                Username
+              </label>
+              <input
+                id="settings-git-username"
+                value={defaults.gitUsername ?? ''}
+                onChange={(e) => setDefaults({ ...defaults, gitUsername: e.target.value })}
+                className={`${INPUT_BASE} ${INPUT_OK}`}
+                autoComplete="username"
               />
             </div>
           </div>
-          <div>
-            <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-command">
-              Dotfiles command
-            </label>
-            <input
-              id="settings-dotfiles-command"
-              value={defaults.dotfilesCommand ?? ''}
-              onChange={(e) => setDefaults({ ...defaults, dotfilesCommand: e.target.value })}
-              className={`${INPUT_BASE} ${INPUT_OK}`}
-              placeholder="curl -Ls https://example.com/setup | bash"
-            />
-          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="text-sm font-semibold text-white/80" htmlFor="settings-default-branch">
@@ -154,18 +134,38 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-white/80" htmlFor="settings-init-command">
-                Init command
+              <label className="text-sm font-semibold text-white/80" htmlFor="settings-storage">
+                Storage
               </label>
               <input
-                id="settings-init-command"
-                value={defaults.initCommand ?? ''}
-                onChange={(e) => setDefaults({ ...defaults, initCommand: e.target.value })}
+                id="settings-storage"
+                value={defaults.storage ?? ''}
+                onChange={(e) => setDefaults({ ...defaults, storage: e.target.value })}
                 className={`${INPUT_BASE} ${INPUT_OK}`}
-                placeholder="~/.dotfiles/install.sh"
+                placeholder="10Gi"
               />
             </div>
           </div>
+
+          <div>
+            <label className="text-sm font-semibold text-white/80" htmlFor="settings-image">
+              Image
+            </label>
+            <input
+              id="settings-image"
+              list="settings-image-options"
+              value={defaults.image ?? ''}
+              onChange={(e) => setDefaults({ ...defaults, image: e.target.value })}
+              className={`${INPUT_BASE} ${INPUT_OK}`}
+              placeholder="ghcr.io/buvis/koolna-dev:latest"
+            />
+            <datalist id="settings-image-options">
+              {IMAGE_OPTIONS.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+          </div>
+
           <div>
             <label className="text-sm font-semibold text-white/80" htmlFor="settings-ssh-pubkey">
               SSH public key
@@ -182,41 +182,92 @@ export function Settings() {
               rows={2}
             />
           </div>
-        </div>
-      </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-6 shadow-lg shadow-black/40">
-        <h3 className="mb-4 text-base font-semibold text-white">Default environment variables</h3>
-        <p className="mb-4 text-sm text-white/50">
-          These env vars pre-populate every new koolna. Per-koolna overrides are set in the create form.
-        </p>
-        <EnvVarEditor vars={envVars} onChange={setEnvVars} />
-      </div>
+          <div>
+            <label className="text-sm font-semibold text-white/80">
+              Environment variables
+            </label>
+            <div className="mt-2">
+              <EnvVarEditor vars={envVars} onChange={setEnvVars} />
+            </div>
+          </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-6 shadow-lg shadow-black/40">
-        <div className="mb-3 flex items-center gap-3">
-          <h3 className="text-base font-semibold text-white">Claude authentication</h3>
-          {claudeTokenStored && !claudeToken && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Configured
-            </span>
+          <div>
+            <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-method">
+              Dotfiles
+            </label>
+            <select
+              id="settings-dotfiles-method"
+              value={defaults.dotfilesMethod ?? 'none'}
+              onChange={(e) => setDefaults({ ...defaults, dotfilesMethod: e.target.value as DotfilesMethod })}
+              className={`${INPUT_BASE} ${INPUT_OK}`}
+            >
+              {DOTFILES_METHODS.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
+          {(defaults.dotfilesMethod === 'bare-git' || defaults.dotfilesMethod === 'clone') && (
+            <div className={`grid gap-4 ${defaults.dotfilesMethod === 'bare-git' ? 'md:grid-cols-2' : ''}`}>
+              <div>
+                <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-repo">
+                  Dotfiles repository
+                </label>
+                <input
+                  id="settings-dotfiles-repo"
+                  value={defaults.dotfilesRepo ?? ''}
+                  onChange={(e) => setDefaults({ ...defaults, dotfilesRepo: e.target.value })}
+                  className={`${INPUT_BASE} ${INPUT_OK}`}
+                  placeholder="https://github.com/owner/dotfiles"
+                />
+              </div>
+
+              {defaults.dotfilesMethod === 'bare-git' && (
+                <div>
+                  <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-baredir">
+                    Bare repo dir
+                  </label>
+                  <input
+                    id="settings-dotfiles-baredir"
+                    value={defaults.dotfilesBareDir ?? ''}
+                    onChange={(e) => setDefaults({ ...defaults, dotfilesBareDir: e.target.value })}
+                    className={`${INPUT_BASE} ${INPUT_OK}`}
+                    placeholder=".cfg"
+                  />
+                </div>
+              )}
+            </div>
           )}
+
+          {defaults.dotfilesMethod === 'command' && (
+            <div>
+              <label className="text-sm font-semibold text-white/80" htmlFor="settings-dotfiles-command">
+                Dotfiles command
+              </label>
+              <input
+                id="settings-dotfiles-command"
+                value={defaults.dotfilesCommand ?? ''}
+                onChange={(e) => setDefaults({ ...defaults, dotfilesCommand: e.target.value })}
+                className={`${INPUT_BASE} ${INPUT_OK}`}
+                placeholder="curl -Ls https://example.com/setup | bash"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-semibold text-white/80" htmlFor="settings-init-command">
+              Init command
+            </label>
+            <input
+              id="settings-init-command"
+              value={defaults.initCommand ?? ''}
+              onChange={(e) => setDefaults({ ...defaults, initCommand: e.target.value })}
+              className={`${INPUT_BASE} ${INPUT_OK}`}
+              placeholder="~/.dotfiles/install.sh"
+            />
+          </div>
         </div>
-        <p className="mb-3 text-sm text-white/60">
-          Run <code className="rounded bg-white/10 px-1 text-xs">claude setup-token</code> on
-          your workstation and paste the printed token here. Valid ~1 year. All workspaces
-          will receive it as <code className="rounded bg-white/10 px-1 text-xs">CLAUDE_CODE_OAUTH_TOKEN</code>.
-        </p>
-        <input
-          id="settings-claude-token"
-          type="password"
-          value={claudeToken}
-          onChange={(e) => setClaudeToken(e.target.value)}
-          className={`${INPUT_BASE} ${INPUT_OK} font-mono text-xs`}
-          placeholder={claudeTokenStored ? '(configured, paste new value to replace)' : 'sk-ant-oat01-...'}
-          autoComplete="off"
-        />
       </div>
 
       <div className="flex items-center gap-3">

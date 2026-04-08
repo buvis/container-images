@@ -125,11 +125,16 @@ func RegisterRoutes(r *mux.Router, h *APIHandler) {
 }
 
 type defaultsResponse struct {
+	GitName         string `json:"gitName,omitempty"`
+	GitEmail        string `json:"gitEmail,omitempty"`
+	GitUsername     string `json:"gitUsername,omitempty"`
+	Image           string `json:"image,omitempty"`
+	Storage         string `json:"storage,omitempty"`
 	DotfilesRepo    string `json:"dotfilesRepo,omitempty"`
 	DotfilesMethod  string `json:"dotfilesMethod,omitempty"`
 	DotfilesBareDir string `json:"dotfilesBareDir,omitempty"`
 	DotfilesCommand string `json:"dotfilesCommand,omitempty"`
-	InitCommand    string `json:"initCommand,omitempty"`
+	InitCommand     string `json:"initCommand,omitempty"`
 	DefaultBranch   string `json:"defaultBranch,omitempty"`
 	SSHPublicKey    string `json:"sshPublicKey,omitempty"`
 }
@@ -146,11 +151,16 @@ func (h *APIHandler) GetDefaults(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, defaultsResponse{
+		GitName:         cm.Data["gitName"],
+		GitEmail:        cm.Data["gitEmail"],
+		GitUsername:     cm.Data["gitUsername"],
+		Image:           cm.Data["image"],
+		Storage:         cm.Data["storage"],
 		DotfilesRepo:    cm.Data["dotfilesRepo"],
 		DotfilesMethod:  cm.Data["dotfilesMethod"],
 		DotfilesBareDir: cm.Data["dotfilesBareDir"],
 		DotfilesCommand: cm.Data["dotfilesCommand"],
-		InitCommand:    cm.Data["initCommand"],
+		InitCommand:     cm.Data["initCommand"],
 		DefaultBranch:   cm.Data["defaultBranch"],
 		SSHPublicKey:    cm.Data["sshPublicKey"],
 	})
@@ -165,6 +175,21 @@ func (h *APIHandler) UpdateDefaults(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]string{}
+	if req.GitName != "" {
+		data["gitName"] = req.GitName
+	}
+	if req.GitEmail != "" {
+		data["gitEmail"] = req.GitEmail
+	}
+	if req.GitUsername != "" {
+		data["gitUsername"] = req.GitUsername
+	}
+	if req.Image != "" {
+		data["image"] = req.Image
+	}
+	if req.Storage != "" {
+		data["storage"] = req.Storage
+	}
 	if req.DotfilesRepo != "" {
 		data["dotfilesRepo"] = req.DotfilesRepo
 	}

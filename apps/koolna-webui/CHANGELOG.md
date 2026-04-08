@@ -3,13 +3,20 @@
 
 ## 2026-04-08
 
+### Added
+
+- **koolna-webui**: expose git identity, image, and storage in settings defaults
+- **koolna-webui**: conditionally show dotfiles fields based on selected method
+
+### Changed
+
+- **koolna-webui**: consolidate settings into a single card layout
+- **koolna-webui**: remove Claude token UI in favor of cluster-level credential seeding
+
 ### Fixed
 
 - add 256-color terminal feature for tmux clients
-
-### Documentation
-
-- update changelogs [skip ci]
+- **koolna-webui**: open terminal and repo links in new tab instead of navigating away
 
 ## 2026-04-07
 

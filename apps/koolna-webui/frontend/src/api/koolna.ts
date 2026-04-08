@@ -42,6 +42,11 @@ export interface CreateKoolnaRequest {
 }
 
 export interface DotfilesDefaults {
+  gitName?: string
+  gitEmail?: string
+  gitUsername?: string
+  image?: string
+  storage?: string
   dotfilesRepo?: string
   dotfilesMethod?: DotfilesMethod
   dotfilesBareDir?: string
