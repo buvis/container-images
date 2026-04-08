@@ -7,6 +7,10 @@
 
 - pin mise tool versions and add renovate datasource comments
 
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-07
 
 ### Fixed
