@@ -1,6 +1,12 @@
 # Changelog — exchanger
 
 
+## 2026-04-08
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-07
 
 ### Documentation

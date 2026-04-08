@@ -1,6 +1,12 @@
 # Changelog — mkdocs-git-sync
 
 
+## 2026-04-08
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-03-30
 
 ### Documentation
