@@ -23,9 +23,9 @@ function toEnvVars(rows: Row[]): EnvVar[] {
 }
 
 export function EnvVarEditor({ vars, onChange, defaults }: EnvVarEditorProps) {
-  const nextId = useRef(0)
+  const nextId = useRef(vars.length)
   const [rows, setRows] = useState<Row[]>(() =>
-    vars.map((v) => ({ id: nextId.current++, name: v.name, value: v.value }))
+    vars.map((v, i) => ({ id: i, name: v.name, value: v.value }))
   )
 
   const defaultNames = new Set(defaults?.map((d) => d.name) ?? [])
