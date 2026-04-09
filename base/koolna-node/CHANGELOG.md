@@ -1,6 +1,12 @@
 # Changelog — koolna-node
 
 
+## 2026-04-09
+
+### Documentation
+
+- update changelogs [skip ci]
+
 ## 2026-04-08
 
 ### Changed
