@@ -5,7 +5,7 @@
 
 ### Fixed
 
-- disable caching for Claude CLI binary downloads from GCS bucket
+- disable caching for Claude CLI binary downloads from GCS
 
 ## 2026-04-08
 
@@ -15,6 +15,7 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 
 ## 2026-04-07
