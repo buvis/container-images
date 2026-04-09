@@ -275,11 +275,14 @@ upsert_secret() {
   CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
   API_SERVER="https://kubernetes.default.svc"
 
+  # Use PATCH to merge keys instead of PUT which replaces the entire secret.
+  # This prevents wiping credentials that exist in the secret but not yet in
+  # this pod (e.g. .claude/.credentials.json before the user authenticates).
   payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\", \"labels\": {$labels}}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
 
-  resp=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+  resp=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
     -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/json" \
+    -H "Content-Type: application/strategic-merge-patch+json" \
     --cacert "$CA_CERT" \
     "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name" \
     -d "$payload")
