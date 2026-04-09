@@ -1,6 +1,12 @@
 # Changelog — koolna-cache
 
 
+## 2026-04-09
+
+### Fixed
+
+- disable caching for Claude CLI binary downloads from GCS bucket
+
 ## 2026-04-08
 
 ### Fixed
