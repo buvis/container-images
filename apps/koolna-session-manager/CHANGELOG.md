@@ -5,7 +5,7 @@
 
 ### Fixed
 
-- use PATCH instead of PUT for credential sync to prevent wiping unsynced keys
+- use PATCH for credential sync to preserve unsynced keys
 
 ## 2026-04-08
 
@@ -16,5 +16,6 @@
 
 ### Documentation
 
+- update changelogs [skip ci]
 - update changelogs [skip ci]
 - update changelogs [skip ci]
