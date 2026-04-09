@@ -33,6 +33,8 @@
 ### Documentation
 
 - update changelogs [skip ci]
+- update changelogs [skip ci]
+- update changelogs [skip ci]
 - add changelog entries for koolna-webui UI redesign
 - update changelogs [skip ci]
 - update changelogs [skip ci]
