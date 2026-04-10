@@ -2,11 +2,12 @@ FROM ghcr.io/buvis/koolna-base:latest@sha256:ce34586fa72b1e9552313a6883c9b8d2f90
 
 ARG USERNAME=bob
 
-# --- Rust apt dependencies (build-essential, pkg-config) ---
+# --- Build dependencies (C toolchain, pkg-config, libffi for Python/Ruby FFI) ---
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   pkg-config \
+  libffi-dev \
   && rm -rf /var/lib/apt/lists/*
 
 USER $USERNAME

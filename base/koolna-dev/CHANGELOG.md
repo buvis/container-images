@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-dev**: preinstall libffi-dev for Python/Ruby FFI build dependencies
+
 ## 2026-04-07
 
 ### Fixed
