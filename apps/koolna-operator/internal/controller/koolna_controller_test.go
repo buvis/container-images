@@ -163,7 +163,7 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(sidecarEnvMap).NotTo(HaveKey("KOOLNA_UID"))
 			Expect(sidecarEnvMap).NotTo(HaveKey("KOOLNA_USERNAME"))
 			Expect(sidecarEnvMap).To(HaveKey("KOOLNA_CREDENTIAL_PATHS"))
-			Expect(sidecarEnvMap["KOOLNA_CREDENTIAL_PATHS"]).To(Equal(".claude/.credentials.json,.codex"))
+			Expect(sidecarEnvMap["KOOLNA_CREDENTIAL_PATHS"]).To(Equal(".claude/.credentials.json,.claude.json,.codex"))
 
 			By("Checking workspace, cache, and proxy-ca volumes")
 			Expect(pod.Spec.Volumes).To(HaveLen(3))
