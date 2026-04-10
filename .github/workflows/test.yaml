@@ -134,7 +134,7 @@ jobs:
 
       - name: Build test image
         if: ${{ steps.prep.outputs.goss == 'true' }}
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
@@ -151,7 +151,7 @@ jobs:
           dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
 
       - name: Build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
@@ -210,7 +210,7 @@ jobs:
 
       - name: Build test image
         if: ${{ steps.prep.outputs.goss == 'true' }}
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
@@ -227,7 +227,7 @@ jobs:
           dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
 
       - name: Build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
