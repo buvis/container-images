@@ -7,7 +7,6 @@ import '@xterm/xterm/css/xterm.css';
 interface TerminalProps {
   name: string;
   session: string;
-  onBack: () => void;
 }
 
 function buildWebsocketUrl(name: string, session: string): string {
@@ -21,7 +20,7 @@ const statusColors: Record<ConnectionStatus, string> = {
   reconnecting: 'text-phase-pending',
 };
 
-export function Terminal({ name, session, onBack }: TerminalProps) {
+export function Terminal({ name, session }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rawTermRef = useRef<RawTerminal | null>(null);
   const adapterRef = useRef<XtermAdapter | null>(null);
@@ -79,12 +78,6 @@ export function Terminal({ name, session, onBack }: TerminalProps) {
   return (
     <div className="h-screen flex flex-col bg-bg">
       <header className="flex items-center justify-between px-4 py-2 bg-surface border-b border-border">
-        <button
-          onClick={onBack}
-          className="text-text-muted hover:text-text transition-colors"
-        >
-          ← Back
-        </button>
         <span className="text-text-muted font-mono">{session}</span>
         <span className={`font-mono text-sm ${statusColors[status]}`}>
           {status}

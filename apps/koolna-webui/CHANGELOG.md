@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **koolna-webui**: remove back button from terminal header since sessions open in a new tab
+
 ## 2026-04-10
 
 ### Added

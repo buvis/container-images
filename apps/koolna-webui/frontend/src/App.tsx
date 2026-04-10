@@ -110,7 +110,7 @@ const TerminalPage = () => {
   }
 
   return (
-    <Terminal name={name} session={session} onBack={() => { window.location.href = '/'; }} />
+    <Terminal name={name} session={session} />
   )
 }
 
