@@ -297,8 +297,8 @@ jobs:
           cache-from: "type=local,src=/tmp/.buildx-cache"
           cache-to: "type=local,dest=/tmp/.buildx-cache,mode=max"
 
-  changelog:
-    name: Changelog
+  release:
+    name: Release
     runs-on: ubuntu-24.04
     needs: [changes, build-base, build-stack]
     if: >-
@@ -313,32 +313,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.BOT_TOKEN }}
-
-      - name: Generate changelogs
-        env:
-          ALL_CONTAINERS: ${{ needs.changes.outputs.all_containers }}
-        run: |
-          for CONTAINER in $(echo "${ALL_CONTAINERS}" | jq -r '.[]'); do
-            if test -f "./apps/${CONTAINER}/Dockerfile"; then
-              CATEGORY="apps"
-            else
-              CATEGORY="base"
-            fi
-            bash .github/scripts/generate-changelog.sh \
-              "${CATEGORY}" \
-              "${CONTAINER}" \
-              > "./${CATEGORY}/${CONTAINER}/CHANGELOG.md"
-            git add "./${CATEGORY}/${CONTAINER}/CHANGELOG.md"
-          done
-
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git diff --staged --quiet && exit 0
-          git commit -m "docs: update changelogs [skip ci]"
-          git pull --rebase origin master
-          git push origin master
 
       - name: Create or update GitHub Releases
         env:
