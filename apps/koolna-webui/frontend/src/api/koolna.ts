@@ -214,3 +214,22 @@ export async function updateKoolnaEnv(name: string, payload: EnvVarsPayload): Pr
   return parseResponse<EnvVarsPayload>(response)
 }
 
+export interface ClaudeCredentialsStatus {
+  set: boolean
+  expiresAt?: number
+  subscription?: string
+}
+
+export async function getClaudeCredentialsStatus(): Promise<ClaudeCredentialsStatus> {
+  const response = await fetch('/api/claude-credentials')
+  return parseResponse<ClaudeCredentialsStatus>(response)
+}
+
+export async function updateClaudeCredentials(credentials: string): Promise<ClaudeCredentialsStatus> {
+  const response = await fetch('/api/claude-credentials', {
+    method: 'PUT',
+    headers: jsonHeaders(),
+    body: JSON.stringify({ credentials }),
+  })
+  return parseResponse<ClaudeCredentialsStatus>(response)
+}

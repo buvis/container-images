@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -94,6 +95,8 @@ func toKoolnaResponse(obj *unstructured.Unstructured) koolnaResponse {
 
 const defaultsConfigMapName = "koolna-defaults"
 const envDefaultsSecretName = "koolna-env-defaults"
+const claudeCredentialsSecretName = "koolna-credentials"
+const claudeCredentialsKey = "claude---credentials.json"
 
 type envVarEntry struct {
 	Name  string `json:"name"`
@@ -122,6 +125,8 @@ func RegisterRoutes(r *mux.Router, h *APIHandler) {
 	r.HandleFunc("/api/env-defaults", h.UpdateEnvDefaults).Methods("PUT")
 	r.HandleFunc("/api/koolnas/{name}/env", h.GetKoolnaEnv).Methods("GET")
 	r.HandleFunc("/api/koolnas/{name}/env", h.UpdateKoolnaEnv).Methods("PUT")
+	r.HandleFunc("/api/claude-credentials", h.GetClaudeCredentialsStatus).Methods("GET")
+	r.HandleFunc("/api/claude-credentials", h.UpdateClaudeCredentials).Methods("PUT")
 }
 
 type defaultsResponse struct {
@@ -315,6 +320,139 @@ func (h *APIHandler) UpdateEnvDefaults(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, req)
+}
+
+type claudeCredentialsStatus struct {
+	Set          bool   `json:"set"`
+	ExpiresAt    int64  `json:"expiresAt,omitempty"`
+	Subscription string `json:"subscription,omitempty"`
+}
+
+type claudeCredentialsRequest struct {
+	Credentials string `json:"credentials"`
+}
+
+type claudeOauthWrapper struct {
+	ClaudeAiOauth struct {
+		ExpiresAt        int64  `json:"expiresAt"`
+		SubscriptionType string `json:"subscriptionType"`
+	} `json:"claudeAiOauth"`
+}
+
+// GetClaudeCredentialsStatus reports whether Claude credentials are stored
+// in the shared koolna-credentials Secret without returning the tokens.
+func (h *APIHandler) GetClaudeCredentialsStatus(w http.ResponseWriter, _ *http.Request) {
+	secret, err := h.kube.CoreV1().Secrets(h.ns).Get(context.Background(), claudeCredentialsSecretName, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			respondJSON(w, http.StatusOK, claudeCredentialsStatus{Set: false})
+			return
+		}
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+	raw, ok := secret.Data[claudeCredentialsKey]
+	if !ok || len(raw) == 0 {
+		respondJSON(w, http.StatusOK, claudeCredentialsStatus{Set: false})
+		return
+	}
+	status := claudeCredentialsStatus{Set: true}
+	var wrapper claudeOauthWrapper
+	if err := json.Unmarshal(raw, &wrapper); err == nil {
+		status.ExpiresAt = wrapper.ClaudeAiOauth.ExpiresAt
+		status.Subscription = wrapper.ClaudeAiOauth.SubscriptionType
+	}
+	respondJSON(w, http.StatusOK, status)
+}
+
+// UpdateClaudeCredentials validates the pasted Claude Code credential JSON
+// and stores it in the shared koolna-credentials Secret under the key the
+// session-manager sidecar looks for. Uses strategic-merge patch so other
+// credential keys (e.g. codex, claude.json) are preserved.
+func (h *APIHandler) UpdateClaudeCredentials(w http.ResponseWriter, r *http.Request) {
+	var req claudeCredentialsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	trimmed := strings.TrimSpace(req.Credentials)
+	if trimmed == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("credentials is required"))
+		return
+	}
+
+	var wrapper claudeOauthWrapper
+	if err := json.Unmarshal([]byte(trimmed), &wrapper); err != nil {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("credentials must be valid JSON: %w", err))
+		return
+	}
+	if wrapper.ClaudeAiOauth.ExpiresAt == 0 {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("credentials JSON must contain a claudeAiOauth object with expiresAt (paste the full output from the keychain/credentials file)"))
+		return
+	}
+
+	patch := map[string]any{
+		"metadata": map[string]any{
+			"name":      claudeCredentialsSecretName,
+			"namespace": h.ns,
+			"labels": map[string]string{
+				"koolna.buvis.net/type": "credentials",
+			},
+		},
+		"type": corev1.SecretTypeOpaque,
+		"data": map[string]string{
+			claudeCredentialsKey: base64.StdEncoding.EncodeToString([]byte(trimmed)),
+		},
+	}
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, err = h.kube.CoreV1().Secrets(h.ns).Patch(
+		context.Background(),
+		claudeCredentialsSecretName,
+		types.StrategicMergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+	if apierrors.IsNotFound(err) {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      claudeCredentialsSecretName,
+				Namespace: h.ns,
+				Labels: map[string]string{
+					"koolna.buvis.net/type": "credentials",
+				},
+			},
+			Type: corev1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				claudeCredentialsKey: []byte(trimmed),
+			},
+		}
+		if _, err := h.kube.CoreV1().Secrets(h.ns).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
+			respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+			return
+		}
+		respondJSON(w, http.StatusOK, claudeCredentialsStatus{
+			Set:          true,
+			ExpiresAt:    wrapper.ClaudeAiOauth.ExpiresAt,
+			Subscription: wrapper.ClaudeAiOauth.SubscriptionType,
+		})
+		return
+	}
+	if err != nil {
+		respondError(w, statusFromError(err, http.StatusInternalServerError), err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, claudeCredentialsStatus{
+		Set:          true,
+		ExpiresAt:    wrapper.ClaudeAiOauth.ExpiresAt,
+		Subscription: wrapper.ClaudeAiOauth.SubscriptionType,
+	})
 }
 
 // GetKoolnaEnv reads the per-koolna env Secret.

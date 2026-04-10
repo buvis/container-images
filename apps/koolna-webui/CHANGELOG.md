@@ -1,6 +1,16 @@
 # Changelog — koolna-webui
 
 
+## 2026-04-10
+
+### Added
+
+- add Claude credentials paste form to global settings with help popover
+
+### Changed
+
+- bump to v0.3.0 for Claude credentials UI
+
 ## 2026-04-08
 
 ### Added

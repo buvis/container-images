@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
+  type ClaudeCredentialsStatus,
   type DotfilesDefaults,
   type DotfilesMethod,
   type EnvVar,
+  getClaudeCredentialsStatus,
   getDefaults,
   getEnvDefaults,
+  updateClaudeCredentials,
   updateDefaults,
   updateEnvDefaults,
 } from '../api/koolna'
@@ -29,12 +32,19 @@ export function Settings() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [claudeStatus, setClaudeStatus] = useState<ClaudeCredentialsStatus>({ set: false })
+  const [claudeJSON, setClaudeJSON] = useState('')
+  const [claudeSaving, setClaudeSaving] = useState(false)
+  const [claudeError, setClaudeError] = useState<string | null>(null)
+  const [claudeSaved, setClaudeSaved] = useState(false)
+  const [showClaudeHelp, setShowClaudeHelp] = useState(false)
 
   useEffect(() => {
-    Promise.all([getDefaults(), getEnvDefaults()])
-      .then(([d, env]) => {
+    Promise.all([getDefaults(), getEnvDefaults(), getClaudeCredentialsStatus()])
+      .then(([d, env, claude]) => {
         setDefaults(d)
         setEnvVars(env.vars)
+        setClaudeStatus(claude)
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load settings'))
       .finally(() => setLoading(false))
@@ -55,6 +65,23 @@ export function Settings() {
       setError(err instanceof Error ? err.message : 'Failed to save settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSaveClaude = async () => {
+    setClaudeSaving(true)
+    setClaudeError(null)
+    setClaudeSaved(false)
+    try {
+      const status = await updateClaudeCredentials(claudeJSON)
+      setClaudeStatus(status)
+      setClaudeJSON('')
+      setClaudeSaved(true)
+      setTimeout(() => setClaudeSaved(false), 2000)
+    } catch (err: unknown) {
+      setClaudeError(err instanceof Error ? err.message : 'Failed to save credentials')
+    } finally {
+      setClaudeSaving(false)
     }
   }
 
@@ -285,6 +312,94 @@ export function Settings() {
         {saved && (
           <span className="text-sm text-phase-running">Saved</span>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-lg shadow-black/40">
+        <div className="mb-4 flex items-center gap-2">
+          <h3 className="text-base font-semibold text-text">Claude credentials</h3>
+          <button
+            type="button"
+            onClick={() => setShowClaudeHelp((v) => !v)}
+            aria-expanded={showClaudeHelp}
+            aria-label="How to obtain Claude credentials"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border bg-surface-raised text-xs font-bold text-text-muted transition hover:border-accent hover:text-accent"
+          >
+            ?
+          </button>
+        </div>
+        <p className="mb-4 text-sm text-text-muted">
+          Paste the Claude Code OAuth JSON from your local machine. The session-manager sidecar will restore it into{' '}
+          <code className="rounded bg-surface-raised px-1 py-0.5 font-mono text-xs">~/.claude/.credentials.json</code> on every pod start.
+          Authentication happens on your laptop because the OAuth flow requires a localhost callback that pods can't use.
+        </p>
+
+        {showClaudeHelp && (
+          <div className="mb-4 space-y-3 rounded-xl border border-border bg-surface-raised p-4 text-xs text-text-muted">
+            <div>
+              <p className="mb-1 font-semibold text-text">macOS (credentials stored in Keychain)</p>
+              <pre className="overflow-x-auto rounded bg-surface p-2 font-mono text-[0.7rem] text-text">
+{`security find-generic-password -s "Claude Code-credentials" -w`}
+              </pre>
+            </div>
+            <div>
+              <p className="mb-1 font-semibold text-text">Linux / WSL (credentials stored in file)</p>
+              <pre className="overflow-x-auto rounded bg-surface p-2 font-mono text-[0.7rem] text-text">
+{`cat ~/.claude/.credentials.json`}
+              </pre>
+            </div>
+            <p>
+              Run the command on the machine where you're already logged into Claude Code, copy the output, and paste it below.
+              The JSON must contain a <code className="font-mono">claudeAiOauth</code> object.
+            </p>
+          </div>
+        )}
+
+        {claudeStatus.set && (
+          <div className="mb-4 rounded-xl border border-phase-running/40 bg-phase-running/10 px-4 py-2 text-sm text-phase-running">
+            Credentials stored
+            {claudeStatus.subscription && <> (subscription: <strong>{claudeStatus.subscription}</strong>)</>}
+            {claudeStatus.expiresAt && (
+              <> · expires {new Date(claudeStatus.expiresAt).toLocaleString()}</>
+            )}
+          </div>
+        )}
+
+        {claudeError && (
+          <div className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
+            {claudeError}
+          </div>
+        )}
+
+        <label className="text-sm font-semibold text-text-muted" htmlFor="settings-claude-json">
+          Paste JSON
+        </label>
+        <textarea
+          id="settings-claude-json"
+          value={claudeJSON}
+          onChange={(e) => setClaudeJSON(e.target.value)}
+          className={`${INPUT_BASE} ${INPUT_OK} min-h-[6rem] resize-y font-mono text-xs`}
+          placeholder='{"claudeAiOauth":{"accessToken":"...","refreshToken":"...","expiresAt":...}}'
+          rows={4}
+          spellCheck={false}
+          autoComplete="off"
+        />
+
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSaveClaude}
+            disabled={claudeSaving || claudeJSON.trim() === ''}
+            className="inline-flex items-center justify-center rounded-2xl border border-transparent bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {claudeSaving && (
+              <span className="mr-2 h-3 w-3 animate-spin rounded-full border border-t-white border-white/20" />
+            )}
+            {claudeStatus.set ? 'Replace credentials' : 'Save credentials'}
+          </button>
+          {claudeSaved && (
+            <span className="text-sm text-phase-running">Saved</span>
+          )}
+        </div>
       </div>
     </section>
   )
