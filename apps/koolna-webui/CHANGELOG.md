@@ -5,11 +5,13 @@
 
 ### Added
 
-- add Claude credentials paste form to global settings with help popover
+- add Claude credentials paste form to global settings
 
-### Changed
+## 2026-04-09
 
-- bump to v0.3.0 for Claude credentials UI
+### Documentation
+
+- update changelogs [skip ci]
 
 ## 2026-04-08
 
