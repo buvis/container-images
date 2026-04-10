@@ -367,18 +367,42 @@ sync_credentials() {
   printf '%s' "$current_hash" > "$last_hash_file"
 }
 
+# Ensure ~/.claude.json carries hasCompletedOnboarding=true so the interactive
+# `claude` CLI skips the theme picker / login banner. This must run after every
+# restore_credentials, because the credential sync includes .claude.json in
+# KOOLNA_CREDENTIAL_PATHS and will overwrite our flag from the shared Secret on
+# every poll until the secret itself carries the flag.
+ensure_claude_onboarded() {
+  $NSENTER_USER python3 -c "
+import json
+path = '$HOME/.claude.json'
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except (FileNotFoundError, ValueError):
+    cfg = {}
+if cfg.get('hasCompletedOnboarding') is not True:
+    cfg['hasCompletedOnboarding'] = True
+    with open(path, 'w') as f:
+        json.dump(cfg, f, indent=2)
+" 2>/dev/null || echo "warning: failed to set claude onboarding flag"
+}
+
 if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
   echo "starting credential sync (30s polling)"
   restore_credentials
+  ensure_claude_onboarded
   (
     while true; do
       sync_credentials
       sleep 30
       restore_credentials
+      ensure_claude_onboarded
     done
   ) &
 else
   echo "KOOLNA_AUTH_SECRET not set, skipping credential sync"
+  ensure_claude_onboarded
 fi
 
 # --- sshd setup ---
@@ -457,15 +481,10 @@ fi
 export LANG=C.UTF-8
 export LC_CTYPE=C.UTF-8
 
-# Ensure Claude onboarding is marked complete so interactive `claude` skips
-# the theme picker / login banner. Credentials come from koolna-credentials
-# Secret via restore_credentials().
-if $NSENTER_USER sh -c 'command -v claude >/dev/null 2>&1'; then
-  if ! $NSENTER_USER sh -c "[ -f '$HOME/.claude.json' ]"; then
-    echo "writing claude onboarding config..."
-    $NSENTER_USER sh -c "printf '%s' '{\"hasCompletedOnboarding\":true}' > '$HOME/.claude.json'"
-  fi
-fi
+# `mise install` of claude (re)creates ~/.claude.json without the onboarding
+# flag, so re-merge after the install completes. The credential sync loop also
+# re-merges after every restore.
+ensure_claude_onboarded
 
 echo "configuring tmux defaults"
 cat > /tmp/tmux.conf <<'EOF'
