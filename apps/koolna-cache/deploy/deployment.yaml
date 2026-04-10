@@ -21,6 +21,7 @@ spec:
       containers:
         - name: squid
           image: ghcr.io/buvis/koolna-cache:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3128
           env:

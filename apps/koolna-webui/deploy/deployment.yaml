@@ -17,6 +17,7 @@ spec:
       containers:
         - name: webui
           image: ghcr.io/buvis/koolna-webui:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           resources:
