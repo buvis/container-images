@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget
+
 ## 2026-04-08
 
 ### Fixed

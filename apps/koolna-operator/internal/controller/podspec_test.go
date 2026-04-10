@@ -159,6 +159,37 @@ func TestBuildPodSpec_SidecarNoUserEnvVars(t *testing.T) {
 	t.Error("session-manager container not found")
 }
 
+func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	for _, c := range pod.Spec.Containers {
+		if c.Name != "session-manager" {
+			continue
+		}
+		if c.StartupProbe == nil {
+			t.Fatal("session-manager: expected StartupProbe to be set so dotfiles install does not trip readiness")
+		}
+		if c.StartupProbe.Exec == nil || len(c.StartupProbe.Exec.Command) == 0 || c.StartupProbe.Exec.Command[0] != "tmux" {
+			t.Errorf("session-manager StartupProbe should exec tmux, got %+v", c.StartupProbe.Exec)
+		}
+		// Budget must comfortably exceed observed cold-start (~30 min) so the
+		// startup probe stays running while dotfiles install completes.
+		budget := int64(c.StartupProbe.PeriodSeconds) * int64(c.StartupProbe.FailureThreshold)
+		if budget < 1800 {
+			t.Errorf("session-manager StartupProbe budget %ds is too tight for dotfiles install", budget)
+		}
+		if c.ReadinessProbe == nil {
+			t.Fatal("session-manager: expected ReadinessProbe to be set")
+		}
+		if c.ReadinessProbe.PeriodSeconds < 10 {
+			t.Errorf("session-manager ReadinessProbe PeriodSeconds=%d is too noisy", c.ReadinessProbe.PeriodSeconds)
+		}
+		return
+	}
+	t.Error("session-manager container not found")
+}
+
 func TestBuildGitCloneInitContainer_WorkspaceMount(t *testing.T) {
 	koolna := minimalKoolna()
 	c := buildGitCloneInitContainer(koolna)

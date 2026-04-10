@@ -884,14 +884,23 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 2222, Protocol: corev1.ProtocolTCP},
 					},
+					StartupProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"tmux", "list-sessions"},
+							},
+						},
+						PeriodSeconds:    10,
+						FailureThreshold: 240,
+					},
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
 								Command: []string{"tmux", "list-sessions"},
 							},
 						},
-						InitialDelaySeconds: 5,
-						PeriodSeconds:       5,
+						PeriodSeconds:    30,
+						FailureThreshold: 3,
 					},
 					SecurityContext: &corev1.SecurityContext{
 						Capabilities: &corev1.Capabilities{
