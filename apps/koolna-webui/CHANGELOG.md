@@ -1,363 +1,233 @@
 # Changelog — koolna-webui
 
+## [Unreleased]
 
 ## 2026-04-10
 
 ### Added
 
-- add Claude credentials paste form to global settings
-
-## 2026-04-09
-
-### Documentation
-
-- update changelogs [skip ci]
+- **koolna-webui**: add Claude credentials paste form to global settings
 
 ## 2026-04-08
 
 ### Added
 
-- replace hardcoded Tailwind colors with design tokens in Terminal and Keypad
-- update env var editor with token classes
-- update settings form with token classes and amber save button
-- update create form with token classes and green submit button
-- add mobile card view, icon action buttons, and responsive mount modal
-- replace header buttons with cogwheel icon and onCreate prop
-- add warm dark utility design tokens and system font stack
-- redesign settings with git identity, image, and storage defaults
-
-### Changed
-
-- bump to v0.2.0 for UI redesign release
-- remove slop from recent changes
+- **koolna-webui**: replace hardcoded Tailwind colors with design tokens in Terminal and Keypad
+- **koolna-webui**: update env var editor with token classes
+- **koolna-webui**: update settings form with token classes and amber save button
+- **koolna-webui**: update create form with token classes and green submit button
+- **koolna-webui**: add mobile card view, icon action buttons, and responsive mount modal
+- **koolna-webui**: replace header buttons with cogwheel icon and onCreate prop
+- **koolna-webui**: add warm dark utility design tokens and system font stack
+- **koolna-webui**: redesign settings with git identity, image, and storage defaults
 
 ### Fixed
 
-- add 44px mobile input height for tap target compliance
-- add aria-label to icon-only action buttons for accessibility
-- shift warning token hue to distinguish from accent
-- replace raw emerald-400 with phase-running design token
-- increase mobile tap targets to 44px for icon buttons and modal close
-- avoid ref access during render in EnvVarEditor initializer
-- update remaining tmux-sidecar references missed in rename
-- add 256-color terminal feature for tmux clients
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- add changelog entries for koolna-webui UI redesign
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna-webui**: add 44px mobile input height for tap target compliance
+- **koolna-webui**: add aria-label to icon-only action buttons for accessibility
+- **koolna-webui**: shift warning token hue to distinguish from accent
+- **koolna-webui**: replace raw emerald-400 with phase-running design token
+- **koolna-webui**: increase mobile tap targets to 44px for icon buttons and modal close
+- **koolna-webui**: avoid ref access during render in EnvVarEditor initializer
+- **koolna**: update remaining tmux-sidecar references missed in rename
+- **koolna**: add 256-color terminal feature for tmux clients
 
 ## 2026-04-07
 
 ### Added
 
-- make repository link clickable in koolna list
+- **koolna-webui**: make repository link clickable in koolna list
 
 ### Fixed
 
-- remove WebGL renderer to fix 256-color rendering
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna-webui**: remove WebGL renderer to fix 256-color rendering
 
 ## 2026-04-06
 
 ### Added
 
-- add webui-driven broker bootstrap with paste-credentials flow
-
-### Changed
-
-- replace token broker with koolna-env-defaults Secret injection
+- **koolna**: add webui-driven broker bootstrap with paste-credentials flow
 
 ### Fixed
 
-- simplify to plain token from setup-token (1 year validity, no refresh needed)
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna**: simplify to plain token from setup-token (1 year validity, no refresh needed)
 
 ## 2026-04-05
 
 ### Added
 
-- add Claude authentication checkbox to workspace creation form
-
-### Changed
-
-- reduce xterm font size from 14 to 13
+- **koolna-webui**: add Claude authentication checkbox to workspace creation form
 
 ### Fixed
 
-- prefix koolna mounts
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-
-## 2026-04-02
-
-### Documentation
-
-- update changelogs [skip ci]
+- **koolna**: prefix koolna mounts
 
 ## 2026-04-01
 
 ### Fixed
 
-- unmount stale FUSE mount before mkdir in mount script
-- clean shutdown of sshfs before port-forward in mount script
-- detect gpg-agent SSH socket and use foreground sshfs in mount script
-- use StrictHostKeyChecking=no for ephemeral pod mount scripts
-- place SSH options before command in mount script pre-connect
-- pre-connect SSH in mount script for macOS agent key binding
-- create sidecar user for sshd, fix mount script port detection
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna-webui**: unmount stale FUSE mount before mkdir in mount script
+- **koolna-webui**: clean shutdown of sshfs before port-forward in mount script
+- **koolna-webui**: detect gpg-agent SSH socket and use foreground sshfs in mount script
+- **koolna-webui**: use StrictHostKeyChecking=no for ephemeral pod mount scripts
+- **koolna-webui**: place SSH options before command in mount script pre-connect
+- **koolna-webui**: pre-connect SSH in mount script for macOS agent key binding
+- **koolna**: create sidecar user for sshd, fix mount script port detection
 
 ## 2026-03-31
 
 ### Added
 
-- add tooltip to disabled Mount button
-- add SSH key help text to create form
-- add SSH key help text to Settings page
+- **koolna-webui**: add tooltip to disabled Mount button
+- **koolna-webui**: add SSH key help text to create form
+- **koolna-webui**: add SSH key help text to Settings page
 
 ### Fixed
 
-- restore existence check in MountScript, update tests
-- remove user config fields from create form
-- remove username/uid/homePath from create API
-- use fixed /workspace path in mount script
-- fix EnvVarEditor focus loss and remove value masking
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs for image-agnostic pod config
-- update changelogs [skip ci]
+- **koolna-webui**: restore existence check in MountScript, update tests
+- **koolna-webui**: remove user config fields from create form
+- **koolna-webui**: remove username/uid/homePath from create API
+- **koolna-webui**: use fixed /workspace path in mount script
+- **koolna-webui**: fix EnvVarEditor focus loss and remove value masking
 
 ## 2026-03-30
 
 ### Added
 
-- add env var section to create form
-- add Settings page with env var defaults editor
-- add EnvVarEditor component
-- add frontend env var types and API functions
-- create per-koolna env secret in create flow
-- add env var CRUD API handlers
-- add koolna-env-defaults Secret deploy manifest
-- add Mount button and modal to KoolnaList
-- add sshPublicKey to frontend types and create form
-- add mount-script endpoint for SSHFS mount
-- add sshPublicKey to backend create/defaults/response
-
-### Changed
-
-- revert(deps): revert typescript 6.0.2 bump, typescript-eslint requires <6.0.0
+- **koolna-webui**: add env var section to create form
+- **koolna-webui**: add Settings page with env var defaults editor
+- **koolna-webui**: add EnvVarEditor component
+- **koolna-webui**: add frontend env var types and API functions
+- **koolna-webui**: create per-koolna env secret in create flow
+- **koolna-webui**: add env var CRUD API handlers
+- **koolna-webui**: add koolna-env-defaults Secret deploy manifest
+- **koolna-webui**: add Mount button and modal to KoolnaList
+- **koolna-webui**: add sshPublicKey to frontend types and create form
+- **koolna-webui**: add mount-script endpoint for SSHFS mount
+- **koolna-webui**: add sshPublicKey to backend create/defaults/response
 
 ### Fixed
 
-- clean up orphan env secret on CR patch failure
-- use useEffect for EnvVarEditor external sync
-- validate env var names and allow empty values in create form
-- remove redundant Back button from Settings page
-- use stable IDs in EnvVarEditor for correct state tracking
-- add server-side env var name validation
-- upsert env secret and patch CR in UpdateKoolnaEnv
-- show OS-specific unmount commands in modal
-- harden mount script SSH options and input validation
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs for env var config feature
-- update changelogs [ci-skip]
-- update changelogs for SSHFS mount feature
-- update changelogs [ci-skip]
-
-## 2026-03-29
-
-### Documentation
-
-- update changelogs [ci-skip]
+- **koolna-webui**: clean up orphan env secret on CR patch failure
+- **koolna-webui**: use useEffect for EnvVarEditor external sync
+- **koolna-webui**: validate env var names and allow empty values in create form
+- **koolna-webui**: remove redundant Back button from Settings page
+- **koolna-webui**: use stable IDs in EnvVarEditor for correct state tracking
+- **koolna-webui**: add server-side env var name validation
+- **koolna-webui**: upsert env secret and patch CR in UpdateKoolnaEnv
+- **koolna-webui**: show OS-specific unmount commands in modal
+- **koolna-webui**: harden mount script SSH options and input validation
 
 ## 2026-03-27
 
 ### Added
 
-- disable terminal buttons when pod not ready
+- **koolna-webui**: disable terminal buttons when pod not ready
 
 ### Fixed
 
-- use full page navigation to/from terminal for clean WebGL lifecycle
-- use popstate handler instead of pageshow for Firefox back button
-- reload on Firefox bfcache restore for browser back button
-- use full navigation when leaving terminal to fix Firefox blank page
-- handle Firefox bfcache blank page on back navigation
-- remove debug logging, canvas addon, unicode11 addon
-
-### Documentation
-
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
+- **koolna-webui**: use full page navigation to/from terminal for clean WebGL lifecycle
+- **koolna-webui**: use popstate handler instead of pageshow for Firefox back button
+- **koolna-webui**: reload on Firefox bfcache restore for browser back button
+- **koolna-webui**: use full navigation when leaving terminal to fix Firefox blank page
+- **koolna-webui**: handle Firefox bfcache blank page on back navigation
+- **koolna-webui**: remove debug logging, canvas addon, unicode11 addon
 
 ## 2026-03-26
 
 ### Fixed
 
-- log all websocket messages for debugging
-- dump all high-byte websocket messages for debugging
-- log powerline bytes from websocket for debugging
-- decode websocket binary to string for proper glyph rendering
-- add inline powerline render test
-
-### Documentation
-
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
+- **koolna-webui**: log all websocket messages for debugging
+- **koolna-webui**: dump all high-byte websocket messages for debugging
+- **koolna-webui**: log powerline bytes from websocket for debugging
+- **koolna-webui**: decode websocket binary to string for proper glyph rendering
+- **koolna-webui**: add inline powerline render test
 
 ## 2026-03-25
 
 ### Fixed
 
-- update all non-major dependencies (#339)
-- upgrade to @xterm/ packages for proper customGlyphs support
-- add renderer diagnostics logging to console
-- fall back to canvas renderer when WebGL unavailable
-- use WebGL renderer with explicit customGlyphs for powerline
-- remove canvas addon, rely on built-in custom glyph rendering
-- add unicode11 addon for proper glyph width calculation
-- load canvas addon after terminal is attached to DOM
-- use canvas renderer for proper nerd font glyph rendering
-
-### Documentation
-
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
+- **deps**: update all non-major dependencies (#339)
+- **koolna-webui**: upgrade to @xterm/ packages for proper customGlyphs support
+- **koolna-webui**: add renderer diagnostics logging to console
+- **koolna-webui**: fall back to canvas renderer when WebGL unavailable
+- **koolna-webui**: use WebGL renderer with explicit customGlyphs for powerline
+- **koolna-webui**: remove canvas addon, rely on built-in custom glyph rendering
+- **koolna-webui**: add unicode11 addon for proper glyph width calculation
+- **koolna-webui**: load canvas addon after terminal is attached to DOM
+- **koolna-webui**: use canvas renderer for proper nerd font glyph rendering
 
 ## 2026-03-23
 
 ### Fixed
 
-- use MesloLGS NF font for body text
-- nsenter as target user, wait for font before terminal init
-
-### Documentation
-
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
+- **koolna-webui**: use MesloLGS NF font for body text
+- **koolna**: nsenter as target user, wait for font before terminal init
 
 ## 2026-03-22
 
 ### Added
 
-- add configurable shell field
-- add username/uid/homePath to create form and API
-
-### Changed
-
-- rename dotfilesInit to initCommand
+- **koolna**: add configurable shell field
+- **koolna-webui**: add username/uid/homePath to create form and API
 
 ### Fixed
 
-- restore git fields as required in create form
-- make git fields optional, fix status.currentBranch path
-- credential sync create-or-update, frontend homePath validation
-- harden HomePath validation, fix UID=0 pointer bug
-
-### Documentation
-
-- backfill changelogs for all images [ci-skip]
+- **koolna-webui**: restore git fields as required in create form
+- **koolna-webui**: make git fields optional, fix status.currentBranch path
+- **koolna**: credential sync create-or-update, frontend homePath validation
+- **koolna**: harden HomePath validation, fix UID=0 pointer bug
 
 ## 2026-03-21
 
 ### Added
 
-- add form validation with field help tooltips
+- **koolna-webui**: add form validation with field help tooltips
 
 ### Fixed
 
-- show field help tooltip on hover instead of click
+- **koolna-webui**: show field help tooltip on hover instead of click
 
 ## 2026-03-20
 
 ### Added
 
-- persist git credentials in home volume, add git identity
-- replace gotty frontend with raw terminal protocol
-- add MesloLGS Nerd Font for terminal rendering
-- replace gotty proxy with kubectl exec terminal
+- **koolna**: persist git credentials in home volume, add git identity
+- **koolna-webui**: replace gotty frontend with raw terminal protocol
+- **koolna-webui**: add MesloLGS Nerd Font for terminal rendering
+- **koolna-webui**: replace gotty proxy with kubectl exec terminal
 
 ### Fixed
 
-- show git identity and credentials fields unconditionally
-- remove unused container field in xterm-adapter
-- address review findings from cycle 1
+- **koolna**: show git identity and credentials fields unconditionally
+- **koolna-webui**: remove unused container field in xterm-adapter
+- **koolna**: address review findings from cycle 1
 
 ## 2026-03-19
 
 ### Added
 
-- move private repo after URL, auto-detect on branch fetch failure
-- conditional dotfiles form with none/bare-git/clone/command
-- add dotfilesCommand and dotfilesInit fields
-- full URL repo input with branch combobox
-- add defaultBranch and listBranches to frontend API
-- add branch listing endpoint via git ls-remote
-- add defaultBranch to defaults endpoint
+- **koolna-webui**: move private repo after URL, auto-detect on branch fetch failure
+- **koolna-webui**: conditional dotfiles form with none/bare-git/clone/command
+- **koolna-webui**: add dotfilesCommand and dotfilesInit fields
+- **koolna-webui**: full URL repo input with branch combobox
+- **koolna-webui**: add defaultBranch and listBranches to frontend API
+- **koolna-webui**: add branch listing endpoint via git ls-remote
+- **koolna-webui**: add defaultBranch to defaults endpoint
 
 ### Fixed
 
-- update all non-major dependencies to v0.35.3 (#321)
-- add configmaps RBAC, defaults manifest, fix secrets verbs
-- review fixes — label, null branches, deprecation warning, test
+- **deps**: update all non-major dependencies to v0.35.3 (#321)
+- **koolna-webui**: add configmaps RBAC, defaults manifest, fix secrets verbs
+- **koolna**: review fixes — label, null branches, deprecation warning, test
 
 ## 2026-03-18
 
 ### Added
 
-- universal dotfiles support with configmap defaults
-- add clipboard bridge for tmux copy to browser sync
-- auto-create git secret for private repos
+- **koolna**: universal dotfiles support with configmap defaults
+- **koolna**: add clipboard bridge for tmux copy to browser sync
+- **koolna-webui**: auto-create git secret for private repos
 
 ### Fixed
 
@@ -367,74 +237,65 @@
 
 ### Fixed
 
-- don't default gitSecretRef to git-creds
+- **koolna-webui**: don't default gitSecretRef to git-creds
 
 ## 2026-02-27
 
 ### Fixed
 
-- correct onInput prop data type
-- pin dependencies (#245)
-- migrate to @tailwindcss/vite for Tailwind v4
-- use type-only imports and explicit field declarations for TS 5.8
+- **koolna-webui**: correct onInput prop data type
+- **deps**: pin dependencies (#245)
+- **koolna-webui**: migrate to @tailwindcss/vite for Tailwind v4
+- **koolna-webui**: use type-only imports and explicit field declarations for TS 5.8
 
 ## 2026-02-25
 
 ### Added
 
-- allow custom container image input with suggestions
+- **koolna-webui**: allow custom container image input with suggestions
 
 ### Fixed
 
-- validate WebSocket origin against host header
+- **koolna**: validate WebSocket origin against host header
 
 ## 2026-02-24
 
-### Changed
-
-- add VERSION and PLATFORM files
-
 ### Fixed
 
-- parse error field from backend responses
-- transform API payloads between flat and K8s format
-- resolve deployment blockers and gaps
+- **koolna-webui**: parse error field from backend responses
+- **koolna-webui**: transform API payloads between flat and K8s format
+- **koolna**: resolve deployment blockers and gaps
 
 ## 2026-01-22
 
 ### Added
 
-- add SPA routing and static file serving
-- add KoolnaCreate form with validation
-- add KoolnaList component with auto-refresh
-- add typed API client for koolna endpoints
-- add checkout and branch status endpoints
-
-### Changed
-
-- add K8s deployment manifests with RBAC
-- add multi-stage Dockerfile
+- **koolna-webui**: add SPA routing and static file serving
+- **koolna-webui**: add KoolnaCreate form with validation
+- **koolna-webui**: add KoolnaList component with auto-refresh
+- **koolna-webui**: add typed API client for koolna endpoints
+- **koolna-webui**: add checkout and branch status endpoints
 
 ## 2026-01-21
 
 ### Added
 
-- add Keypad component for mobile terminal input
-- add Terminal React component with xterm integration
-- add XtermAdapter implementing TerminalInterface
-- port WebTTY/Connection classes to TypeScript
-- init React/Vite/TS frontend with Tailwind
+- **koolna-webui**: add Keypad component for mobile terminal input
+- **koolna-webui**: add Terminal React component with xterm integration
+- **koolna-webui**: add XtermAdapter implementing TerminalInterface
+- **koolna-webui**: port WebTTY/Connection classes to TypeScript
+- **koolna-webui**: init React/Vite/TS frontend with Tailwind
 
 ## 2026-01-19
 
 ### Added
 
-- implement WebSocket terminal proxy
-- implement REST API handlers for Koolna CRUD
-- add K8s types and dynamic client for Koolna CRD
+- **koolna-webui**: implement WebSocket terminal proxy
+- **koolna-webui**: implement REST API handlers for Koolna CRUD
+- **koolna-webui**: add K8s types and dynamic client for Koolna CRD
 
 ## 2026-01-12
 
 ### Added
 
-- initialize Go project with gorilla/mux router
+- **koolna-webui**: initialize Go project with gorilla/mux router

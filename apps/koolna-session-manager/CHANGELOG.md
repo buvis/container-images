@@ -1,21 +1,71 @@
 # Changelog — koolna-session-manager
 
+## [Unreleased]
 
 ## 2026-04-09
 
 ### Fixed
 
-- use PATCH for credential sync to preserve unsynced keys
+- **koolna-session-manager**: use PATCH for credential sync to preserve unsynced keys
 
 ## 2026-04-08
 
-### Changed
+### Fixed
 
-- trigger CI for session-manager and operator images
-- rename koolna-tmux to koolna-session-manager
+- **koolna**: add 256-color terminal feature for tmux clients
 
-### Documentation
+## 2026-04-07
 
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+### Added
+
+- **koolna-tmux**: sync credentials to shared secret for cross-workspace reuse
+
+### Fixed
+
+- **koolna-tmux**: set TERM for 256-color tmux client attach
+- **koolna-tmux**: enable 256-color support in tmux sessions
+
+## 2026-04-06
+
+### Fixed
+
+- **koolna-tmux**: always run claude bootstrap when token is set (dotfiles may precreate ~/.claude)
+- **koolna-tmux**: bootstrap claude config on first run when CLAUDE_CODE_OAUTH_TOKEN is set
+
+## 2026-04-05
+
+### Added
+
+- **koolna-tmux**: add koolna-auth-init for opt-in Claude token injection
+
+## 2026-04-02
+
+### Fixed
+
+- **koolna-tmux**: replace proxy hostname with IP, export cargo timeout for nsenter
+- **koolna-tmux**: pin proxy hostname in /etc/hosts to avoid DNS contention
+- **koolna-tmux**: restore WS variable removed during .koolna refactor
+
+## 2026-04-01
+
+### Fixed
+
+- **koolna**: create sidecar user for sshd, fix mount script port detection
+- **koolna**: run dotfiles/init as user, use FQDN for proxy DNS
+- **koolna**: export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
+- **koolna-tmux**: export NODE_EXTRA_CA_CERTS so nsenter'd npm trusts proxy CA
+
+## 2026-03-31
+
+### Added
+
+- **koolna-tmux**: auto-detect UID/HOME/PATH/username from /proc
+
+### Fixed
+
+- **koolna-tmux**: fix dotfiles command syntax error and gitconfig path
+- **koolna-tmux**: fix chown paths, add GID detection, HOME fallback, cache path
+- **koolna-tmux**: run dotfiles and init command in main container via nsenter
+- **koolna-tmux**: silence credential-sync no-op log in polling loop
+- **koolna-tmux**: trust proxy CA in sidecar before dotfiles install
+- **koolna**: create .koolna dir before writing credentials, trust CA before dotfiles

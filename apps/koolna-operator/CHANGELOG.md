@@ -1,434 +1,246 @@
 # Changelog — koolna-operator
 
+## [Unreleased]
 
 ## 2026-04-08
 
-### Changed
-
-- trigger CI for session-manager and operator images
-- rename koolna-tmux to koolna-session-manager
-
 ### Fixed
 
-- update remaining tmux-sidecar references missed in rename
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna**: update remaining tmux-sidecar references missed in rename
 
 ## 2026-04-07
 
 ### Added
 
-- add .claude.json to credential sync paths for interactive login
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna-operator**: add .claude.json to credential sync paths for interactive login
 
 ## 2026-04-06
 
 ### Added
 
-- delete cache PVC on CR deletion with Delete policy
-- replace EmptyDir with PVC for cache volume
-- add cacheSize and cacheStorageClass CRD fields
-- add webui-driven broker bootstrap with paste-credentials flow
-
-### Changed
-
-- remove slop from recent changes
-- remove slop from recent changes
-- rename cchPVCName and fix cleanupKoolna helper
-- replace token broker with koolna-env-defaults Secret injection
+- **koolna-operator**: delete cache PVC on CR deletion with Delete policy
+- **koolna-operator**: replace EmptyDir with PVC for cache volume
+- **koolna-operator**: add cacheSize and cacheStorageClass CRD fields
+- **koolna**: add webui-driven broker bootstrap with paste-credentials flow
 
 ### Fixed
 
-- simplify to plain token from setup-token (1 year validity, no refresh needed)
-
-### Documentation
-
-- update changelogs [skip ci]
-- add cacheSize to sample CR
-- add cache PVC fields and manual cleanup docs
-- add changelog for cache PVC feature
+- **koolna**: simplify to plain token from setup-token (1 year validity, no refresh needed)
 
 ## 2026-04-05
 
 ### Added
 
-- log when claudeAuth is enabled during reconcile
-- add claudeAuth spec field to inject broker URL on sidecar
-
-### Documentation
-
-- update changelogs [skip ci]
-- document Claude authentication flow, broker bootstrap, and opt-in
+- **koolna-operator**: log when claudeAuth is enabled during reconcile
+- **koolna-operator**: add claudeAuth spec field to inject broker URL on sidecar
 
 ## 2026-04-02
 
 ### Fixed
 
-- add CARGO_HTTP_TIMEOUT and CARGO_HTTP_MULTIPLEXING for proxy
-
-### Documentation
-
-- update changelogs [skip ci]
+- **koolna-operator**: add CARGO_HTTP_TIMEOUT and CARGO_HTTP_MULTIPLEXING for proxy
 
 ## 2026-04-01
 
-### Changed
-
-- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
-
 ### Fixed
 
-- run dotfiles/init as user, use FQDN for proxy DNS
-- export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna**: run dotfiles/init as user, use FQDN for proxy DNS
+- **koolna**: export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
 
 ## 2026-03-31
 
-### Changed
-
-- replace userConfig with fixed /workspace and /cache paths
-- consolidate all koolna workloads into koolna namespace
-
 ### Fixed
 
-- add NODE_EXTRA_CA_CERTS for npm proxy trust
-- remove username/uid/homePath from CRD YAML
-- remove username/uid/homePath from KoolnaSpec CRD
-- set GIT_CONFIG_GLOBAL on init container for credential discovery
-- create .koolna dir before writing credentials, trust CA before dotfiles
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs for image-agnostic pod config
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-
-## 2026-04-01
-
-### Changed
-
-- move .koolna config from /workspace to /cache, add CURL_CA_BUNDLE
-
-### Fixed
-
-- run dotfiles/init as user, use FQDN for proxy DNS
-- export SSL_CERT_FILE and REQUESTS_CA_BUNDLE for uv/pip proxy trust
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-
-## 2026-03-31
-
-### Changed
-
-- replace userConfig with fixed /workspace and /cache paths
-- consolidate all koolna workloads into koolna namespace
-
-### Fixed
-
-- add NODE_EXTRA_CA_CERTS for npm proxy trust
-- remove username/uid/homePath from CRD YAML
-- remove username/uid/homePath from KoolnaSpec CRD
-- set GIT_CONFIG_GLOBAL on init container for credential discovery
-- create .koolna dir before writing credentials, trust CA before dotfiles
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs for image-agnostic pod config
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [skip ci]
+- **koolna-operator**: add NODE_EXTRA_CA_CERTS for npm proxy trust
+- **koolna-operator**: remove username/uid/homePath from CRD YAML
+- **koolna-operator**: remove username/uid/homePath from KoolnaSpec CRD
+- **koolna-operator**: set GIT_CONFIG_GLOBAL on init container for credential discovery
+- **koolna**: create .koolna dir before writing credentials, trust CA before dotfiles
 
 ## 2026-03-30
 
 ### Added
 
-- inject env vars from envSecretRef via EnvFrom
-- add EnvSecretRef field to KoolnaSpec CRD
-- inject proxy env vars and CA mount into pods
-- pass git credential env vars to sidecar unconditionally
-- add emptyDir cache volume for disposable storage
-- mount PVC at workspace subPath instead of entire home
-- add SSH port 2222 to service and sidecar
-- pass KOOLNA_SSH_PUBKEY env to sidecar
-- add sshPublicKey field to KoolnaSpec CRD
-
-### Changed
-
-- align whitespace in helper functions
-- regenerate CRD manifests for EnvSecretRef
+- **koolna-operator**: inject env vars from envSecretRef via EnvFrom
+- **koolna-operator**: add EnvSecretRef field to KoolnaSpec CRD
+- **koolna-operator**: inject proxy env vars and CA mount into pods
+- **koolna-operator**: pass git credential env vars to sidecar unconditionally
+- **koolna-operator**: add emptyDir cache volume for disposable storage
+- **koolna-operator**: mount PVC at workspace subPath instead of entire home
+- **koolna-operator**: add SSH port 2222 to service and sidecar
+- **koolna-operator**: pass KOOLNA_SSH_PUBKEY env to sidecar
+- **koolna-operator**: add sshPublicKey field to KoolnaSpec CRD
 
 ### Fixed
 
-- use operator namespace for proxy address, not CR namespace
-- review fixes - lowercase proxy vars, JSON encoding, squid config
-- set GIT_CONFIG_GLOBAL on main container for credential discovery
-- chmod 600 on .git-credentials in init container
-- pass REPO_URL to sidecar for correct credential host
-- reject sshPublicKey with newlines
-- sort by ResourceVersion for true last-write-wins
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs for env var config feature
-- update changelogs for proxy injection
-- update changelogs [ci-skip]
-- update changelogs for storage split and git config fix
-- fix stale dotfiles-cache path in README
-- document storage layout and update changelogs
-- update changelogs for SSHFS mount feature
-- update changelogs [ci-skip]
+- **koolna-operator**: use operator namespace for proxy address, not CR namespace
+- **koolna-cache**: review fixes - lowercase proxy vars, JSON encoding, squid config
+- **koolna-operator**: set GIT_CONFIG_GLOBAL on main container for credential discovery
+- **koolna-operator**: chmod 600 on .git-credentials in init container
+- **koolna-operator**: pass REPO_URL to sidecar for correct credential host
+- **koolna-operator**: reject sshPublicKey with newlines
+- **koolna-operator**: sort by ResourceVersion for true last-write-wins
 
 ## 2026-03-29
 
 ### Added
 
-- call reconcileCredentials from Reconcile loop
-- add reconcileCredentials function
-- add create;update RBAC for secrets
-- add KOOLNA_SHARED_SECRET env to sidecar
-- revert authSecretName to per-pod naming
-- pass KOOLNA_CREDENTIAL_PATHS env to sidecar
-- use shared credential secret across all pods
-
-### Changed
-
-- extract sharedSecretName constant, enforce label on update
+- **koolna-operator**: call reconcileCredentials from Reconcile loop
+- **koolna-operator**: add reconcileCredentials function
+- **koolna-operator**: add create;update RBAC for secrets
+- **koolna-operator**: add KOOLNA_SHARED_SECRET env to sidecar
+- **koolna-operator**: revert authSecretName to per-pod naming
+- **koolna-operator**: pass KOOLNA_CREDENTIAL_PATHS env to sidecar
+- **koolna-operator**: use shared credential secret across all pods
 
 ### Fixed
 
-- delete stale koolna-credentials when no per-pod secrets exist
-- sort credential secrets by timestamp for last-write-wins
-
-### Documentation
-
-- update koolna-operator changelog for credential aggregation
-- update changelogs for credential read/write split
-- update changelogs for configurable credential paths
-- update changelogs for shared credential secret
+- **koolna-operator**: delete stale koolna-credentials when no per-pod secrets exist
+- **koolna-operator**: sort credential secrets by timestamp for last-write-wins
 
 ## 2026-03-27
 
 ### Added
 
-- add readiness probe and pending state for initializing pods
-
-### Documentation
-
-- update changelogs [ci-skip]
+- **koolna-operator**: add readiness probe and pending state for initializing pods
 
 ## 2026-03-24
 
 ### Fixed
 
-- set HOME in git-clone init container
-- create home dir before clone in init container
-
-### Documentation
-
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
+- **koolna-operator**: set HOME in git-clone init container
+- **koolna-operator**: create home dir before clone in init container
 
 ## 2026-03-23
 
 ### Fixed
 
-- recursive chown for .cache/.local/.config in init container
-
-### Documentation
-
-- update changelog [ci-skip]
+- **koolna-operator**: recursive chown for .cache/.local/.config in init container
 
 ## 2026-03-22
 
 ### Added
 
-- add configurable shell field
-- parameterize pod spec and init container with user config
-- add user config resolution, validation, CRD yaml
-- add username/uid/homePath CRD fields, dynamic sidecar HOME
-
-### Changed
-
-- rename dotfilesInit to initCommand
+- **koolna**: add configurable shell field
+- **koolna-operator**: parameterize pod spec and init container with user config
+- **koolna-operator**: add user config resolution, validation, CRD yaml
+- **koolna**: add username/uid/homePath CRD fields, dynamic sidecar HOME
 
 ### Fixed
 
-- add SYS_ADMIN capability for sidecar nsenter
-- harden HomePath validation, fix UID=0 pointer bug
-
-### Documentation
-
-- update changelog [ci-skip]
-- update changelog [ci-skip]
-- backfill changelogs for all images [ci-skip]
-
-## 2026-03-21
-
-### Changed
-
-- move operator to koolna namespace
+- **koolna-operator**: add SYS_ADMIN capability for sidecar nsenter
+- **koolna**: harden HomePath validation, fix UID=0 pointer bug
 
 ## 2026-03-20
 
 ### Added
 
-- persist git credentials in home volume, add git identity
-- add tmux sidecar and shared home volume to pod spec
+- **koolna**: persist git credentials in home volume, add git identity
+- **koolna**: add tmux sidecar and shared home volume to pod spec
 
 ### Fixed
 
-- show git identity and credentials fields unconditionally
-- address review findings from cycle 1
-- restore workspaceVolumeName const removed by linter
+- **koolna**: show git identity and credentials fields unconditionally
+- **koolna**: address review findings from cycle 1
+- **koolna**: restore workspaceVolumeName const removed by linter
 
 ## 2026-03-19
 
 ### Added
 
-- create /workspace/.koolna/ dir in init container
-- support none/command methods and init command in dotfiles
-- add dotfilesCommand and dotfilesInit CRD fields
-- use full URL in init container with host-aware credentials
-- accept full HTTPS URLs with legacy fallback
-
-### Changed
-
-- shorten operator resource names
+- **koolna**: create /workspace/.koolna/ dir in init container
+- **koolna**: support none/command methods and init command in dotfiles
+- **koolna**: add dotfilesCommand and dotfilesInit CRD fields
+- **koolna**: use full URL in init container with host-aware credentials
+- **koolna**: accept full HTTPS URLs with legacy fallback
 
 ### Fixed
 
-- update all non-major dependencies to v0.35.3 (#321)
-- review fixes — command method guard, validation, env var scoping
-- review fixes — label, null branches, deprecation warning, test
-- move dotfiles defaults from operator to webui only
-- chown workspace to bob after init container clone
-
-### Documentation
-
-- update docs for dotfiles redesign, regenerate CRD
-- update samples and README for full URL format
+- **deps**: update all non-major dependencies to v0.35.3 (#321)
+- **koolna**: review fixes — command method guard, validation, env var scoping
+- **koolna**: review fixes — label, null branches, deprecation warning, test
+- **koolna**: move dotfiles defaults from operator to webui only
+- **koolna**: chown workspace to bob after init container clone
 
 ## 2026-03-18
 
 ### Added
 
-- universal dotfiles support with configmap defaults
+- **koolna**: universal dotfiles support with configmap defaults
 
 ### Fixed
 
-- clone dotfiles to /workspace/.dotfiles, install on startup
-
-### Documentation
-
-- document dotfiles methods and defaults ConfigMap
-- add sample koolna-defaults ConfigMap
+- **koolna**: clone dotfiles to /workspace/.dotfiles, install on startup
 
 ## 2026-03-17
 
 ### Fixed
 
-- clean workspace before git clone
-- skip git secret ref for public repos
+- **koolna-operator**: clean workspace before git clone
+- **koolna-operator**: skip git secret ref for public repos
 
 ## 2026-03-05
 
 ### Fixed
 
-- update module sigs.k8s.io/controller-runtime to v0.23.3 (#276)
-- update module sigs.k8s.io/controller-runtime to v0.23.2 (#274)
+- **deps**: update module sigs.k8s.io/controller-runtime to v0.23.3 (#276)
+- **deps**: update module sigs.k8s.io/controller-runtime to v0.23.2 (#274)
 
 ## 2026-02-27
 
 ### Fixed
 
-- pin dependencies (#245)
+- **deps**: pin dependencies (#245)
 
 ## 2026-02-25
 
 ### Fixed
 
-- validate inputs and secure credential handling in init containers
-
-### Documentation
-
-- replace boilerplate README with actual docs
+- **koolna-operator**: validate inputs and secure credential handling in init containers
 
 ## 2026-02-24
 
-### Changed
-
-- add VERSION and PLATFORM files
-
 ### Fixed
 
-- resolve deployment blockers and gaps
+- **koolna**: resolve deployment blockers and gaps
 
 ## 2026-01-22
 
 ### Added
 
-- implement status updates with Ready condition
-- add update/patch/delete verbs to services RBAC
-
-### Changed
-
-- configure kustomize with resources and sample CR
-- set default image to ghcr.io/buvis/koolna-operator
+- **koolna-operator**: implement status updates with Ready condition
+- **koolna-operator**: add update/patch/delete verbs to services RBAC
 
 ## 2026-01-21
 
 ### Added
 
-- implement finalizers and PVC cleanup based on deletionPolicy
-- implement Service reconciliation
+- **koolna-operator**: implement finalizers and PVC cleanup based on deletionPolicy
+- **koolna-operator**: implement Service reconciliation
 
 ## 2026-01-19
 
 ### Added
 
-- implement pod reconciliation with suspend/resume
+- **koolna-operator**: implement pod reconciliation with suspend/resume
 
 ## 2026-01-18
 
 ### Added
 
-- add buildPodSpec with init containers and main container
-- add dotfiles init container helper
-- add git-clone init container helper
+- **koolna-operator**: add buildPodSpec with init containers and main container
+- **koolna-operator**: add dotfiles init container helper
+- **koolna-operator**: add git-clone init container helper
 
 ## 2026-01-15
 
 ### Added
 
-- implement PVC reconciliation for workspace storage
+- **koolna-operator**: implement PVC reconciliation for workspace storage
 
 ## 2026-01-12
 
 ### Added
 
-- define Koolna CRD types with spec/status fields
-- scaffold kubebuilder project with Koolna CRD
+- **koolna-operator**: define Koolna CRD types with spec/status fields
+- **koolna-operator**: scaffold kubebuilder project with Koolna CRD

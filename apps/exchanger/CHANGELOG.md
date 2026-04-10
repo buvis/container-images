@@ -1,102 +1,17 @@
 # Changelog — exchanger
 
-
-## 2026-04-08
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-
-## 2026-04-07
-
-### Documentation
-
-- update changelogs [skip ci]
-
-## 2026-04-06
-
-### Documentation
-
-- update changelogs [skip ci]
-
-## 2026-04-04
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-
-## 2026-04-03
-
-### Documentation
-
-- update changelogs [skip ci]
-
-## 2026-04-01
-
-### Documentation
-
-- update changelogs [skip ci]
-
-## 2026-03-30
-
-### Changed
-
-- revert(deps): revert typescript 6.0.2 bump, typescript-eslint requires <6.0.0
-
-### Documentation
-
-- update changelogs [skip ci]
-- update changelogs [skip ci]
-- update changelogs [ci-skip]
-
-## 2026-03-29
-
-### Documentation
-
-- update changelogs [ci-skip]
-
-## 2026-03-26
-
-### Documentation
-
-- update changelogs [ci-skip]
-- update changelogs [ci-skip]
-
-## 2026-03-24
-
-### Documentation
-
-- update changelogs [ci-skip]
-
-## 2026-03-23
-
-### Documentation
-
-- update changelogs [ci-skip]
-
-## 2026-03-22
-
-### Documentation
-
-- backfill changelogs for all images [ci-skip]
+## [Unreleased]
 
 ## 2026-02-24
 
 ### Added
 
-- add providers page with status cards and symbol links
-
-### Changed
-
-- add build-frontend task to mise, dev depends on it
-- add VERSION and PLATFORM files
+- **exchanger**: add providers page with status cards and symbol links
 
 ### Fixed
 
-- pre-release hardening for v0.1.0
-- correct Dockerfile static copy path and healthcheck URL
+- **exchanger**: pre-release hardening for v0.1.0
+- **exchanger**: correct Dockerfile static copy path and healthcheck URL
 
 ## 2026-01-27
 
@@ -108,98 +23,77 @@
 
 ### Added
 
-- stream rates during backfill
-- atomic backup/restore with gzip compression
-- increase backfill limit to 3650 days
-- extend chart range options to 10 years
+- **exchanger**: stream rates during backfill
+- **exchanger**: atomic backup/restore with gzip compression
+- **exchanger**: increase backfill limit to 3650 days
+- **exchanger**: extend chart range options to 10 years
 
 ### Fixed
 
-- multi-provider symbols query uses actual rate data
-- use provider_symbol for symbol selection in admin
-- calendar week starts on monday
+- **exchanger**: multi-provider symbols query uses actual rate data
+- **exchanger**: use provider_symbol for symbol selection in admin
+- **exchanger**: calendar week starts on monday
 
 ## 2026-01-24
 
 ### Added
 
-- add smart backfill resumption with checkpoints
-- add provider fallback for provider=all
-- add websocket heartbeat and status indicator
-- add frontend pages and ui components
-- add new API endpoints
-- improve backfill tracking and progress
-- migrate db schema to v7 with favorites FK
-- add new config settings
-- add provider_symbol for FCS normalization
-
-### Changed
-
-- update frontend components for provider_symbol
+- **exchanger**: add smart backfill resumption with checkpoints
+- **exchanger**: add provider fallback for provider=all
+- **exchanger**: add websocket heartbeat and status indicator
+- **exchanger**: add frontend pages and ui components
+- **exchanger**: add new API endpoints
+- **exchanger**: improve backfill tracking and progress
+- **exchanger**: migrate db schema to v7 with favorites FK
+- **exchanger**: add new config settings
+- **exchanger**: add provider_symbol for FCS normalization
 
 ### Fixed
 
-- add a11y labels and document API endpoints
-- reorder E2E mocks to register specific routes first
-- filter coverage by favorites symbols
-- add last_run/error to TaskStateResponse
-
-### Documentation
-
-- update documentation
-- fix curl examples to use /api prefix
+- **exchanger**: add a11y labels and document API endpoints
+- **exchanger**: reorder E2E mocks to register specific routes first
+- **exchanger**: filter coverage by favorites symbols
+- **exchanger**: add last_run/error to TaskStateResponse
 
 ## 2026-01-23
 
 ### Added
 
-- add /api/rates/list endpoint for date-based rate listing
-- build Providers page
-- build Admin Panel page
-- build Rates Explorer page
-- build Dashboard page with sparklines
-- add typed api.ts client
-- add collapsible sidebar layout
-- mount static files for SPA frontend
-- create SvelteKit frontend with Tailwind + Chart.js
-- add GET /api/providers/status endpoint
-- add favorites API endpoints
-- add GET /api/rates/coverage endpoint
-- add GET /api/rates/history endpoint
-- add favorites table and CRUD
-- add get_coverage() to database
-- add get_rates_range() to database
-- add /api prefix to all routes
-- add FastAPI app factory with lifespan
-- add REST API routes
-- add background task management
-- add backfill and symbols services
-- add rate source providers with registry
-- add core domain models and configuration
-
-### Changed
-
-- add multi-stage Dockerfile for frontend
-- add GitHub Actions CI workflow
-- add K8s deployment manifests
-- add Dockerfile
-- add project setup and dependencies
+- **exchanger**: add /api/rates/list endpoint for date-based rate listing
+- **exchanger**: build Providers page
+- **exchanger**: build Admin Panel page
+- **exchanger**: build Rates Explorer page
+- **exchanger**: build Dashboard page with sparklines
+- **exchanger**: add typed api.ts client
+- **exchanger**: add collapsible sidebar layout
+- **exchanger**: mount static files for SPA frontend
+- **exchanger**: create SvelteKit frontend with Tailwind + Chart.js
+- **exchanger**: add GET /api/providers/status endpoint
+- **exchanger**: add favorites API endpoints
+- **exchanger**: add GET /api/rates/coverage endpoint
+- **exchanger**: add GET /api/rates/history endpoint
+- **exchanger**: add favorites table and CRUD
+- **exchanger**: add get_coverage() to database
+- **exchanger**: add get_rates_range() to database
+- **exchanger**: add /api prefix to all routes
+- **exchanger**: add FastAPI app factory with lifespan
+- **exchanger**: add REST API routes
+- **exchanger**: add background task management
+- **exchanger**: add backfill and symbols services
+- **exchanger**: add rate source providers with registry
+- **exchanger**: add core domain models and configuration
 
 ### Fixed
 
-- remove next_run column from admin task status table
-- update E2E mocks to use correct API endpoints
-- use favorites count for heatmap coloring
-- extract timestamp from BackupInfo for restore
-- convert task status dict to array in frontend
-- validate timestamp in restore endpoint to prevent path traversal
-- sanitize error messages in task status endpoint
-- add /api prefix to test routes and fix exception handler
-- correct BackupInfo type and history query params
-- use query params for backfill request
-- correct API endpoint paths in frontend client
-- use Chart.js directly for Svelte 5 compat
-
-### Documentation
-
-- add README and CLAUDE.md
+- **exchanger**: remove next_run column from admin task status table
+- **exchanger**: update E2E mocks to use correct API endpoints
+- **exchanger**: use favorites count for heatmap coloring
+- **exchanger**: extract timestamp from BackupInfo for restore
+- **exchanger**: convert task status dict to array in frontend
+- **exchanger**: validate timestamp in restore endpoint to prevent path traversal
+- **exchanger**: sanitize error messages in task status endpoint
+- **exchanger**: add /api prefix to test routes and fix exception handler
+- **exchanger**: correct BackupInfo type and history query params
+- **exchanger**: use query params for backfill request
+- **exchanger**: correct API endpoint paths in frontend client
+- **exchanger**: use Chart.js directly for Svelte 5 compat
