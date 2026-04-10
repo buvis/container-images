@@ -213,6 +213,17 @@ path_to_key() {
 restore_credential_file() {
   val="$1" key="$2" dest="$3"
   [ -z "$val" ] && return
+
+  # Skip write if destination already matches incoming value. Compare the
+  # round-tripped base64 form (same encoding pipeline as sync_credentials)
+  # so the comparison is symmetric with what was last uploaded.
+  if $NSENTER_USER sh -c "[ -f '$dest' ]"; then
+    current=$($NSENTER_USER sh -c "base64 < '$dest' | tr -d '\\n'" 2>/dev/null || true)
+    if [ "$current" = "$val" ]; then
+      return
+    fi
+  fi
+
   dir=$(dirname "$dest")
   $NSENTER_ROOT mkdir -p "$dir"
   $NSENTER_ROOT chown "$KOOLNA_UID:$KOOLNA_GID" "$dir"
@@ -338,11 +349,22 @@ sync_credentials() {
     return
   fi
 
+  # Skip the API round-trip entirely if nothing changed since the last sync.
+  # The hash covers the full data_fields payload, so any key add/remove or
+  # content change forces a resync.
+  current_hash=$(printf '%s' "$data_fields" | sha256sum | awk '{print $1}')
+  last_hash_file="/tmp/.koolna-last-sync-hash"
+  if [ -f "$last_hash_file" ] && [ "$(cat "$last_hash_file")" = "$current_hash" ]; then
+    return
+  fi
+
   # Sync to per-workspace secret
   upsert_secret "$KOOLNA_AUTH_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
 
   # Also sync to shared secret so new workspaces restore these credentials
   upsert_secret "$KOOLNA_SHARED_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
+
+  printf '%s' "$current_hash" > "$last_hash_file"
 }
 
 if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then

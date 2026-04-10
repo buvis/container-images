@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **koolna-session-manager**: credential restore/sync skips writes when content is unchanged
+
 ## 2026-04-09
 
 ### Fixed
