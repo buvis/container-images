@@ -93,6 +93,13 @@ fi
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
+# Start a placeholder tmux session so the readiness/startup probe
+# (`tmux list-sessions`) passes within seconds instead of failing for the
+# entire duration of the dotfiles install (5-15 min). The real `manager` and
+# `worker` sessions are created at the end of the entrypoint; this placeholder
+# is killed once they exist so `list-sessions` shows the expected set.
+tmux new-session -d -s bootstrap 'sleep infinity' 2>/dev/null || true
+
 # Ensure user-writable directories before dotfiles run as user
 chown "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
 
@@ -499,6 +506,7 @@ echo "creating tmux sessions"
 tmux -f /tmp/tmux.conf new-session -d -s manager "$NSENTER_CMD"
 tmux new-session -d -s worker "$NSENTER_CMD"
 tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
+tmux kill-session -t bootstrap 2>/dev/null || true
 rm -f /tmp/tmux.conf
 
 echo "tmux sidecar ready"
