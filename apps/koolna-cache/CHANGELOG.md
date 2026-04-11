@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **koolna-cache**: splice `storage.googleapis.com` instead of bumping it so the 233 MB Claude CLI binary stops getting truncated to 0 bytes mid-stream and the dotfiles install can complete on first run
+
 ## 2026-04-09
 
 ### Fixed
