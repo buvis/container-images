@@ -9,7 +9,8 @@
 
 ### Added
 
-- **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message listing which containers are still starting
+- **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
+- **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates
 
 ## 2026-04-08
 

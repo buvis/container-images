@@ -8,6 +8,10 @@
 - **koolna-session-manager**: merge `hasCompletedOnboarding=true` into `.claude.json` after every credential restore so claude never drops to the theme picker, even when the shared Secret carries a flagless version
 - **koolna-session-manager**: start a placeholder tmux session at entrypoint start so the startup probe passes within seconds, eliminating 60+ Unhealthy events per bootstrap while dotfiles install runs
 
+### Added
+
+- **koolna-session-manager**: annotate pod with `koolna.buvis.net/bootstrap-step` at each entrypoint phase so the operator can surface progress in the Koolna CR condition
+
 ## 2026-04-09
 
 ### Fixed

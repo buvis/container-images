@@ -235,7 +235,15 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	case koolnav1alpha1.KoolnaPhaseBootstrapping:
 		condition.Status = metav1.ConditionFalse
 		condition.Reason = "Bootstrapping"
-		condition.Message = fmt.Sprintf("Waiting for containers: %s", strings.Join(notReady, ", "))
+		step := ""
+		if pod != nil {
+			step = pod.Annotations["koolna.buvis.net/bootstrap-step"]
+		}
+		if step != "" {
+			condition.Message = step
+		} else {
+			condition.Message = fmt.Sprintf("Waiting for containers: %s", strings.Join(notReady, ", "))
+		}
 	case koolnav1alpha1.KoolnaPhasePending:
 		condition.Status = metav1.ConditionFalse
 		condition.Reason = "Pending"
@@ -1037,6 +1045,7 @@ func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace s
 func (r *KoolnaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&koolnav1alpha1.Koolna{}).
+		Owns(&corev1.Pod{}).
 		Named("koolna").
 		Complete(r)
 }

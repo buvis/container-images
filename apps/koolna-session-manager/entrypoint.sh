@@ -100,6 +100,24 @@ NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --set
 # is killed once they exist so `list-sessions` shows the expected set.
 tmux new-session -d -s bootstrap 'sleep infinity' 2>/dev/null || true
 
+# Annotate the pod with the current bootstrap step so the operator can surface
+# it in the Koolna CR condition message. Uses the same SA token as credential sync.
+set_bootstrap_step() {
+  step="$1"
+  pod_name="$(hostname)"
+  ns="${KOOLNA_NAMESPACE:-koolna}"
+  TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null) || return 0
+  CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  API_SERVER="https://kubernetes.default.svc"
+  curl -s -o /dev/null -X PATCH \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/merge-patch+json" \
+    --cacert "$CA_CERT" \
+    "$API_SERVER/api/v1/namespaces/$ns/pods/$pod_name" \
+    -d "{\"metadata\":{\"annotations\":{\"koolna.buvis.net/bootstrap-step\":\"$step\"}}}" \
+    2>/dev/null || true
+}
+
 # Ensure user-writable directories before dotfiles run as user
 chown "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
 
@@ -112,6 +130,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
     CRED_CLEANUP="rm -f /tmp/.gitcredentials; git config --global --unset credential.helper 2>/dev/null || true"
   fi
 
+  set_bootstrap_step "Installing dotfiles"
   echo "installing dotfiles ($DOTFILES_METHOD)..."
   set +e
   case "$DOTFILES_METHOD" in
@@ -396,6 +415,7 @@ if cfg.get('hasCompletedOnboarding') is not True:
 }
 
 if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
+  set_bootstrap_step "Syncing credentials"
   echo "starting credential sync (30s polling)"
   restore_credentials
   ensure_claude_onboarded
@@ -457,6 +477,7 @@ PermitRootLogin $PERMIT_ROOT
 Subsystem sftp /usr/lib/openssh/sftp-server
 SSHD
 
+  set_bootstrap_step "Configuring SSH"
   echo "starting sshd on port 2222"
   /usr/sbin/sshd -D -f /tmp/sshd_config &
 }
@@ -480,6 +501,7 @@ if $NSENTER_USER sh -c 'command -v mise >/dev/null 2>&1'; then
 
   if $NSENTER_USER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
 
+    set_bootstrap_step "Installing tools"
     echo "running mise install in main container..."
     $NSENTER_USER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
   fi
@@ -493,6 +515,7 @@ export LC_CTYPE=C.UTF-8
 # re-merges after every restore.
 ensure_claude_onboarded
 
+set_bootstrap_step "Creating sessions"
 echo "configuring tmux defaults"
 cat > /tmp/tmux.conf <<'EOF'
 set -g default-terminal "tmux-256color"
@@ -509,6 +532,7 @@ tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
 tmux kill-session -t bootstrap 2>/dev/null || true
 rm -f /tmp/tmux.conf
 
+set_bootstrap_step "Ready"
 echo "tmux sidecar ready"
 exec sleep infinity
 
