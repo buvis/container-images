@@ -192,6 +192,7 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	}
 
 	koolna.Status.LastError = ""
+	var notReady []string
 	if koolna.Spec.Suspended {
 		koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseSuspended
 		koolna.Status.PodName = ""
@@ -205,13 +206,13 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 			for _, cs := range pod.Status.ContainerStatuses {
 				if !cs.Ready {
 					allReady = false
-					break
+					notReady = append(notReady, cs.Name)
 				}
 			}
 			if allReady {
 				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseRunning
 			} else {
-				koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
+				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseBootstrapping
 			}
 		case corev1.PodPending:
 			koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
@@ -231,6 +232,10 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 		condition.Status = metav1.ConditionTrue
 		condition.Reason = "Running"
 		condition.Message = "Koolna pod is running"
+	case koolnav1alpha1.KoolnaPhaseBootstrapping:
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "Bootstrapping"
+		condition.Message = fmt.Sprintf("Waiting for containers: %s", strings.Join(notReady, ", "))
 	case koolnav1alpha1.KoolnaPhasePending:
 		condition.Status = metav1.ConditionFalse
 		condition.Reason = "Pending"

@@ -7,6 +7,10 @@
 - **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget
 - **koolna-operator**: readiness probe checks for the real `manager` tmux session so the Koolna CR only flips to Running once attach will actually succeed (prevents webui from enabling session buttons that fail with "session not found" while dotfiles is still installing)
 
+### Added
+
+- **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message listing which containers are still starting
+
 ## 2026-04-08
 
 ### Fixed

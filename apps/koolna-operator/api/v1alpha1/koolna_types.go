@@ -66,10 +66,11 @@ type KoolnaSpec struct {
 type KoolnaPhase string
 
 const (
-	KoolnaPhasePending   KoolnaPhase = "Pending"
-	KoolnaPhaseRunning   KoolnaPhase = "Running"
-	KoolnaPhaseSuspended KoolnaPhase = "Suspended"
-	KoolnaPhaseFailed    KoolnaPhase = "Failed"
+	KoolnaPhasePending       KoolnaPhase = "Pending"
+	KoolnaPhaseBootstrapping KoolnaPhase = "Bootstrapping"
+	KoolnaPhaseRunning       KoolnaPhase = "Running"
+	KoolnaPhaseSuspended     KoolnaPhase = "Suspended"
+	KoolnaPhaseFailed        KoolnaPhase = "Failed"
 )
 
 // KoolnaStatus defines the observed state of Koolna.
