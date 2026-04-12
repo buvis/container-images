@@ -64,33 +64,6 @@ fi
 
 echo "detected uid=$KOOLNA_UID gid=$KOOLNA_GID home=$HOME user=$KOOLNA_USERNAME"
 
-# Update CA certificates before any network operations
-if [ -f /usr/local/share/ca-certificates/koolna-cache.crt ]; then
-  echo "updating CA certificates..."
-  export NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/koolna-cache.crt
-  update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in sidecar (non-fatal)"
-  $NSENTER_ROOT update-ca-certificates 2>/dev/null || echo "update-ca-certificates failed in main (non-fatal)"
-  export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-  export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-  export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-
-  # Replace proxy hostname with IP to bypass DNS entirely under concurrent load
-  PROXY_HOST=$(echo "${HTTPS_PROXY:-}" | sed 's|http://||;s|:.*||')
-  if [ -n "$PROXY_HOST" ]; then
-    PROXY_IP=$(getent hosts "$PROXY_HOST" 2>/dev/null | awk '{print $1}')
-    if [ -n "$PROXY_IP" ]; then
-      PROXY_PORT=$(echo "${HTTPS_PROXY:-}" | sed 's|.*:||')
-      PROXY_URL="http://$PROXY_IP:$PROXY_PORT"
-      export HTTP_PROXY="$PROXY_URL" HTTPS_PROXY="$PROXY_URL"
-      export http_proxy="$PROXY_URL" https_proxy="$PROXY_URL"
-    fi
-  fi
-
-  # Cargo tuning for proxied connections
-  export CARGO_HTTP_TIMEOUT=120
-  export CARGO_HTTP_MULTIPLEXING=true
-fi
-
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
 # Start a placeholder tmux session so the readiness/startup probe

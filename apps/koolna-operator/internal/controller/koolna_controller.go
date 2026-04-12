@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -46,8 +45,6 @@ const (
 	finalizerName         = "koolna.buvis.net/finalizer"
 	sharedSecretName      = "koolna-credentials"
 	envDefaultsSecretName = "koolna-env-defaults"
-	proxyCACMName         = "koolna-cache-ca"
-	proxyCAVolName        = "proxy-ca"
 )
 
 // KoolnaReconciler reconciles a Koolna object
@@ -741,56 +738,6 @@ func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
 	}
 }
 
-func proxyAddress() string {
-	if addr := os.Getenv("KOOLNA_PROXY_ADDRESS"); addr != "" {
-		return addr
-	}
-	ns := os.Getenv("KOOLNA_OPERATOR_NAMESPACE")
-	if ns == "" {
-		ns = "koolna"
-	}
-	return "koolna-cache." + ns + ".svc.cluster.local:3128"
-}
-
-func buildProxyEnvVars() []corev1.EnvVar {
-	addr := proxyAddress()
-	proxyURL := "http://" + addr
-	noProxy := "kubernetes.default.svc,.svc,.cluster.local,10.0.0.0/8,127.0.0.1,localhost"
-	return []corev1.EnvVar{
-		{Name: "HTTP_PROXY", Value: proxyURL},
-		{Name: "HTTPS_PROXY", Value: proxyURL},
-		{Name: "NO_PROXY", Value: noProxy},
-		{Name: "http_proxy", Value: proxyURL},
-		{Name: "https_proxy", Value: proxyURL},
-		{Name: "no_proxy", Value: noProxy},
-	}
-}
-
-func buildProxyCAVolume() corev1.Volume {
-	optional := true
-	return corev1.Volume{
-		Name: proxyCAVolName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: proxyCACMName},
-				Items: []corev1.KeyToPath{
-					{Key: "ca.crt", Path: "koolna-cache.crt"},
-				},
-				Optional: &optional,
-			},
-		},
-	}
-}
-
-func proxyCAVolumeMount() corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      proxyCAVolName,
-		MountPath: "/usr/local/share/ca-certificates/koolna-cache.crt",
-		SubPath:   "koolna-cache.crt",
-		ReadOnly:  true,
-	}
-}
-
 func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig) *corev1.Pod {
 	shareProcessNamespace := true
 
@@ -818,9 +765,6 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
 	}
 
-	proxyEnv := buildProxyEnvVars()
-	sidecarEnv = append(sidecarEnv, proxyEnv...)
-
 	// Cluster-wide env defaults first, then per-workspace overrides.
 	// K8s applies envFrom sources in order; later values shadow earlier ones.
 	envFrom := []corev1.EnvFromSource{
@@ -842,7 +786,6 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: "/workspace", SubPath: "workspace"}
 	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: "/cache"}
-	caMount := proxyCAVolumeMount()
 
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -867,18 +810,13 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					WorkingDir: "/workspace",
 					Resources:  koolna.Spec.Resources,
 					EnvFrom:    envFrom,
-					Env: append([]corev1.EnvVar{
+					Env: []corev1.EnvVar{
 						{Name: "GIT_CONFIG_GLOBAL", Value: "/cache/.koolna/.gitconfig"},
 						{Name: "XDG_CACHE_HOME", Value: "/cache"},
 						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
 						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
-						{Name: "NODE_EXTRA_CA_CERTS", Value: "/usr/local/share/ca-certificates/koolna-cache.crt"},
-						{Name: "SSL_CERT_FILE", Value: "/etc/ssl/certs/ca-certificates.crt"},
-						{Name: "REQUESTS_CA_BUNDLE", Value: "/etc/ssl/certs/ca-certificates.crt"},
-						{Name: "CARGO_HTTP_TIMEOUT", Value: "120"},
-						{Name: "CARGO_HTTP_MULTIPLEXING", Value: "true"},
-					}, proxyEnv...),
-					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
+					},
+					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},
 				{
 					Name:    "session-manager",
@@ -921,13 +859,12 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount, caMount},
+					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},
 			},
 			Volumes: []corev1.Volume{
 				buildWorkspaceVolume(pvcName),
 				buildCacheVolume(cachePVCName),
-				buildProxyCAVolume(),
 			},
 		},
 	}

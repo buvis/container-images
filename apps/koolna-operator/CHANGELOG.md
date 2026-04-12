@@ -12,6 +12,10 @@
 - **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
 - **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates
 
+### Removed
+
+- **koolna-operator**: remove squid proxy integration (HTTP_PROXY env vars, proxy-ca volume, CA cert mounts) from workspace pods; rely on mise persistent cache PVC instead
+
 ## 2026-04-08
 
 ### Fixed

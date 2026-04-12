@@ -12,6 +12,10 @@
 
 - **koolna-session-manager**: annotate pod with `koolna.buvis.net/bootstrap-step` at each entrypoint phase so the operator can surface progress in the Koolna CR condition
 
+### Removed
+
+- **koolna-session-manager**: remove squid proxy CA handling, DNS-to-IP resolution, and cargo proxy tuning from entrypoint
+
 ## 2026-04-09
 
 ### Fixed
