@@ -211,6 +211,8 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 			}
 			if allReady {
 				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseRunning
+			} else if step := pod.Annotations["koolna.buvis.net/bootstrap-step"]; step != "" {
+				koolna.Status.Phase = koolnav1alpha1.KoolnaPhase(step)
 			} else {
 				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseBootstrapping
 			}
@@ -232,18 +234,6 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 		condition.Status = metav1.ConditionTrue
 		condition.Reason = "Running"
 		condition.Message = "Koolna pod is running"
-	case koolnav1alpha1.KoolnaPhaseBootstrapping:
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "Bootstrapping"
-		step := ""
-		if pod != nil {
-			step = pod.Annotations["koolna.buvis.net/bootstrap-step"]
-		}
-		if step != "" {
-			condition.Message = step
-		} else {
-			condition.Message = fmt.Sprintf("Waiting for containers: %s", strings.Join(notReady, ", "))
-		}
 	case koolnav1alpha1.KoolnaPhasePending:
 		condition.Status = metav1.ConditionFalse
 		condition.Reason = "Pending"
@@ -257,9 +247,11 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 		condition.Reason = "Failed"
 		condition.Message = "Koolna pod failed"
 	default:
-		condition.Status = metav1.ConditionUnknown
-		condition.Reason = "Unknown"
-		condition.Message = "Koolna state is unknown"
+		// Dynamic bootstrap step phases (e.g. "Installing dotfiles",
+		// "Syncing credentials") fall through here.
+		condition.Status = metav1.ConditionFalse
+		condition.Reason = "Bootstrapping"
+		condition.Message = string(koolna.Status.Phase)
 	}
 
 	meta.SetStatusCondition(&koolna.Status.Conditions, condition)

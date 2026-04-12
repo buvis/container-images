@@ -13,12 +13,17 @@ type KoolnaListProps = {
   onTerminal: (name: string, session: string) => void
 }
 
-const phaseBadgeStyles: Record<Koolna['phase'], string> = {
+const phaseBadgeStyles: Record<string, string> = {
   Running: 'border border-phase-running/40 bg-phase-running/10 text-phase-running',
-  Bootstrapping: 'border border-phase-bootstrapping/40 bg-phase-bootstrapping/10 text-phase-bootstrapping',
   Pending: 'border border-phase-pending/40 bg-phase-pending/10 text-phase-pending',
   Suspended: 'border border-phase-suspended/40 bg-phase-suspended/10 text-phase-suspended',
   Failed: 'border border-phase-failed/40 bg-phase-failed/10 text-phase-failed',
+}
+
+const bootstrappingStyle = 'border border-phase-bootstrapping/40 bg-phase-bootstrapping/10 text-phase-bootstrapping'
+
+function badgeStyle(phase: string): string {
+  return phaseBadgeStyles[phase] ?? bootstrappingStyle
 }
 
 const PauseIcon = () => (
@@ -238,7 +243,7 @@ const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
                 <td className="px-4 py-3 text-text-muted">{koolna.branch}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${phaseBadgeStyles[koolna.phase]}`}
+                    className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${badgeStyle(koolna.phase)}`}
                   >
                     {koolna.phase}
                   </span>
@@ -270,7 +275,7 @@ const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
                 <p className="text-xs text-text-muted">{koolna.branch}</p>
               </div>
               <span
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${phaseBadgeStyles[koolna.phase]}`}
+                className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${badgeStyle(koolna.phase)}`}
               >
                 {koolna.phase}
               </span>
