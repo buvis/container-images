@@ -28,6 +28,7 @@
   --color-danger: oklch(60% 0.2 25);
   --color-warning: oklch(72% 0.15 55);
   --color-phase-running: oklch(72% 0.17 155);
+  --color-phase-bootstrapping: oklch(72% 0.16 250);
   --color-phase-pending: oklch(75% 0.14 80);
   --color-phase-suspended: oklch(55% 0.01 60);
   --color-phase-failed: oklch(65% 0.2 25);

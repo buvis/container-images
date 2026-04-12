@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-webui**: blue Bootstrapping phase badge so the new operator phase renders with proper styling
+
 ## 2026-04-11
 
 ### Removed

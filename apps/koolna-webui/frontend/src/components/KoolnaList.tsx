@@ -15,6 +15,7 @@ type KoolnaListProps = {
 
 const phaseBadgeStyles: Record<Koolna['phase'], string> = {
   Running: 'border border-phase-running/40 bg-phase-running/10 text-phase-running',
+  Bootstrapping: 'border border-phase-bootstrapping/40 bg-phase-bootstrapping/10 text-phase-bootstrapping',
   Pending: 'border border-phase-pending/40 bg-phase-pending/10 text-phase-pending',
   Suspended: 'border border-phase-suspended/40 bg-phase-suspended/10 text-phase-suspended',
   Failed: 'border border-phase-failed/40 bg-phase-failed/10 text-phase-failed',
