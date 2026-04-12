@@ -185,6 +185,18 @@ func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 		if c.ReadinessProbe.PeriodSeconds < 10 {
 			t.Errorf("session-manager ReadinessProbe PeriodSeconds=%d is too noisy", c.ReadinessProbe.PeriodSeconds)
 		}
+		// Readiness must check for the real `manager` session, not just any
+		// session: the entrypoint creates a `bootstrap` placeholder session
+		// early for the startup probe, and we don't want the pod reported
+		// Ready while the real sessions don't exist yet (webui would enable
+		// session buttons that fail with "session not found").
+		if c.ReadinessProbe.Exec == nil || len(c.ReadinessProbe.Exec.Command) < 4 ||
+			c.ReadinessProbe.Exec.Command[0] != "tmux" ||
+			c.ReadinessProbe.Exec.Command[1] != "has-session" ||
+			c.ReadinessProbe.Exec.Command[2] != "-t" ||
+			c.ReadinessProbe.Exec.Command[3] != "manager" {
+			t.Errorf("session-manager ReadinessProbe should be `tmux has-session -t manager`, got %v", c.ReadinessProbe.Exec.Command)
+		}
 		return
 	}
 	t.Error("session-manager container not found")

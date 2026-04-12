@@ -884,6 +884,10 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 2222, Protocol: corev1.ProtocolTCP},
 					},
+					// Startup probe passes as soon as any tmux session exists. The
+					// session-manager entrypoint creates a `bootstrap` placeholder
+					// session within seconds, so startup passes immediately and no
+					// Unhealthy events fire during the ~10 min dotfiles install.
 					StartupProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
@@ -893,10 +897,15 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 						PeriodSeconds:    10,
 						FailureThreshold: 240,
 					},
+					// Readiness specifically checks for the real `manager` session,
+					// which is only created at the very end of the entrypoint (after
+					// dotfiles, mise, credential sync, sshd setup). This keeps the
+					// Koolna CR `Running` phase honest: webui session buttons are
+					// only enabled once attaching will actually succeed.
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"tmux", "list-sessions"},
+								Command: []string{"tmux", "has-session", "-t", "manager"},
 							},
 						},
 						PeriodSeconds:    30,
