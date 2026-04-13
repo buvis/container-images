@@ -1,4 +1,4 @@
-FROM ghcr.io/buvis/koolna-base:latest@sha256:1faa1ccd7f6720b49c0fa53765610dab64284b79ad81571eb018f7f9b2e797fa
+FROM ghcr.io/buvis/koolna-base:latest@sha256:d79d44738c29a07b00e6d4861de3c8650f050e3221ae4d6f49f11029cd3842d2
 
 ARG USERNAME=bob
 
