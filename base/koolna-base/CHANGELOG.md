@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-base**: install `unzip` so mason can extract zip-distributed neovim tools (terraform-ls, ast-grep, stylua)
+
 ## 2026-04-06
 
 ### Changed

@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   vifm \
   zsh \
   fish \
+  unzip \
   && rm -rf /var/lib/apt/lists/*
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes extractVersion=^v(?<version>.+)$
