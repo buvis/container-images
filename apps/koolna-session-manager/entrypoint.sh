@@ -407,7 +407,8 @@ fi
 
 # --- sshd setup ---
 setup_sshd() {
-  [ -z "${KOOLNA_SSH_PUBKEY:-}" ] && return
+  SSH_PUBKEY_FILE="/etc/koolna/ssh/authorized_keys"
+  [ ! -r "$SSH_PUBKEY_FILE" ] && return
 
   SSH_HOST_KEY_DIR="/cache/.koolna/ssh"
   SSH_DIR="$HOME/.ssh"
@@ -421,7 +422,7 @@ setup_sshd() {
   chmod 600 "$SSH_HOST_KEY_DIR/ssh_host_ed25519_key"
 
   mkdir -p "$SSH_DIR"
-  echo "$KOOLNA_SSH_PUBKEY" > "$SSH_DIR/authorized_keys"
+  cp "$SSH_PUBKEY_FILE" "$SSH_DIR/authorized_keys"
   chmod 700 "$SSH_DIR"
   chmod 600 "$SSH_DIR/authorized_keys"
   chown "$KOOLNA_UID:$KOOLNA_GID" "$SSH_DIR" "$SSH_DIR/authorized_keys"

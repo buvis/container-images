@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **koolna-session-manager**: read authorized_keys from `/etc/koolna/ssh/authorized_keys` (mounted by the operator from a per-Koolna ConfigMap) instead of the `KOOLNA_SSH_PUBKEY` env var.
+
 ### Fixed
 
 - **koolna-session-manager**: credential restore/sync skips writes when content is unchanged
