@@ -572,126 +572,22 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 }
 
 func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
-	secretName := koolna.Spec.GitSecretRef
-
-	ws := "/workspace"
-	cred := "/cache/.koolna/.git-credentials"
-	gc := "/cache/.koolna/.gitconfig"
-
-	koolnaDir := "/cache/.koolna"
-	mkKoolna := `mkdir -p ` + koolnaDir
-
-	cloneBlock := `if [ ! -d ` + ws + `/.git ]; then
-  git clone "$REPO_URL" /tmp/repo
-  cp -a /tmp/repo/. ` + ws + `/
-  rm -rf /tmp/repo
-  cd ` + ws + ` && git checkout "$REPO_BRANCH"
-fi`
-
-	var script string
-	if secretName != "" {
-		script = mkKoolna + `
-if [ -n "$GIT_USERNAME" ] && [ -n "$GIT_TOKEN" ]; then
-  REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
-  printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > ` + cred + `
-  chmod 600 ` + cred + `
-  git config -f ` + gc + ` credential.helper "store --file=` + cred + `"
-fi
-[ -n "$GIT_NAME" ] && git config -f ` + gc + ` user.name "$GIT_NAME"
-[ -n "$GIT_EMAIL" ] && git config -f ` + gc + ` user.email "$GIT_EMAIL"
-` + cloneBlock
-	} else {
-		script = mkKoolna + `
-` + cloneBlock
-	}
-
 	repoURL := resolveRepoURL(koolna.Spec.Repo)
 
 	env := []corev1.EnvVar{
-		{
-			Name:  "HOME",
-			Value: ws,
-		},
-		{
-			Name:  "GIT_CONFIG_GLOBAL",
-			Value: gc,
-		},
-		{
-			Name:  "REPO_URL",
-			Value: repoURL,
-		},
-		{
-			Name:  "REPO_BRANCH",
-			Value: koolna.Spec.Branch,
-		},
+		{Name: "REPO_URL", Value: repoURL},
+		{Name: "REPO_BRANCH", Value: koolna.Spec.Branch},
 	}
-
-	if secretName != "" {
-		env = append(env,
-			corev1.EnvVar{
-				Name: "GIT_USERNAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key:      "username",
-						Optional: boolPtr(true),
-					},
-				},
-			},
-			corev1.EnvVar{
-				Name: "GIT_TOKEN",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key:      "token",
-						Optional: boolPtr(true),
-					},
-				},
-			},
-			corev1.EnvVar{
-				Name: "GIT_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key:      "name",
-						Optional: boolPtr(true),
-					},
-				},
-			},
-			corev1.EnvVar{
-				Name: "GIT_EMAIL",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: secretName,
-						},
-						Key:      "email",
-						Optional: boolPtr(true),
-					},
-				},
-			},
-		)
-	}
+	env = append(env, buildGitCredentialEnvVars(koolna.Spec.GitSecretRef)...)
 
 	return corev1.Container{
 		Name:  "git-clone",
-		Image: "alpine/git",
-		Command: []string{
-			"sh",
-			"-c",
-		},
-		Args: []string{script},
-		Env:  env,
+		Image: "ghcr.io/buvis/koolna-git-clone:latest",
+		Env:   env,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      workspaceVolumeName,
-				MountPath: ws,
+				MountPath: "/workspace",
 				SubPath:   "workspace",
 			},
 			{
@@ -887,6 +783,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 						{Name: "XDG_CACHE_HOME", Value: "/cache"},
 						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
 						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
+						{Name: "UV_CACHE_DIR", Value: "/cache/uv"},
 					},
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},
