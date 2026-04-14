@@ -9,7 +9,8 @@
 
 ### Fixed
 
-- **koolna-operator**: align startup and readiness probes on `tmux has-session -t manager`, removing spurious `Unhealthy: can't find session: manager` events during bootstrap.
+- **koolna-operator**: replace `tmux has-session` probe with a `test -f /tmp/koolna-ready` sentinel written by the entrypoint, removing the tmux exec that otherwise ran every 30s for the pod's lifetime. Also removes spurious `Unhealthy: can't find session: manager` events during bootstrap.
+- **koolna-operator**: mark the ssh-pubkey ConfigMap volume Optional so clearing `spec.sshPublicKey` (which deletes the ConfigMap) does not brick an existing pod on restart.
 - **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget
 - **koolna-operator**: readiness probe checks for the real `manager` tmux session so the Koolna CR only flips to Running once attach will actually succeed (prevents webui from enabling session buttons that fail with "session not found" while dotfiles is still installing)
 

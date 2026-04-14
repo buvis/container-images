@@ -66,13 +66,6 @@ echo "detected uid=$KOOLNA_UID gid=$KOOLNA_GID home=$HOME user=$KOOLNA_USERNAME"
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
-# Start a placeholder tmux session so the readiness/startup probe
-# (`tmux list-sessions`) passes within seconds instead of failing for the
-# entire duration of the dotfiles install (5-15 min). The real `manager` and
-# `worker` sessions are created at the end of the entrypoint; this placeholder
-# is killed once they exist so `list-sessions` shows the expected set.
-tmux new-session -d -s bootstrap 'sleep infinity' 2>/dev/null || true
-
 # Annotate the pod with the current bootstrap step so the operator can surface
 # it in the Koolna CR condition message. Uses the same SA token as credential sync.
 set_bootstrap_step() {
@@ -503,10 +496,13 @@ echo "creating tmux sessions"
 tmux -f /tmp/tmux.conf new-session -d -s manager "$NSENTER_CMD"
 tmux new-session -d -s worker "$NSENTER_CMD"
 tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
-tmux kill-session -t bootstrap 2>/dev/null || true
 rm -f /tmp/tmux.conf
 
 set_bootstrap_step "Ready"
 echo "tmux sidecar ready"
+# Readiness sentinel: probes check for this file instead of spawning tmux every
+# 30s for the pod's lifetime. Container restart removes the tmpfs file, which
+# correctly forces the pod un-ready until the entrypoint re-runs to completion.
+touch /tmp/koolna-ready
 exec sleep infinity
 

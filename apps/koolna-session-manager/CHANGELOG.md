@@ -5,6 +5,7 @@
 ### Changed
 
 - **koolna-session-manager**: read authorized_keys from `/etc/koolna/ssh/authorized_keys` (mounted by the operator from a per-Koolna ConfigMap) instead of the `KOOLNA_SSH_PUBKEY` env var.
+- **koolna-session-manager**: write `/tmp/koolna-ready` sentinel at the end of the entrypoint for cheap file-based readiness probing; drop the tmux bootstrap placeholder session (no longer needed now that probes use the sentinel).
 
 ### Fixed
 

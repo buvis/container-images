@@ -845,6 +845,10 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{Name: sshConfigMapName(koolna)},
 					DefaultMode:          &mode,
+					// Optional so an existing pod does not crash-loop on restart if
+					// the user clears sshPublicKey (which deletes the ConfigMap).
+					// Entrypoint `setup_sshd` already no-ops when the file is absent.
+					Optional: boolPtr(true),
 				},
 			},
 		})
@@ -896,14 +900,15 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 2222, Protocol: corev1.ProtocolTCP},
 					},
-					// Both probes assert the `manager` tmux session exists. The
-					// entrypoint only creates `manager` at the very end (after dotfiles,
-					// mise install, credential sync, sshd setup), so the pod stays
-					// un-ready during bootstrap and no spurious Unhealthy events fire.
+					// Both probes check a sentinel file written by the entrypoint
+					// once the `manager` tmux session is created. This replaces a
+					// `tmux has-session` exec that would otherwise run every 30s for
+					// the pod's lifetime. Container restart clears the tmpfs file,
+					// correctly forcing un-ready until the entrypoint re-runs.
 					StartupProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"tmux", "has-session", "-t", "manager"},
+								Command: []string{"test", "-f", "/tmp/koolna-ready"},
 							},
 						},
 						PeriodSeconds:    10,
@@ -912,7 +917,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"tmux", "has-session", "-t", "manager"},
+								Command: []string{"test", "-f", "/tmp/koolna-ready"},
 							},
 						},
 						PeriodSeconds:    30,
