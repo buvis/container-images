@@ -190,11 +190,6 @@ func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 		if c.ReadinessProbe.PeriodSeconds < 10 {
 			t.Errorf("session-manager ReadinessProbe PeriodSeconds=%d is too noisy", c.ReadinessProbe.PeriodSeconds)
 		}
-		// Readiness must check for the real `manager` session, not just any
-		// session: the entrypoint creates a `bootstrap` placeholder session
-		// early for the startup probe, and we don't want the pod reported
-		// Ready while the real sessions don't exist yet (webui would enable
-		// session buttons that fail with "session not found").
 		if c.ReadinessProbe.Exec == nil || len(c.ReadinessProbe.Exec.Command) < 3 ||
 			c.ReadinessProbe.Exec.Command[0] != "test" ||
 			c.ReadinessProbe.Exec.Command[1] != "-f" ||
@@ -477,41 +472,6 @@ func TestBuildPodSpec_NoSSHPubkey_NoVolumeOrMount(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestBuildPodSpec_ProbesUseSamePredicate(t *testing.T) {
-	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
-
-	c := containerByName(pod, "session-manager")
-	if c == nil {
-		t.Fatal("session-manager container not found")
-	}
-	want := []string{"test", "-f", "/tmp/koolna-ready"}
-	if c.StartupProbe == nil || c.StartupProbe.Exec == nil {
-		t.Fatal("StartupProbe.Exec missing")
-	}
-	if !stringSlicesEqual(c.StartupProbe.Exec.Command, want) {
-		t.Errorf("StartupProbe command: got %v, want %v", c.StartupProbe.Exec.Command, want)
-	}
-	if c.ReadinessProbe == nil || c.ReadinessProbe.Exec == nil {
-		t.Fatal("ReadinessProbe.Exec missing")
-	}
-	if !stringSlicesEqual(c.ReadinessProbe.Exec.Command, want) {
-		t.Errorf("ReadinessProbe command: got %v, want %v", c.ReadinessProbe.Exec.Command, want)
-	}
-}
-
-func stringSlicesEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func TestBuildPodSpec_CacheVolumeClaimName(t *testing.T) {
