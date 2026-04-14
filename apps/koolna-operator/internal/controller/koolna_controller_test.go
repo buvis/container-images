@@ -17,7 +17,6 @@ limitations under the License.
 package controller
 
 import (
-
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -1467,7 +1466,8 @@ var _ = Describe("Koolna Controller", func() {
 			cleanupKoolna(resourceName, "default")
 		})
 
-		It("should include KOOLNA_SSH_PUBKEY env var when sshPublicKey is set", func() {
+		It("should create a ConfigMap with authorized_keys when sshPublicKey is set", func() {
+			pubkey := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest user@host"
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      resourceName,
@@ -1478,7 +1478,7 @@ var _ = Describe("Koolna Controller", func() {
 					Branch:       "main",
 					Image:        "ghcr.io/buvis/koolna-base:latest",
 					Storage:      resource.MustParse("1Gi"),
-					SSHPublicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest user@host",
+					SSHPublicKey: pubkey,
 				},
 			}
 
@@ -1489,18 +1489,59 @@ var _ = Describe("Koolna Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
+			cm := &corev1.ConfigMap{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-ssh", Namespace: "default"}, cm)).To(Succeed())
+			Expect(cm.Data).To(HaveKeyWithValue("authorized_keys", pubkey+"\n"))
+			Expect(cm.Labels).To(HaveKeyWithValue("koolna.buvis.net/name", resourceName))
+			Expect(cm.OwnerReferences).To(HaveLen(1))
+			Expect(cm.OwnerReferences[0].Name).To(Equal(resourceName))
+
 			pod := &corev1.Pod{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, pod)).To(Succeed())
-
 			sidecar := pod.Spec.Containers[1]
-			sidecarEnvMap := map[string]string{}
 			for _, e := range sidecar.Env {
-				sidecarEnvMap[e.Name] = e.Value
+				Expect(e.Name).NotTo(Equal("KOOLNA_SSH_PUBKEY"))
 			}
-			Expect(sidecarEnvMap).To(HaveKeyWithValue("KOOLNA_SSH_PUBKEY", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest user@host"))
 		})
 
-		It("should not include KOOLNA_SSH_PUBKEY when sshPublicKey is empty", func() {
+		It("should delete the ConfigMap when sshPublicKey is cleared", func() {
+			pubkey := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest user@host"
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:         "https://github.com/owner/repo",
+					Branch:       "main",
+					Image:        "ghcr.io/buvis/koolna-base:latest",
+					Storage:      resource.MustParse("1Gi"),
+					SSHPublicKey: pubkey,
+				},
+			}
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			cm := &corev1.ConfigMap{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-ssh", Namespace: "default"}, cm)).To(Succeed())
+
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, koolna)).To(Succeed())
+			koolna.Spec.SSHPublicKey = ""
+			Expect(k8sClient.Update(ctx, koolna)).To(Succeed())
+
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-ssh", Namespace: "default"}, cm)
+			Expect(errors.IsNotFound(err)).To(BeTrue(), "ConfigMap should be deleted when sshPublicKey is cleared")
+		})
+
+		It("should not create ConfigMap when sshPublicKey is empty", func() {
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      resourceName,
@@ -1521,9 +1562,12 @@ var _ = Describe("Koolna Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
+			cm := &corev1.ConfigMap{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: resourceName + "-ssh", Namespace: "default"}, cm)
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+
 			pod := &corev1.Pod{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: resourceName, Namespace: "default"}, pod)).To(Succeed())
-
 			sidecar := pod.Spec.Containers[1]
 			for _, e := range sidecar.Env {
 				Expect(e.Name).NotTo(Equal("KOOLNA_SSH_PUBKEY"))

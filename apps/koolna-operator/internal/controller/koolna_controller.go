@@ -27,8 +27,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,6 +60,7 @@ type KoolnaReconciler struct {
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile ensures the cluster state matches the desired Koolna spec by
 // managing the PVC, Pod, and Service lifecycle for each Koolna instance.
@@ -78,7 +79,7 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 	svcName := koolna.Name
 	var (
 		pvcName      string
-		cachePVCName   string
+		cachePVCName string
 		pod          *corev1.Pod
 	)
 
@@ -143,6 +144,11 @@ func (r *KoolnaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 
 	if cachePVC != nil {
 		cachePVCName = cachePVC.Name
+	}
+
+	if err = r.reconcileSSHConfigMap(ctx, &koolna); err != nil {
+		log.Error(err, "unable to reconcile SSH ConfigMap", "name", req.NamespacedName)
+		return ctrl.Result{}, err
 	}
 
 	pod, err = r.reconcilePod(ctx, &koolna, pvcName, cachePVCName)
@@ -421,6 +427,47 @@ func (r *KoolnaReconciler) reconcileService(ctx context.Context, koolna *koolnav
 	return svc, nil
 }
 
+// reconcileSSHConfigMap manages a per-Koolna ConfigMap that carries the
+// authorized_keys payload for the session-manager's sshd. When sshPublicKey
+// is empty, any existing ConfigMap is deleted so the pod spec can drop the
+// volume mount without leaving stale cluster state.
+func (r *KoolnaReconciler) reconcileSSHConfigMap(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
+	name := sshConfigMapName(koolna)
+	key := types.NamespacedName{Name: name, Namespace: koolna.Namespace}
+
+	if koolna.Spec.SSHPublicKey == "" {
+		existing := &corev1.ConfigMap{}
+		if err := r.Get(ctx, key, existing); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		if err := r.Delete(ctx, existing); err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: koolna.Namespace,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, func() error {
+		if cm.Labels == nil {
+			cm.Labels = map[string]string{}
+		}
+		cm.Labels["koolna.buvis.net/name"] = koolna.Name
+		cm.Data = map[string]string{
+			"authorized_keys": koolna.Spec.SSHPublicKey + "\n",
+		}
+		return controllerutil.SetControllerReference(koolna, cm, r.Scheme)
+	})
+	return err
+}
+
 func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string) (*corev1.Pod, error) {
 	pods := &corev1.PodList{}
 	if err := r.List(ctx, pods,
@@ -460,6 +507,7 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 
 const workspaceVolumeName = "workspace"
 const cacheVolumeName = "cache"
+const sshPubkeyVolumeName = "ssh-pubkey"
 
 type dotfilesConfig struct {
 	Repo    string
@@ -756,9 +804,6 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 		{Name: "KOOLNA_CREDENTIAL_PATHS", Value: ".claude/.credentials.json,.claude.json,.codex"},
 		{Name: "REPO_URL", Value: repoURL},
 	}
-	if koolna.Spec.SSHPublicKey != "" {
-		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "KOOLNA_SSH_PUBKEY", Value: koolna.Spec.SSHPublicKey})
-	}
 	sidecarEnv = append(sidecarEnv, buildGitCredentialEnvVars(koolna.Spec.GitSecretRef)...)
 	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles)...)
 	if koolna.Spec.InitCommand != "" {
@@ -787,6 +832,29 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: "/workspace", SubPath: "workspace"}
 	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: "/cache"}
 
+	sidecarMounts := []corev1.VolumeMount{wsMount, cacheMount}
+	volumes := []corev1.Volume{
+		buildWorkspaceVolume(pvcName),
+		buildCacheVolume(cachePVCName),
+	}
+	if koolna.Spec.SSHPublicKey != "" {
+		mode := int32(0644)
+		volumes = append(volumes, corev1.Volume{
+			Name: sshPubkeyVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{Name: sshConfigMapName(koolna)},
+					DefaultMode:          &mode,
+				},
+			},
+		})
+		sidecarMounts = append(sidecarMounts, corev1.VolumeMount{
+			Name:      sshPubkeyVolumeName,
+			MountPath: "/etc/koolna/ssh",
+			ReadOnly:  true,
+		})
+	}
+
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      koolna.Name,
@@ -808,7 +876,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					Image:      koolna.Spec.Image,
 					Command:    []string{"sh", "-c", "exec sleep infinity"},
 					WorkingDir: "/workspace",
-					Resources:  koolna.Spec.Resources,
+					Resources:  resolveContainerResources(koolnaDefaultResources, koolna.Spec.Resources.Koolna),
 					EnvFrom:    envFrom,
 					Env: []corev1.EnvVar{
 						{Name: "GIT_CONFIG_GLOBAL", Value: "/cache/.koolna/.gitconfig"},
@@ -819,32 +887,28 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},
 				{
-					Name:    "session-manager",
-					Image:   "ghcr.io/buvis/koolna-session-manager:latest",
-					Command: []string{"/entrypoint.sh"},
-					EnvFrom: envFrom,
-					Env:     sidecarEnv,
+					Name:      "session-manager",
+					Image:     "ghcr.io/buvis/koolna-session-manager:latest",
+					Command:   []string{"/entrypoint.sh"},
+					Resources: resolveContainerResources(sessionManagerDefaultResources, koolna.Spec.Resources.SessionManager),
+					EnvFrom:   envFrom,
+					Env:       sidecarEnv,
 					Ports: []corev1.ContainerPort{
 						{ContainerPort: 2222, Protocol: corev1.ProtocolTCP},
 					},
-					// Startup probe passes as soon as any tmux session exists. The
-					// session-manager entrypoint creates a `bootstrap` placeholder
-					// session within seconds, so startup passes immediately and no
-					// Unhealthy events fire during the ~10 min dotfiles install.
+					// Both probes assert the `manager` tmux session exists. The
+					// entrypoint only creates `manager` at the very end (after dotfiles,
+					// mise install, credential sync, sshd setup), so the pod stays
+					// un-ready during bootstrap and no spurious Unhealthy events fire.
 					StartupProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"tmux", "list-sessions"},
+								Command: []string{"tmux", "has-session", "-t", "manager"},
 							},
 						},
 						PeriodSeconds:    10,
 						FailureThreshold: 240,
 					},
-					// Readiness specifically checks for the real `manager` session,
-					// which is only created at the very end of the entrypoint (after
-					// dotfiles, mise, credential sync, sshd setup). This keeps the
-					// Koolna CR `Running` phase honest: webui session buttons are
-					// only enabled once attaching will actually succeed.
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
 							Exec: &corev1.ExecAction{
@@ -859,13 +923,10 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 							Add: []corev1.Capability{"SYS_PTRACE", "SYS_ADMIN"},
 						},
 					},
-					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
+					VolumeMounts: sidecarMounts,
 				},
 			},
-			Volumes: []corev1.Volume{
-				buildWorkspaceVolume(pvcName),
-				buildCacheVolume(cachePVCName),
-			},
+			Volumes: volumes,
 		},
 	}
 }
@@ -894,6 +955,60 @@ func buildCacheVolume(cachePVCName string) corev1.Volume {
 
 func boolPtr(b bool) *bool { return &b }
 
+// Default per-container resource requirements. Sized for a dev pod that may
+// compile Rust/Node code: the 14-min first-start install storm fits under the
+// session-manager cap (observed peak 270m/309Mi), and the koolna limits leave
+// room for compiles on a 7-core / 14Gi node.
+var (
+	koolnaDefaultResources = corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("250m"),
+			corev1.ResourceMemory: resource.MustParse("512Mi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("6"),
+			corev1.ResourceMemory: resource.MustParse("8Gi"),
+		},
+	}
+
+	sessionManagerDefaultResources = corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("50m"),
+			corev1.ResourceMemory: resource.MustParse("128Mi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("500m"),
+			corev1.ResourceMemory: resource.MustParse("512Mi"),
+		},
+	}
+)
+
+// resolveContainerResources merges a per-container override onto defaults by
+// key: any request or limit set in override replaces only that entry. Missing
+// override keys fall back to the default value.
+func resolveContainerResources(defaults corev1.ResourceRequirements, override *corev1.ResourceRequirements) corev1.ResourceRequirements {
+	out := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{},
+		Limits:   corev1.ResourceList{},
+	}
+	for k, v := range defaults.Requests {
+		out.Requests[k] = v
+	}
+	for k, v := range defaults.Limits {
+		out.Limits[k] = v
+	}
+	if override == nil {
+		return out
+	}
+	for k, v := range override.Requests {
+		out.Requests[k] = v
+	}
+	for k, v := range override.Limits {
+		out.Limits[k] = v
+	}
+	return out
+}
+
 func authSecretName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-auth"
 }
@@ -904,6 +1019,10 @@ func workspacePVCName(koolna *koolnav1alpha1.Koolna) string {
 
 func cachePVCName(koolna *koolnav1alpha1.Koolna) string {
 	return koolna.Name + "-cache"
+}
+
+func sshConfigMapName(koolna *koolnav1alpha1.Koolna) string {
+	return koolna.Name + "-ssh"
 }
 
 func (r *KoolnaReconciler) reconcileCredentials(ctx context.Context, namespace string) error {

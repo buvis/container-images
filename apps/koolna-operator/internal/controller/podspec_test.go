@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	koolnav1alpha1 "github.com/buvis/koolna-operator/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -170,8 +172,12 @@ func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 		if c.StartupProbe == nil {
 			t.Fatal("session-manager: expected StartupProbe to be set so dotfiles install does not trip readiness")
 		}
-		if c.StartupProbe.Exec == nil || len(c.StartupProbe.Exec.Command) == 0 || c.StartupProbe.Exec.Command[0] != "tmux" {
-			t.Errorf("session-manager StartupProbe should exec tmux, got %+v", c.StartupProbe.Exec)
+		if c.StartupProbe.Exec == nil || len(c.StartupProbe.Exec.Command) < 4 ||
+			c.StartupProbe.Exec.Command[0] != "tmux" ||
+			c.StartupProbe.Exec.Command[1] != "has-session" ||
+			c.StartupProbe.Exec.Command[2] != "-t" ||
+			c.StartupProbe.Exec.Command[3] != "manager" {
+			t.Errorf("session-manager StartupProbe should be `tmux has-session -t manager`, got %v", c.StartupProbe.Exec)
 		}
 		// Budget must comfortably exceed observed cold-start (~30 min) so the
 		// startup probe stays running while dotfiles install completes.
@@ -321,6 +327,190 @@ func TestBuildPodSpec_CacheVolumeMount(t *testing.T) {
 			t.Errorf("container %q: expected VolumeMount for cache volume at /cache", name)
 		}
 	}
+}
+
+func containerByName(pod *corev1.Pod, name string) *corev1.Container {
+	for i := range pod.Spec.Containers {
+		if pod.Spec.Containers[i].Name == name {
+			return &pod.Spec.Containers[i]
+		}
+	}
+	return nil
+}
+
+func TestBuildPodSpec_DefaultResources_Koolna(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	c := containerByName(pod, "koolna")
+	if c == nil {
+		t.Fatal("koolna container not found")
+	}
+	if got, want := c.Resources.Requests.Cpu().String(), "250m"; got != want {
+		t.Errorf("koolna requests.cpu: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Requests.Memory().String(), "512Mi"; got != want {
+		t.Errorf("koolna requests.memory: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Limits.Cpu().String(), "6"; got != want {
+		t.Errorf("koolna limits.cpu: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Limits.Memory().String(), "8Gi"; got != want {
+		t.Errorf("koolna limits.memory: got %q, want %q", got, want)
+	}
+}
+
+func TestBuildPodSpec_DefaultResources_SessionManager(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	c := containerByName(pod, "session-manager")
+	if c == nil {
+		t.Fatal("session-manager container not found")
+	}
+	if got, want := c.Resources.Requests.Cpu().String(), "50m"; got != want {
+		t.Errorf("session-manager requests.cpu: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Requests.Memory().String(), "128Mi"; got != want {
+		t.Errorf("session-manager requests.memory: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Limits.Cpu().String(), "500m"; got != want {
+		t.Errorf("session-manager limits.cpu: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Limits.Memory().String(), "512Mi"; got != want {
+		t.Errorf("session-manager limits.memory: got %q, want %q", got, want)
+	}
+}
+
+func TestBuildPodSpec_KoolnaCPULimitOverride_KeepsDefaultMemory(t *testing.T) {
+	koolna := minimalKoolna()
+	koolna.Spec.Resources = koolnav1alpha1.KoolnaResources{
+		Koolna: &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU: resource.MustParse("2"),
+			},
+		},
+	}
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	c := containerByName(pod, "koolna")
+	if c == nil {
+		t.Fatal("koolna container not found")
+	}
+	if got, want := c.Resources.Limits.Cpu().String(), "2"; got != want {
+		t.Errorf("koolna limits.cpu override: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Limits.Memory().String(), "8Gi"; got != want {
+		t.Errorf("koolna limits.memory should retain default: got %q, want %q", got, want)
+	}
+	if got, want := c.Resources.Requests.Cpu().String(), "250m"; got != want {
+		t.Errorf("koolna requests.cpu should retain default: got %q, want %q", got, want)
+	}
+}
+
+func TestBuildPodSpec_SSHPubkeyMount(t *testing.T) {
+	koolna := minimalKoolna()
+	koolna.Spec.SSHPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample test@example"
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	var vol *corev1.Volume
+	for i := range pod.Spec.Volumes {
+		if pod.Spec.Volumes[i].Name == sshPubkeyVolumeName {
+			vol = &pod.Spec.Volumes[i]
+			break
+		}
+	}
+	if vol == nil {
+		t.Fatal("expected ssh-pubkey volume on pod spec")
+	}
+	if vol.VolumeSource.ConfigMap == nil {
+		t.Fatal("ssh-pubkey volume should be a ConfigMap source")
+	}
+	if got, want := vol.VolumeSource.ConfigMap.Name, "test-ssh"; got != want {
+		t.Errorf("ssh-pubkey ConfigMap name: got %q, want %q", got, want)
+	}
+
+	sm := containerByName(pod, "session-manager")
+	if sm == nil {
+		t.Fatal("session-manager container not found")
+	}
+	var mount *corev1.VolumeMount
+	for i := range sm.VolumeMounts {
+		if sm.VolumeMounts[i].Name == sshPubkeyVolumeName {
+			mount = &sm.VolumeMounts[i]
+			break
+		}
+	}
+	if mount == nil {
+		t.Fatal("session-manager should mount the ssh-pubkey volume")
+	}
+	if mount.MountPath != "/etc/koolna/ssh" {
+		t.Errorf("ssh-pubkey mount path: got %q, want /etc/koolna/ssh", mount.MountPath)
+	}
+	if !mount.ReadOnly {
+		t.Error("ssh-pubkey mount should be read-only")
+	}
+
+	for _, c := range pod.Spec.Containers {
+		for _, e := range c.Env {
+			if e.Name == "KOOLNA_SSH_PUBKEY" {
+				t.Errorf("container %q still has KOOLNA_SSH_PUBKEY env var", c.Name)
+			}
+		}
+	}
+}
+
+func TestBuildPodSpec_NoSSHPubkey_NoVolumeOrMount(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	for _, v := range pod.Spec.Volumes {
+		if v.Name == sshPubkeyVolumeName {
+			t.Error("ssh-pubkey volume should not exist when sshPublicKey is empty")
+		}
+	}
+	for _, c := range pod.Spec.Containers {
+		for _, vm := range c.VolumeMounts {
+			if vm.Name == sshPubkeyVolumeName {
+				t.Errorf("container %q has ssh-pubkey mount but sshPublicKey is empty", c.Name)
+			}
+		}
+	}
+}
+
+func TestBuildPodSpec_ProbesUseSamePredicate(t *testing.T) {
+	koolna := minimalKoolna()
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	c := containerByName(pod, "session-manager")
+	if c == nil {
+		t.Fatal("session-manager container not found")
+	}
+	want := []string{"tmux", "has-session", "-t", "manager"}
+	if c.StartupProbe == nil || c.StartupProbe.Exec == nil {
+		t.Fatal("StartupProbe.Exec missing")
+	}
+	if !stringSlicesEqual(c.StartupProbe.Exec.Command, want) {
+		t.Errorf("StartupProbe command: got %v, want %v", c.StartupProbe.Exec.Command, want)
+	}
+	if c.ReadinessProbe == nil || c.ReadinessProbe.Exec == nil {
+		t.Fatal("ReadinessProbe.Exec missing")
+	}
+	if !stringSlicesEqual(c.ReadinessProbe.Exec.Command, want) {
+		t.Errorf("ReadinessProbe command: got %v, want %v", c.ReadinessProbe.Exec.Command, want)
+	}
+}
+
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestBuildPodSpec_CacheVolumeClaimName(t *testing.T) {

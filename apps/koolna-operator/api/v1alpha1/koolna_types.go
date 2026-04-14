@@ -35,22 +35,30 @@ const (
 
 // KoolnaSpec defines the desired state of Koolna
 type KoolnaSpec struct {
-	Repo            string                      `json:"repo"`
-	Branch          string                      `json:"branch"`
-	GitSecretRef    string                      `json:"gitSecretRef,omitempty"`
-	EnvSecretRef    string                      `json:"envSecretRef,omitempty"`
-	DotfilesRepo    string                      `json:"dotfilesRepo,omitempty"`
-	DotfilesMethod  string                      `json:"dotfilesMethod,omitempty"`
-	DotfilesBareDir string                      `json:"dotfilesBareDir,omitempty"`
-	DotfilesCommand string                      `json:"dotfilesCommand,omitempty"`
-	InitCommand     string                      `json:"initCommand,omitempty"`
-	Shell           string                      `json:"shell,omitempty"`
-	SSHPublicKey    string                      `json:"sshPublicKey,omitempty"`
-	Image           string                      `json:"image"`
-	Storage         resource.Quantity           `json:"storage"`
-	Resources       corev1.ResourceRequirements `json:"resources,omitempty"`
-	Suspended       bool                        `json:"suspended,omitempty"`
-	DeletionPolicy  DeletionPolicy              `json:"deletionPolicy,omitempty"`
+	Repo            string            `json:"repo"`
+	Branch          string            `json:"branch"`
+	GitSecretRef    string            `json:"gitSecretRef,omitempty"`
+	EnvSecretRef    string            `json:"envSecretRef,omitempty"`
+	DotfilesRepo    string            `json:"dotfilesRepo,omitempty"`
+	DotfilesMethod  string            `json:"dotfilesMethod,omitempty"`
+	DotfilesBareDir string            `json:"dotfilesBareDir,omitempty"`
+	DotfilesCommand string            `json:"dotfilesCommand,omitempty"`
+	InitCommand     string            `json:"initCommand,omitempty"`
+	Shell           string            `json:"shell,omitempty"`
+	SSHPublicKey    string            `json:"sshPublicKey,omitempty"`
+	Image           string            `json:"image"`
+	Storage         resource.Quantity `json:"storage"`
+
+	// Resources sets per-container resource requirements.
+	// When a field is omitted, operator defaults apply:
+	//   koolna:          requests cpu=250m memory=512Mi, limits cpu=6 memory=8Gi
+	//   session-manager: requests cpu=50m memory=128Mi, limits cpu=500m memory=512Mi
+	// Overrides merge by key, so setting limits.cpu alone keeps default memory limits.
+	// +optional
+	Resources KoolnaResources `json:"resources,omitempty"`
+
+	Suspended      bool           `json:"suspended,omitempty"`
+	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
 
 	// CacheSize is the storage capacity for the persistent cache volume.
 	// +optional
@@ -60,6 +68,18 @@ type KoolnaSpec struct {
 	// CacheStorageClass overrides the default storage class for the cache PVC.
 	// +optional
 	CacheStorageClass *string `json:"cacheStorageClass,omitempty"`
+}
+
+// KoolnaResources holds per-container resource overrides. Each field merges
+// with operator defaults: set only the keys that should differ from default.
+type KoolnaResources struct {
+	// Koolna overrides resource requirements for the main `koolna` container.
+	// +optional
+	Koolna *corev1.ResourceRequirements `json:"koolna,omitempty"`
+
+	// SessionManager overrides resource requirements for the `session-manager` sidecar.
+	// +optional
+	SessionManager *corev1.ResourceRequirements `json:"session-manager,omitempty"`
 }
 
 // KoolnaPhase indicates the current lifecycle phase of a Koolna.

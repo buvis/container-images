@@ -2,13 +2,20 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **koolna-operator**: `spec.resources` is now per-container (`koolna`, `session-manager`); the previous flat `ResourceRequirements` shape is no longer accepted. Operator defaults apply when fields are omitted, and overrides merge by key (set `limits.cpu` alone without losing default memory limit).
+- **koolna-operator**: deliver the SSH public key to session-manager via a per-Koolna ConfigMap (`<name>-ssh`) mounted at `/etc/koolna/ssh/authorized_keys` instead of the `KOOLNA_SSH_PUBKEY` env var, keeping `kubectl describe pod` output free of long key literals.
+
 ### Fixed
 
+- **koolna-operator**: align startup and readiness probes on `tmux has-session -t manager`, removing spurious `Unhealthy: can't find session: manager` events during bootstrap.
 - **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget
 - **koolna-operator**: readiness probe checks for the real `manager` tmux session so the Koolna CR only flips to Running once attach will actually succeed (prevents webui from enabling session buttons that fail with "session not found" while dotfiles is still installing)
 
 ### Added
 
+- **koolna-operator**: default resource requests and limits on both the `koolna` and `session-manager` containers, making pods Guaranteed/Burstable in a predictable way and protecting node capacity during the first-start install storm.
 - **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
 - **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates
 
