@@ -41,7 +41,7 @@ if [ -n "$DETECTED_PATH" ]; then
   export PATH="$DETECTED_PATH"
 fi
 
-NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --"
+NSENTER_ROOT="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --cgroup --"
 
 # Fallback for HOME if not found in environ
 if [ -z "$HOME" ]; then
@@ -64,12 +64,15 @@ fi
 
 echo "detected uid=$KOOLNA_UID gid=$KOOLNA_GID home=$HOME user=$KOOLNA_USERNAME"
 
-NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
+NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --cgroup --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
 # Annotate the pod with the current bootstrap step so the operator can surface
 # it in the Koolna CR condition message. Uses the same SA token as credential sync.
+# Tracks the last announced step so the EXIT trap can report where we failed.
+LAST_STEP="starting"
 set_bootstrap_step() {
   step="$1"
+  LAST_STEP="$step"
   pod_name="$(hostname)"
   ns="${KOOLNA_NAMESPACE:-koolna}"
   TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null) || return 0
@@ -83,6 +86,18 @@ set_bootstrap_step() {
     -d "{\"metadata\":{\"annotations\":{\"koolna.buvis.net/bootstrap-step\":\"$step\"}}}" \
     2>/dev/null || true
 }
+
+# On any unexpected non-zero exit, surface which phase failed in the
+# bootstrap-step annotation so the Koolna CR condition shows the root cause
+# instead of a frozen mid-phase message. SIGKILL (e.g. OOM) bypasses this
+# trap - those cases still need cgroup/memory fixes upstream.
+on_exit() {
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    set_bootstrap_step "Failed: $LAST_STEP (exit $rc)"
+  fi
+}
+trap on_exit EXIT
 
 # Ensure user-writable directories before dotfiles run as user
 chown "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
