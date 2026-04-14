@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **koolna-session-manager**: enter the koolna container's cgroup (add `--cgroup` to `nsenter`) so `mise install` and dotfiles work bill memory to koolna's limit (8Gi) instead of the sidecar's 512Mi, preventing OOMKills when pulling heavy scientific Python deps
+
+### Added
+
+- **koolna-session-manager**: on non-zero exit, annotate the pod with `Failed: <step> (exit <code>)` so the Koolna CR condition surfaces the failing phase instead of freezing on the last successful one
+
 ### Changed
 
 - **koolna-session-manager**: read authorized_keys from `/etc/koolna/ssh/authorized_keys` (mounted by the operator from a per-Koolna ConfigMap) instead of the `KOOLNA_SSH_PUBKEY` env var.
