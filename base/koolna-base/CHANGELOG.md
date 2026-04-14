@@ -1,6 +1,6 @@
 # Changelog — koolna-base
 
-## [Unreleased]
+## 2026-04-14
 
 ### Added
 
