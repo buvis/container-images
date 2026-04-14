@@ -696,7 +696,7 @@ var _ = Describe("Koolna Controller", func() {
 	})
 
 	Context("When building git-clone init container", func() {
-		It("should not embed credentials in clone URL", func() {
+		It("should use the koolna-git-clone image with no inline script", func() {
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-initc", Namespace: "default"},
 				Spec: koolnav1alpha1.KoolnaSpec{
@@ -708,14 +708,14 @@ var _ = Describe("Koolna Controller", func() {
 				},
 			}
 			c := buildGitCloneInitContainer(koolna)
-			script := c.Args[0]
-			Expect(script).NotTo(ContainSubstring("$GIT_USERNAME:$GIT_TOKEN@"))
-			Expect(script).To(ContainSubstring("credential.helper"))
+			Expect(c.Image).To(HavePrefix("ghcr.io/buvis/koolna-git-clone"))
+			Expect(c.Command).To(BeEmpty())
+			Expect(c.Args).To(BeEmpty())
 		})
 
-		It("should quote variable expansions", func() {
+		It("should pass REPO_URL, REPO_BRANCH, and git credential env vars", func() {
 			koolna := &koolnav1alpha1.Koolna{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-initc-q", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test-initc-env", Namespace: "default"},
 				Spec: koolnav1alpha1.KoolnaSpec{
 					Repo:         "https://github.com/owner/repo",
 					Branch:       "main",
@@ -725,8 +725,50 @@ var _ = Describe("Koolna Controller", func() {
 				},
 			}
 			c := buildGitCloneInitContainer(koolna)
-			script := c.Args[0]
-			Expect(script).To(ContainSubstring(`"$REPO_BRANCH"`))
+			names := make([]string, len(c.Env))
+			for i, e := range c.Env {
+				names[i] = e.Name
+			}
+			Expect(names).To(ContainElements(
+				"REPO_URL", "REPO_BRANCH",
+				"GIT_USERNAME", "GIT_TOKEN", "GIT_NAME", "GIT_EMAIL",
+			))
+		})
+
+		It("should omit git credential env vars when gitSecretRef is empty", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-initc-nocred", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+			c := buildGitCloneInitContainer(koolna)
+			for _, e := range c.Env {
+				Expect(e.Name).NotTo(Equal("GIT_USERNAME"))
+				Expect(e.Name).NotTo(Equal("GIT_TOKEN"))
+			}
+		})
+
+		It("should mount the workspace and cache volumes", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-initc-vol", Namespace: "default"},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+			c := buildGitCloneInitContainer(koolna)
+			mounts := make(map[string]string, len(c.VolumeMounts))
+			for _, m := range c.VolumeMounts {
+				mounts[m.Name] = m.MountPath
+			}
+			Expect(mounts[workspaceVolumeName]).To(Equal("/workspace"))
+			Expect(mounts[cacheVolumeName]).To(Equal("/cache"))
 		})
 	})
 
@@ -1241,31 +1283,6 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(wsMount).NotTo(BeNil(), "expected volume mount named 'workspace' on init container")
 			Expect(wsMount.MountPath).To(Equal("/workspace"))
 			Expect(wsMount.SubPath).To(Equal("workspace"))
-		})
-
-		It("should not chown cache/local/config in init script", func() {
-			c := buildGitCloneInitContainer(koolna)
-			script := c.Args[0]
-
-			Expect(script).NotTo(ContainSubstring(".cache"))
-			Expect(script).NotTo(ContainSubstring(".local"))
-			Expect(script).NotTo(ContainSubstring(".config"))
-		})
-
-		It("should write git credentials to workspace .koolna dir", func() {
-			koolna.Spec.GitSecretRef = "git-creds"
-			c := buildGitCloneInitContainer(koolna)
-			script := c.Args[0]
-
-			Expect(script).To(ContainSubstring("/cache/.koolna/.git-credentials"))
-			Expect(script).To(ContainSubstring("/cache/.koolna/.gitconfig"))
-		})
-
-		It("should clone via temp dir instead of rm -rf mount point", func() {
-			c := buildGitCloneInitContainer(koolna)
-			script := c.Args[0]
-
-			Expect(script).NotTo(ContainSubstring("rm -rf /workspace"))
 		})
 
 		It("should include cache PVC volume in pod spec", func() {

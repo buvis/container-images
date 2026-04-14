@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **koolna-operator**: replace the inline `alpine/git` init container (shell script embedded in Go) with the dedicated `ghcr.io/buvis/koolna-git-clone` image, keeping the pod spec under `kubectl describe` readable and letting the image move independently of the operator.
 - **koolna-operator**: `spec.resources` is now per-container (`koolna`, `session-manager`); the previous flat `ResourceRequirements` shape is no longer accepted. Operator defaults apply when fields are omitted, and overrides merge by key (set `limits.cpu` alone without losing default memory limit).
 - **koolna-operator**: deliver the SSH public key to session-manager via a per-Koolna ConfigMap (`<name>-ssh`) mounted at `/etc/koolna/ssh/authorized_keys` instead of the `KOOLNA_SSH_PUBKEY` env var, keeping `kubectl describe pod` output free of long key literals.
 
@@ -16,6 +17,7 @@
 
 ### Added
 
+- **koolna-operator**: set `UV_CACHE_DIR=/cache/uv` on the koolna container so `uv` downloads land on the cache PVC and survive pod restarts, avoiding re-downloads of scipy/numba/llvmlite on every restart.
 - **koolna-operator**: default resource requests and limits on both the `koolna` and `session-manager` containers, making pods Guaranteed/Burstable in a predictable way and protecting node capacity during the first-start install storm.
 - **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
 - **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates

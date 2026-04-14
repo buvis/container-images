@@ -216,45 +216,32 @@ func TestBuildGitCloneInitContainer_WorkspaceMount(t *testing.T) {
 	}
 }
 
-func TestBuildGitCloneInitContainer_NoChown(t *testing.T) {
+func TestBuildGitCloneInitContainer_UsesKoolnaGitCloneImage(t *testing.T) {
 	koolna := minimalKoolna()
 	c := buildGitCloneInitContainer(koolna)
 
-	if len(c.Args) == 0 {
-		t.Fatal("init container: Args is empty, expected script")
+	if !strings.HasPrefix(c.Image, "ghcr.io/buvis/koolna-git-clone") {
+		t.Errorf("init container image: got %q, want prefix ghcr.io/buvis/koolna-git-clone", c.Image)
 	}
-	script := c.Args[0]
-	if strings.Contains(script, "chown") {
-		t.Error("init container script should not contain chown")
+	if len(c.Command) != 0 || len(c.Args) != 0 {
+		t.Error("init container should rely on the image ENTRYPOINT, not an inline script")
 	}
 }
 
-func TestBuildGitCloneInitContainer_WorkspacePaths(t *testing.T) {
+func TestBuildGitCloneInitContainer_RepoEnv(t *testing.T) {
 	koolna := minimalKoolna()
 	c := buildGitCloneInitContainer(koolna)
 
-	if len(c.Args) == 0 {
-		t.Fatal("init container: Args is empty, expected script")
-	}
-	script := c.Args[0]
-	if !strings.Contains(script, "/cache/.koolna") {
-		t.Error("init container script should reference /cache/.koolna for credential/gitconfig paths")
-	}
-}
-
-func TestBuildGitCloneInitContainer_HomeEnvVar(t *testing.T) {
-	koolna := minimalKoolna()
-	c := buildGitCloneInitContainer(koolna)
-
+	envByName := make(map[string]string, len(c.Env))
 	for _, e := range c.Env {
-		if e.Name == "HOME" {
-			if e.Value != "/workspace" {
-				t.Errorf("init container HOME: got %q, want /workspace", e.Value)
-			}
-			return
-		}
+		envByName[e.Name] = e.Value
 	}
-	t.Error("init container: HOME env var not found")
+	if envByName["REPO_URL"] == "" {
+		t.Error("init container: REPO_URL env var missing")
+	}
+	if _, ok := envByName["REPO_BRANCH"]; !ok {
+		t.Error("init container: REPO_BRANCH env var missing")
+	}
 }
 
 func TestBuildGitCloneInitContainer_WithGitSecret(t *testing.T) {
@@ -262,15 +249,29 @@ func TestBuildGitCloneInitContainer_WithGitSecret(t *testing.T) {
 	koolna.Spec.GitSecretRef = "my-git-secret"
 	c := buildGitCloneInitContainer(koolna)
 
-	if len(c.Args) == 0 {
-		t.Fatal("init container: Args is empty, expected script")
+	wanted := map[string]bool{"GIT_USERNAME": false, "GIT_TOKEN": false, "GIT_NAME": false, "GIT_EMAIL": false}
+	for _, e := range c.Env {
+		if _, ok := wanted[e.Name]; ok {
+			wanted[e.Name] = true
+		}
 	}
-	script := c.Args[0]
-	if !strings.Contains(script, "/cache/.koolna/") {
-		t.Error("init container script with git secret should reference /cache/.koolna/ paths")
+	for name, seen := range wanted {
+		if !seen {
+			t.Errorf("init container with git secret: missing %s env var", name)
+		}
 	}
-	if strings.Contains(script, "chown") {
-		t.Error("init container script should not contain chown even with git secret")
+}
+
+func TestBuildGitCloneInitContainer_WithoutGitSecret(t *testing.T) {
+	koolna := minimalKoolna()
+	koolna.Spec.GitSecretRef = ""
+	c := buildGitCloneInitContainer(koolna)
+
+	for _, e := range c.Env {
+		switch e.Name {
+		case "GIT_USERNAME", "GIT_TOKEN", "GIT_NAME", "GIT_EMAIL":
+			t.Errorf("init container without git secret should not set %s", e.Name)
+		}
 	}
 }
 
