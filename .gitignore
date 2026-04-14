@@ -12,6 +12,7 @@ apps/sw-factory/
 .claude/cache/
 .claude/tmp/
 .claude/hooks/notify.log
+.claude/scheduled_tasks.lock
 .devcontainer/.claude/
 .devcontainer/.codex/
 
