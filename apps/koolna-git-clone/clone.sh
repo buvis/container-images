@@ -19,6 +19,11 @@ KOOLNA_DIR=/cache/.koolna
 CRED="$KOOLNA_DIR/.git-credentials"
 GC="$KOOLNA_DIR/.gitconfig"
 
+# Point git at our gitconfig so it picks up the credential helper we write
+# below during the clone. Without this, git falls back to $HOME/.gitconfig -
+# empty in this container - and the clone prompts for a username and fails.
+export GIT_CONFIG_GLOBAL="$GC"
+
 mkdir -p "$KOOLNA_DIR"
 
 if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
