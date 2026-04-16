@@ -1,34 +1,29 @@
 #!/bin/sh
 set -eu
 
-find_koolna_pid() {
-  for pid_dir in /proc/[0-9]*; do
-    pid=$(basename "$pid_dir")
-    [ "$pid" = "1" ] && continue
-    [ "$pid" = "$$" ] && continue
-    ppid=$(awk '/^PPid:/ {print $2}' "$pid_dir/status" 2>/dev/null) || continue
-    [ "$ppid" = "$$" ] && continue
-    if [ -f "$pid_dir/cmdline" ]; then
-      cmd=$(tr '\0' ' ' < "$pid_dir/cmdline" 2>/dev/null) || continue
-      case "$cmd" in
-        *"sleep infinity"*) echo "$pid"; return 0;;
-      esac
-    fi
-  done
-  return 1
-}
-
-echo "waiting for koolna main container process..."
+# The koolna container's bootstrap.sh writes its PID to this file as its
+# first action. We poll for it and verify the PID is still alive. This is
+# more reliable than scanning /proc for a distinctive cmdline because
+# bootstrap.sh changes what it's running mid-bootstrap (shell -> dotfiles
+# command -> mise install -> sleep infinity, all as the same PID via exec).
+KOOLNA_PID_FILE="/cache/.koolna/pid"
+echo "waiting for koolna bootstrap.sh to publish its PID at $KOOLNA_PID_FILE..."
 i=0
 TARGET_PID=""
 while [ -z "$TARGET_PID" ]; do
   i=$((i + 1))
   if [ "$i" -ge 60 ]; then
-    echo "timeout: koolna main container process not found after 60s"
+    echo "timeout: koolna PID file not found after 60s"
     exit 1
   fi
-  TARGET_PID=$(find_koolna_pid) || true
-  [ -z "$TARGET_PID" ] && sleep 1
+  if [ -f "$KOOLNA_PID_FILE" ]; then
+    candidate=$(cat "$KOOLNA_PID_FILE" 2>/dev/null || true)
+    if [ -n "$candidate" ] && [ -d "/proc/$candidate" ]; then
+      TARGET_PID="$candidate"
+      break
+    fi
+  fi
+  sleep 1
 done
 echo "found koolna main container process at PID $TARGET_PID"
 

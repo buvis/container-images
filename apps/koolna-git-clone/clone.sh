@@ -56,6 +56,12 @@ set -eu
 KOOLNA_DIR=/cache/.koolna
 READY="$KOOLNA_DIR/ready"
 PHASE="$KOOLNA_DIR/phase"
+PID_FILE="$KOOLNA_DIR/pid"
+
+# Record our PID so the session-manager sidecar can nsenter into the right
+# process. Writing before any exec keeps the PID stable for the container's
+# lifetime: the final "exec sleep infinity" replaces this shell in place.
+echo "$$" > "$PID_FILE"
 
 export PATH="$HOME/.local/bin:$PATH"
 export GIT_CONFIG_GLOBAL="$KOOLNA_DIR/.gitconfig"

@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **koolna-session-manager**: locate koolna's PID by reading `/cache/.koolna/pid` (written by bootstrap.sh) instead of scanning `/proc` for a `sleep infinity` cmdline. The old scan failed during the install phase because bootstrap.sh's cmdline isn't `sleep infinity` until the install completes.
 - **koolna-session-manager**: dotfiles and `mise install` no longer run here. The koolna-git-clone init container writes `/cache/.koolna/bootstrap.sh` which the main container execs as PID 1, so install memory bills to koolna's 8Gi cgroup instead of the sidecar's 512Mi. The sidecar now waits on `/cache/.koolna/ready` and forwards `/cache/.koolna/phase` into the `bootstrap-step` annotation, then handles only the root-privileged work (sshd, credential sync, tmux).
 - **koolna-session-manager**: drop chown+credential-helper setup blocks now handled by koolna-git-clone and bootstrap.sh.
 
