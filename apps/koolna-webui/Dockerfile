@@ -1,4 +1,4 @@
-FROM node:24-alpine@sha256:ff2c02f071f9e56778013b47d70f7524f5d4eacb032027f0f434838d77cf25e0 AS frontend
+FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS frontend
 
 WORKDIR /app/frontend
 
@@ -8,7 +8,7 @@ RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
-FROM golang:1.26-alpine@sha256:27f829349da645e287cb195a9921c106fc224eeebbdc33aeb0f4fca2382befa6 AS backend
+FROM golang:1.26-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 AS backend
 
 WORKDIR /app
 
