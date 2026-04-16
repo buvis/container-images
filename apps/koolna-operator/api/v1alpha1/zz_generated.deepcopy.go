@@ -114,6 +114,11 @@ func (in *KoolnaResources) DeepCopy() *KoolnaResources {
 func (in *KoolnaSpec) DeepCopyInto(out *KoolnaSpec) {
 	*out = *in
 	out.Storage = in.Storage.DeepCopy()
+	if in.RunAsUser != nil {
+		in, out := &in.RunAsUser, &out.RunAsUser
+		*out = new(int64)
+		**out = **in
+	}
 	in.Resources.DeepCopyInto(&out.Resources)
 	if in.CacheSize != nil {
 		in, out := &in.CacheSize, &out.CacheSize

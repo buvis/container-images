@@ -49,6 +49,12 @@ type KoolnaSpec struct {
 	Image           string            `json:"image"`
 	Storage         resource.Quantity `json:"storage"`
 
+	// RunAsUser is the UID the koolna container runs as and that owns the
+	// workspace/cache volumes. Must match the non-root user in the base image.
+	// +optional
+	// +kubebuilder:default=1000
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
+
 	// Resources sets per-container resource requirements.
 	// When a field is omitted, operator defaults apply:
 	//   koolna:          requests cpu=250m memory=512Mi, limits cpu=6 memory=8Gi

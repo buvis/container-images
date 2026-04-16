@@ -99,110 +99,12 @@ on_exit() {
 }
 trap on_exit EXIT
 
-# Ensure user-writable directories before dotfiles run as user
-chown "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
-
-if [ -n "${DOTFILES_METHOD:-}" ] && [ "${DOTFILES_METHOD}" != "none" ]; then
-  CRED_SETUP=""
-  CRED_CLEANUP=""
-  if [ -n "${DOTFILES_REPO:-}" ] && [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ]; then
-    repo_host=$(echo "$DOTFILES_REPO" | sed 's|https://\([^/]*\).*|\1|')
-    CRED_SETUP="printf 'https://%s:%s@%s\n' '$GIT_USERNAME' '$GIT_TOKEN' '$repo_host' > /tmp/.gitcredentials && git config --global credential.helper 'store --file=/tmp/.gitcredentials'"
-    CRED_CLEANUP="rm -f /tmp/.gitcredentials; git config --global --unset credential.helper 2>/dev/null || true"
-  fi
-
-  set_bootstrap_step "Installing dotfiles"
-  echo "installing dotfiles ($DOTFILES_METHOD)..."
-  set +e
-  case "$DOTFILES_METHOD" in
-    bare-git)
-      $NSENTER_USER sh -c "
-        ${CRED_SETUP}
-        bare_dir=\"$HOME/${DOTFILES_BARE_DIR:-.cfg}\"
-        cache=\"/cache/dotfiles\"
-        if [ ! -d \"\$bare_dir/HEAD\" ]; then
-          if [ ! -d \"\$cache/HEAD\" ]; then
-            rm -rf \"\$cache\"
-            git clone --bare '$DOTFILES_REPO' \"\$cache\"
-          fi
-          cp -a \"\$cache\" \"\$bare_dir\"
-          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" config status.showUntrackedFiles no
-          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" checkout 2>/dev/null || {
-            mkdir -p \"\$bare_dir/backup\"
-            git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" checkout 2>&1 \
-              | grep -E '^\s+' | awk '{print \$1}' | while read -r f; do
-                mkdir -p \"\$bare_dir/backup/\$(dirname \"\$f\")\"
-                mv \"$HOME/\$f\" \"\$bare_dir/backup/\$f\" 2>/dev/null || true
-              done
-            git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" checkout
-          }
-        else
-          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" fetch origin || true
-          git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" merge --ff-only || true
-        fi
-        git --git-dir=\"\$bare_dir\" --work-tree=\"$HOME\" submodule update --init || true
-        ${CRED_CLEANUP}
-      "
-      ;;
-    command)
-      $NSENTER_USER sh -c "${CRED_SETUP:-true}; ${DOTFILES_COMMAND:-true}; ${CRED_CLEANUP:-true}"
-      ;;
-    clone)
-      $NSENTER_USER sh -c "
-        ${CRED_SETUP}
-        if [ ! -d '$HOME/.dotfiles/.git' ]; then
-          git clone '$DOTFILES_REPO' '$HOME/.dotfiles'
-        else
-          git -C '$HOME/.dotfiles' pull --ff-only || true
-        fi
-        ${CRED_CLEANUP}
-      "
-      ;;
-  esac
-  dotfiles_exit=$?
-  set -e
-  if [ "$dotfiles_exit" -ne 0 ]; then
-    echo "dotfiles installation exited with status $dotfiles_exit (non-fatal)"
-  fi
-fi
-
-if [ -n "${INIT_COMMAND:-}" ]; then
-  echo "running init command..."
-  $NSENTER_USER sh -c "$INIT_COMMAND"
-fi
-
-# Set up persistent git credentials on cache volume (not in workspace)
 WS="/workspace"
 KOOLNA_DIR="/cache/.koolna"
-KOOLNA_CRED="$KOOLNA_DIR/.git-credentials"
 KOOLNA_GC="$KOOLNA_DIR/.gitconfig"
-if [ -n "${GIT_USERNAME:-}" ] && [ -n "${GIT_TOKEN:-}" ] && [ ! -f "$KOOLNA_CRED" ]; then
-  mkdir -p "$KOOLNA_DIR"
-  REPO_HOST=$(echo "$REPO_URL" | sed 's|https://\([^/]*\).*|\1|')
-  printf "https://%s:%s@%s\n" "$GIT_USERNAME" "$GIT_TOKEN" "$REPO_HOST" > "$KOOLNA_CRED"
-  chmod 600 "$KOOLNA_CRED"
-  git config -f "$KOOLNA_GC" credential.helper "store --file=$KOOLNA_CRED"
-fi
-if [ -n "${GIT_NAME:-}" ] && ! git config -f "$KOOLNA_GC" user.name >/dev/null 2>&1; then
-  mkdir -p "$KOOLNA_DIR"
-  git config -f "$KOOLNA_GC" user.name "$GIT_NAME"
-fi
-if [ -n "${GIT_EMAIL:-}" ] && ! git config -f "$KOOLNA_GC" user.email >/dev/null 2>&1; then
-  mkdir -p "$KOOLNA_DIR"
-  git config -f "$KOOLNA_GC" user.email "$GIT_EMAIL"
-fi
 if [ -f "$KOOLNA_GC" ]; then
   $NSENTER_USER git config --global include.path "$KOOLNA_GC"
 fi
-
-# Fix ownership of directories written by root during dotfiles/init
-echo "fixing ownership (uid=$KOOLNA_UID)..."
-chown "$KOOLNA_UID:$KOOLNA_GID" "$HOME" 2>/dev/null || true
-chown -R "$KOOLNA_UID:$KOOLNA_GID" /workspace 2>/dev/null || true
-chown -R "$KOOLNA_UID:$KOOLNA_GID" /cache 2>/dev/null || true
-[ -d "$HOME/.cfg" ] && chown -R "$KOOLNA_UID:$KOOLNA_GID" "$HOME/.cfg" 2>/dev/null || true
-[ -d "$HOME/.dotfiles" ] && chown -R "$KOOLNA_UID:$KOOLNA_GID" "$HOME/.dotfiles" 2>/dev/null || true
-[ -d "$HOME/.ssh" ] && chown -R "$KOOLNA_UID:$KOOLNA_GID" "$HOME/.ssh" 2>/dev/null || true
 
 # --- credential sync ---
 KOOLNA_CREDENTIAL_PATHS="${KOOLNA_CREDENTIAL_PATHS:-.claude/.credentials.json,.codex}"
@@ -476,18 +378,24 @@ fi
 
 NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
 
-# Bootstrap mise tools inside the main container
-if $NSENTER_USER sh -c 'command -v mise >/dev/null 2>&1'; then
-  # Trust first so config detection works even in paranoid mode
-  $NSENTER_USER "$KOOLNA_SHELL" -lc "mise trust $WS 2>/dev/null || true"
-
-  if $NSENTER_USER "$KOOLNA_SHELL" -lc "cd $WS && mise config ls 2>/dev/null" | grep -q .; then
-
-    set_bootstrap_step "Installing tools"
-    echo "running mise install in main container..."
-    $NSENTER_USER "$KOOLNA_SHELL" -lc 'mise install --yes' 2>&1 || echo "mise install had errors (non-fatal)"
+# Wait for the main container's bootstrap.sh to finish dotfiles + mise install.
+# That script writes /cache/.koolna/ready when done. The phase file gives us a
+# live progress message to surface in the bootstrap-step annotation. No timeout
+# here: if the install genuinely hangs, the readiness probe will keep the pod
+# un-ready and an operator can investigate via `kubectl logs ... -c koolna`.
+READY_MARKER="$KOOLNA_DIR/ready"
+PHASE_FILE="$KOOLNA_DIR/phase"
+last_phase=""
+while [ ! -f "$READY_MARKER" ]; do
+  if [ -f "$PHASE_FILE" ]; then
+    cur_phase=$(cat "$PHASE_FILE" 2>/dev/null || true)
+    if [ -n "$cur_phase" ] && [ "$cur_phase" != "$last_phase" ]; then
+      set_bootstrap_step "$cur_phase"
+      last_phase="$cur_phase"
+    fi
   fi
-fi
+  sleep 2
+done
 
 export LANG=C.UTF-8
 export LC_CTYPE=C.UTF-8

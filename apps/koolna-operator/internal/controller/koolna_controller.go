@@ -571,12 +571,25 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 	return nil
 }
 
+// resolveRunAsUser returns the UID the koolna container should run as.
+// Defaults to 1000, which matches the buvis/koolna-* base images.
+func resolveRunAsUser(koolna *koolnav1alpha1.Koolna) int64 {
+	if koolna.Spec.RunAsUser != nil {
+		return *koolna.Spec.RunAsUser
+	}
+	return 1000
+}
+
 func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
 	repoURL := resolveRepoURL(koolna.Spec.Repo)
+	uid := resolveRunAsUser(koolna)
+	uidStr := strconv.FormatInt(uid, 10)
 
 	env := []corev1.EnvVar{
 		{Name: "REPO_URL", Value: repoURL},
 		{Name: "REPO_BRANCH", Value: koolna.Spec.Branch},
+		{Name: "KOOLNA_UID", Value: uidStr},
+		{Name: "KOOLNA_GID", Value: uidStr},
 	}
 	env = append(env, buildGitCredentialEnvVars(koolna.Spec.GitSecretRef)...)
 
@@ -701,9 +714,20 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 		{Name: "REPO_URL", Value: repoURL},
 	}
 	sidecarEnv = append(sidecarEnv, buildGitCredentialEnvVars(koolna.Spec.GitSecretRef)...)
-	sidecarEnv = append(sidecarEnv, buildDotfilesEnvVars(dotfiles)...)
+
+	// Dotfiles install + INIT_COMMAND now run as PID 1 of the koolna container
+	// (via /cache/.koolna/bootstrap.sh) so memory is billed to koolna's cgroup
+	// instead of the sidecar's smaller limit.
+	koolnaEnv := []corev1.EnvVar{
+		{Name: "GIT_CONFIG_GLOBAL", Value: "/cache/.koolna/.gitconfig"},
+		{Name: "XDG_CACHE_HOME", Value: "/cache"},
+		{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
+		{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
+		{Name: "UV_CACHE_DIR", Value: "/cache/uv"},
+	}
+	koolnaEnv = append(koolnaEnv, buildDotfilesEnvVars(dotfiles)...)
 	if koolna.Spec.InitCommand != "" {
-		sidecarEnv = append(sidecarEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
+		koolnaEnv = append(koolnaEnv, corev1.EnvVar{Name: "INIT_COMMAND", Value: koolna.Spec.InitCommand})
 	}
 
 	// Cluster-wide env defaults first, then per-workspace overrides.
@@ -727,6 +751,8 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 
 	wsMount := corev1.VolumeMount{Name: workspaceVolumeName, MountPath: "/workspace", SubPath: "workspace"}
 	cacheMount := corev1.VolumeMount{Name: cacheVolumeName, MountPath: "/cache"}
+
+	koolnaUID := resolveRunAsUser(koolna)
 
 	sidecarMounts := []corev1.VolumeMount{wsMount, cacheMount}
 	volumes := []corev1.Volume{
@@ -774,16 +800,14 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 				{
 					Name:       "koolna",
 					Image:      koolna.Spec.Image,
-					Command:    []string{"sh", "-c", "exec sleep infinity"},
+					Command:    []string{"sh", "-c", "exec /cache/.koolna/bootstrap.sh"},
 					WorkingDir: "/workspace",
 					Resources:  resolveContainerResources(koolnaDefaultResources, koolna.Spec.Resources.Koolna),
 					EnvFrom:    envFrom,
-					Env: []corev1.EnvVar{
-						{Name: "GIT_CONFIG_GLOBAL", Value: "/cache/.koolna/.gitconfig"},
-						{Name: "XDG_CACHE_HOME", Value: "/cache"},
-						{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
-						{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
-						{Name: "UV_CACHE_DIR", Value: "/cache/uv"},
+					Env:        koolnaEnv,
+					SecurityContext: &corev1.SecurityContext{
+						RunAsUser:  &koolnaUID,
+						RunAsGroup: &koolnaUID,
 					},
 					VolumeMounts: []corev1.VolumeMount{wsMount, cacheMount},
 				},

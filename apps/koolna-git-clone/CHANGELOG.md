@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-git-clone**: also write `/cache/.koolna/bootstrap.sh` and chown `/cache` + `/workspace` to `KOOLNA_UID`/`KOOLNA_GID`. The koolna container now execs that script as PID 1, so dotfiles install and `mise install` run inside koolna's own cgroup (8Gi limit) instead of the sidecar's 512Mi. The script self-installs mise on cold images that lack it.
+
 ### Fixed
 
 - **koolna-git-clone**: export `GIT_CONFIG_GLOBAL` before cloning so git reads the credential helper written to `/cache/.koolna/.gitconfig` (private repo clones previously failed with "could not read Username")

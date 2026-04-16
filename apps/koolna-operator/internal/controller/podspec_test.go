@@ -118,7 +118,7 @@ func TestBuildPodSpec_XDGAndMiseEnvVars(t *testing.T) {
 	t.Error("koolna container not found")
 }
 
-func TestBuildPodSpec_NoRunAsUserOrGroup(t *testing.T) {
+func TestBuildPodSpec_KoolnaRunsAsRequestedUser(t *testing.T) {
 	koolna := minimalKoolna()
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
@@ -126,13 +126,32 @@ func TestBuildPodSpec_NoRunAsUserOrGroup(t *testing.T) {
 		if c.Name != "koolna" {
 			continue
 		}
-		if c.SecurityContext != nil {
-			if c.SecurityContext.RunAsUser != nil {
-				t.Error("main container SecurityContext.RunAsUser should be nil")
-			}
-			if c.SecurityContext.RunAsGroup != nil {
-				t.Error("main container SecurityContext.RunAsGroup should be nil")
-			}
+		if c.SecurityContext == nil {
+			t.Fatal("main container SecurityContext should be set so bootstrap.sh runs as the target user")
+		}
+		if c.SecurityContext.RunAsUser == nil || *c.SecurityContext.RunAsUser != 1000 {
+			t.Errorf("main container RunAsUser: got %v, want 1000", c.SecurityContext.RunAsUser)
+		}
+		if c.SecurityContext.RunAsGroup == nil || *c.SecurityContext.RunAsGroup != 1000 {
+			t.Errorf("main container RunAsGroup: got %v, want 1000", c.SecurityContext.RunAsGroup)
+		}
+		return
+	}
+	t.Error("koolna container not found")
+}
+
+func TestBuildPodSpec_KoolnaRunAsUserHonorsSpec(t *testing.T) {
+	koolna := minimalKoolna()
+	custom := int64(2000)
+	koolna.Spec.RunAsUser = &custom
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+
+	for _, c := range pod.Spec.Containers {
+		if c.Name != "koolna" {
+			continue
+		}
+		if c.SecurityContext == nil || c.SecurityContext.RunAsUser == nil || *c.SecurityContext.RunAsUser != 2000 {
+			t.Errorf("main container RunAsUser: got %v, want 2000", c.SecurityContext)
 		}
 		return
 	}
