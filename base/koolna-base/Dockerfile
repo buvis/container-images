@@ -23,9 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes extractVersion=^v(?<version>.+)$
-ARG KUBECTL_VERSION=1.35.3
+ARG KUBECTL_VERSION=1.35.4
 # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)$
-ARG MISE_VERSION=2026.4.11
+ARG MISE_VERSION=2026.4.14
 RUN curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
   && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
   && rm /tmp/kubectl
