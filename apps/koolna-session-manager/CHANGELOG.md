@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **koolna-session-manager**: dotfiles and `mise install` no longer run here. The koolna-git-clone init container writes `/cache/.koolna/bootstrap.sh` which the main container execs as PID 1, so install memory bills to koolna's 8Gi cgroup instead of the sidecar's 512Mi. The sidecar now waits on `/cache/.koolna/ready` and forwards `/cache/.koolna/phase` into the `bootstrap-step` annotation, then handles only the root-privileged work (sshd, credential sync, tmux).
+- **koolna-session-manager**: drop chown+credential-helper setup blocks now handled by koolna-git-clone and bootstrap.sh.
+
 ### Fixed
 
-- **koolna-session-manager**: enter the koolna container's cgroup (add `--cgroup` to `nsenter`) so `mise install` and dotfiles work bill memory to koolna's limit (8Gi) instead of the sidecar's 512Mi, preventing OOMKills when pulling heavy scientific Python deps
+- **koolna-session-manager**: enter the koolna container's cgroup (add `--cgroup` to `nsenter`) so any follow-up installs dispatched by the sidecar bill memory to koolna's limit (8Gi) instead of the sidecar's 512Mi
 
 ### Added
 
