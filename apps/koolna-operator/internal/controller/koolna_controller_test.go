@@ -124,7 +124,7 @@ var _ = Describe("Koolna Controller", func() {
 			koolnaContainer := pod.Spec.Containers[0]
 			Expect(koolnaContainer.Name).To(Equal("koolna"))
 			Expect(koolnaContainer.Image).To(Equal("ghcr.io/buvis/koolna-base:latest"))
-			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
+			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec /cache/.koolna/bootstrap.sh"}))
 			Expect(koolnaContainer.Ports).To(BeEmpty())
 			Expect(koolnaContainer.WorkingDir).To(Equal("/workspace"))
 			Expect(koolnaContainer.VolumeMounts).To(HaveLen(2))
@@ -133,7 +133,9 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(koolnaContainer.VolumeMounts[0].SubPath).To(Equal("workspace"))
 			Expect(koolnaContainer.VolumeMounts[1].Name).To(Equal("cache"))
 			Expect(koolnaContainer.VolumeMounts[1].MountPath).To(Equal("/cache"))
-			Expect(koolnaContainer.SecurityContext).To(BeNil())
+			Expect(koolnaContainer.SecurityContext).NotTo(BeNil())
+			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(1000)))
+			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(1000)))
 
 			sidecar := pod.Spec.Containers[1]
 			Expect(sidecar.Name).To(Equal("session-manager"))
@@ -1016,8 +1018,9 @@ var _ = Describe("Koolna Controller", func() {
 			koolnaContainer := pod.Spec.Containers[0]
 			Expect(koolnaContainer.WorkingDir).To(Equal("/workspace"))
 			Expect(koolnaContainer.VolumeMounts[0].MountPath).To(Equal("/workspace"))
-			Expect(koolnaContainer.SecurityContext).To(BeNil())
-			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec sleep infinity"}))
+			Expect(koolnaContainer.SecurityContext).NotTo(BeNil())
+			Expect(*koolnaContainer.SecurityContext.RunAsUser).To(Equal(int64(1000)))
+			Expect(koolnaContainer.Command).To(Equal([]string{"sh", "-c", "exec /cache/.koolna/bootstrap.sh"}))
 		})
 	})
 

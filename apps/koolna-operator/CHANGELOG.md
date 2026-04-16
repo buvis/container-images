@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **koolna-operator**: run dotfiles install and `mise install` as PID 1 of the koolna container instead of via `nsenter` from the sidecar. The koolna container now execs `/cache/.koolna/bootstrap.sh` (written by koolna-git-clone), runs under `securityContext.runAsUser/Group`, and receives the `DOTFILES_*`/`INIT_COMMAND` env vars. Memory bills to the koolna cgroup (8Gi) instead of the sidecar's smaller limit, fixing first-start OOMKills on heavy installs.
 - **koolna-operator**: replace the inline `alpine/git` init container (shell script embedded in Go) with the dedicated `ghcr.io/buvis/koolna-git-clone` image, keeping the pod spec under `kubectl describe` readable and letting the image move independently of the operator.
 - **koolna-operator**: `spec.resources` is now per-container (`koolna`, `session-manager`); the previous flat `ResourceRequirements` shape is no longer accepted. Operator defaults apply when fields are omitted, and overrides merge by key (set `limits.cpu` alone without losing default memory limit).
 - **koolna-operator**: deliver the SSH public key to session-manager via a per-Koolna ConfigMap (`<name>-ssh`) mounted at `/etc/koolna/ssh/authorized_keys` instead of the `KOOLNA_SSH_PUBKEY` env var, keeping `kubectl describe pod` output free of long key literals.
@@ -17,6 +18,7 @@
 
 ### Added
 
+- **koolna-operator**: `spec.runAsUser` (optional, default 1000) controls the UID the koolna container runs as and the owner of workspace/cache volumes.
 - **koolna-operator**: set `UV_CACHE_DIR=/cache/uv` on the koolna container so `uv` downloads land on the cache PVC and survive pod restarts, avoiding re-downloads of scipy/numba/llvmlite on every restart.
 - **koolna-operator**: default resource requests and limits on both the `koolna` and `session-manager` containers, making pods Guaranteed/Burstable in a predictable way and protecting node capacity during the first-start install storm.
 - **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)

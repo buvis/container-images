@@ -218,6 +218,13 @@ spec:
                         type: object
                     type: object
                 type: object
+              runAsUser:
+                default: 1000
+                description: |-
+                  RunAsUser is the UID the koolna container runs as and that owns the
+                  workspace/cache volumes. Must match the non-root user in the base image.
+                format: int64
+                type: integer
               shell:
                 type: string
               sshPublicKey:
