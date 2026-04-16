@@ -2,6 +2,6 @@
 experimental = true
 
 [tools]
-node = "24.14.1"
+node = "24.15.0"
 pnpm = "10.33.0"
 deno = "2.7.12"
