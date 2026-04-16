@@ -5,6 +5,7 @@
 ### Added
 
 - **koolna-git-clone**: also write `/cache/.koolna/bootstrap.sh` and chown `/cache` + `/workspace` to `KOOLNA_UID`/`KOOLNA_GID`. The koolna container now execs that script as PID 1, so dotfiles install and `mise install` run inside koolna's own cgroup (8Gi limit) instead of the sidecar's 512Mi. The script self-installs mise on cold images that lack it.
+- **koolna-git-clone**: bootstrap.sh writes its PID to `/cache/.koolna/pid` as its first action so the session-manager sidecar can locate it without scanning `/proc` for a changing cmdline.
 
 ### Fixed
 
