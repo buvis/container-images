@@ -3,5 +3,5 @@ experimental = true
 
 [tools]
 node = "24.15.0"
-pnpm = "10.33.1"
+pnpm = "10.33.2"
 deno = "2.7.13"
