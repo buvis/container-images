@@ -13,6 +13,7 @@
     {
       "matchManagers": ["mise"],
       "matchFileNames": ["base/koolna-dev/assets/config/mise/config.toml"],
+      "matchPackageNames": ["!python"],
       "groupName": "koolna-dev mise tools"
     },
     {
