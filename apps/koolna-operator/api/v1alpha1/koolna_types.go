@@ -97,18 +97,24 @@ type KoolnaResources struct {
 }
 
 // KoolnaImages overrides the operator-managed container image references on
-// a per-CR basis. Each field accepts a full image reference (preferably a
-// digest-pinned form like `repo:tag@sha256:...`). When unset or empty, the
-// operator falls back to the value loaded from the koolna-images ConfigMap
-// at startup. Used primarily for testing pinned digests; routine bumps go
-// through the ConfigMap so Renovate can track them.
+// a per-CR basis. Each field accepts a digest-pinned image reference of the
+// form `repo:tag@sha256:<64hex>`. When unset or empty, the operator falls
+// back to the value loaded from the koolna-images ConfigMap at startup.
+// Used primarily for testing pinned digests; routine bumps go through the
+// ConfigMap so Renovate can track them.
 type KoolnaImages struct {
 	// GitClone overrides the koolna-git-clone init-container image.
+	// Must be a digest-pinned reference (`repo:tag@sha256:<64hex>`); bare
+	// tags such as `:latest` are rejected at admission time.
 	// +optional
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`
 	GitClone *string `json:"gitClone,omitempty"`
 
 	// SessionManager overrides the koolna-session-manager sidecar image.
+	// Must be a digest-pinned reference (`repo:tag@sha256:<64hex>`); bare
+	// tags such as `:latest` are rejected at admission time.
 	// +optional
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`
 	SessionManager *string `json:"sessionManager,omitempty"`
 }
 

@@ -262,6 +262,30 @@ var _ = Describe("Koolna Controller", func() {
 				"per-CR Spec.Images.SessionManager override should reach the sidecar")
 		})
 
+		It("should reject Spec.Images.GitClone without a digest at admission", func() {
+			invalid := "ghcr.io/buvis/koolna-git-clone:latest"
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+					Images: &koolnav1alpha1.KoolnaImages{
+						GitClone: &invalid,
+					},
+				},
+			}
+			err := k8sClient.Create(ctx, koolna)
+			Expect(err).To(HaveOccurred(),
+				"CR with non-digest-pinned Spec.Images.GitClone must be rejected by CRD pattern validation")
+			Expect(err.Error()).To(ContainSubstring("spec.images.gitClone"),
+				"validation error should mention the offending field")
+		})
+
 		It("should fall back to ConfigMap defaults when Spec.Images is unset", func() {
 			koolna := &koolnav1alpha1.Koolna{
 				ObjectMeta: metav1.ObjectMeta{

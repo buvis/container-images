@@ -97,12 +97,18 @@ spec:
                   rely on the ConfigMap-driven defaults.
                 properties:
                   gitClone:
-                    description: GitClone overrides the koolna-git-clone init-container
-                      image.
+                    description: |-
+                      GitClone overrides the koolna-git-clone init-container image.
+                      Must be a digest-pinned reference (`repo:tag@sha256:<64hex>`); bare
+                      tags such as `:latest` are rejected at admission time.
+                    pattern: ^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$
                     type: string
                   sessionManager:
-                    description: SessionManager overrides the koolna-session-manager
-                      sidecar image.
+                    description: |-
+                      SessionManager overrides the koolna-session-manager sidecar image.
+                      Must be a digest-pinned reference (`repo:tag@sha256:<64hex>`); bare
+                      tags such as `:latest` are rejected at admission time.
+                    pattern: ^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$
                     type: string
                 type: object
               initCommand:
