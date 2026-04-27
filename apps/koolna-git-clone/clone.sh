@@ -53,6 +53,23 @@ cat > "$BOOTSTRAP" <<'BOOTSTRAP_EOF'
 #!/bin/sh
 set -eu
 
+# Bootstrap state protocol (see apps/koolna-git-clone/README.md for details):
+#
+#   /cache/.koolna/phase   - single-line status string. Last-writer-wins.
+#                            Any process with write access can append a phase
+#                            (bootstrap.sh, dotfiles install hooks, kubectl exec
+#                            during bootstrap). session-manager polls the file
+#                            and forwards each new value to the pod's
+#                            koolna.buvis.net/bootstrap-step annotation.
+#   /cache/.koolna/failed  - one-way failure marker. Once it exists,
+#                            session-manager freezes the bootstrap-step
+#                            annotation so a late phase write cannot overwrite
+#                            the recorded failure. This script's EXIT trap
+#                            touches it on any non-zero exit.
+#   /cache/.koolna/ready   - one-way success sentinel. session-manager waits
+#                            for it before creating tmux sessions and writing
+#                            its own /tmp/koolna-ready probe target.
+
 KOOLNA_DIR=/cache/.koolna
 READY="$KOOLNA_DIR/ready"
 PHASE="$KOOLNA_DIR/phase"
