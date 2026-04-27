@@ -99,6 +99,16 @@ const (
 	KoolnaPhaseFailed        KoolnaPhase = "Failed"
 )
 
+// Reason values for the Bootstrapped condition Type. Distinct from the
+// Ready condition's reasons so consumers can distinguish "Pod not yet
+// running" (Ready=False, Reason=Pending) from "Pod started but bootstrap
+// blew up" (Bootstrapped=False, Reason=BootstrapFailed).
+const (
+	ReasonBootstrapped    = "Bootstrapped"
+	ReasonBootstrapFailed = "BootstrapFailed"
+	ReasonBootstrapping   = "Bootstrapping"
+)
+
 // KoolnaStatus defines the observed state of Koolna.
 type KoolnaStatus struct {
 	// Phase is the current lifecycle phase of the Koolna resource.
