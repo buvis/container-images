@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- **koolna-operator**: stop pinning mise/uv caches to `/cache` on the koolna container — drop `XDG_CACHE_HOME`, `MISE_CACHE_DIR`, and `UV_CACHE_DIR` env vars so caches default to `$HOME/.cache/{mise,uv}` on overlay FS (same FS as install target), restoring hardlinks and silencing "Failed to hardlink files" warnings
 - **koolna-operator**: replace `tmux has-session` probe with a `test -f /tmp/koolna-ready` sentinel written by the entrypoint, removing the tmux exec that otherwise ran every 30s for the pod's lifetime. Also removes spurious `Unhealthy: can't find session: manager` events during bootstrap.
 - **koolna-operator**: mark the ssh-pubkey ConfigMap volume Optional so clearing `spec.sshPublicKey` (which deletes the ConfigMap) does not brick an existing pod on restart.
 - **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget

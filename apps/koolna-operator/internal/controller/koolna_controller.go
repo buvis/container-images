@@ -720,10 +720,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 	// instead of the sidecar's smaller limit.
 	koolnaEnv := []corev1.EnvVar{
 		{Name: "GIT_CONFIG_GLOBAL", Value: "/cache/.koolna/.gitconfig"},
-		{Name: "XDG_CACHE_HOME", Value: "/cache"},
-		{Name: "MISE_CACHE_DIR", Value: "/cache/mise"},
 		{Name: "MISE_TRUSTED_CONFIG_PATHS", Value: "/workspace"},
-		{Name: "UV_CACHE_DIR", Value: "/cache/uv"},
 	}
 	koolnaEnv = append(koolnaEnv, buildDotfilesEnvVars(dotfiles)...)
 	if koolna.Spec.InitCommand != "" {
