@@ -56,6 +56,7 @@ set -eu
 KOOLNA_DIR=/cache/.koolna
 READY="$KOOLNA_DIR/ready"
 PHASE="$KOOLNA_DIR/phase"
+FAILED="$KOOLNA_DIR/failed"
 PID_FILE="$KOOLNA_DIR/pid"
 
 # Record our PID so the session-manager sidecar can nsenter into the right
@@ -67,9 +68,26 @@ export PATH="$HOME/.local/bin:$PATH"
 export GIT_CONFIG_GLOBAL="$KOOLNA_DIR/.gitconfig"
 export MISE_TRUSTED_CONFIG_PATHS="${MISE_TRUSTED_CONFIG_PATHS:-/workspace}"
 
-phase() { echo "$1" > "$PHASE"; echo "[bootstrap] $1"; }
+# Track the last announced phase so the EXIT trap can name where we failed.
+# Same shape as session-manager's LAST_STEP tracker (entrypoint.sh:67-95).
+LAST_PHASE="starting"
+phase() { LAST_PHASE="$1"; echo "$1" > "$PHASE"; echo "[bootstrap] $1"; }
 
-rm -f "$READY"
+# On any non-zero exit, surface the failing phase via the dedicated marker
+# file and a Failed: <phase> (exit <rc>) string in $PHASE. The marker is
+# one-way state: once it exists, session-manager freezes the bootstrap-step
+# annotation so a late-arriving phase write can't overwrite the failure.
+# SIGKILL (e.g. OOM) bypasses this trap; those cases need cgroup-level fixes.
+on_exit() {
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "Failed: $LAST_PHASE (exit $rc)" > "$PHASE"
+    touch "$FAILED"
+  fi
+}
+trap on_exit EXIT
+
+rm -f "$READY" "$FAILED"
 
 if ! command -v mise >/dev/null 2>&1; then
   phase "Installing mise"
