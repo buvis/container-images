@@ -282,7 +282,14 @@ func bootstrappedCondition(pod *corev1.Pod, phase koolnav1alpha1.KoolnaPhase, ge
 		c.Status = metav1.ConditionFalse
 		c.Reason = koolnav1alpha1.ReasonBootstrapFailed
 		c.Message = step
-	case phase == koolnav1alpha1.KoolnaPhaseRunning:
+	case phase == koolnav1alpha1.KoolnaPhaseFailed:
+		// Pod-level failure (e.g. SIGKILL/OOM bypassing bootstrap.sh's trap).
+		// No Failed:-prefixed annotation, but the kubelet declared the pod
+		// dead, so Bootstrapped should not stay at Bootstrapping forever.
+		c.Status = metav1.ConditionFalse
+		c.Reason = koolnav1alpha1.ReasonBootstrapFailed
+		c.Message = "Pod failed"
+	case phase == koolnav1alpha1.KoolnaPhaseRunning && pod != nil:
 		c.Status = metav1.ConditionTrue
 		c.Reason = koolnav1alpha1.ReasonBootstrapped
 		c.Message = "Pod ready"
