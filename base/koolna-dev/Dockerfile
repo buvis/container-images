@@ -36,10 +36,4 @@ RUN curl -fsSL "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/${CA
   && bash /tmp/install-binstall.sh \
   && rm /tmp/install-binstall.sh
 
-# renovate: datasource=crate depName=zoxide
-ARG ZOXIDE_VERSION=0.9.9
-# renovate: datasource=crate depName=rumdl
-ARG RUMDL_VERSION=0.1.67
-RUN $HOME/.cargo/bin/cargo-binstall -y zoxide@${ZOXIDE_VERSION} rumdl@${RUMDL_VERSION}
-
 CMD ["sh", "-c", "exec sleep infinity"]
