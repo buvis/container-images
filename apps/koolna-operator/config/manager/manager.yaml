@@ -12,6 +12,8 @@ kind: Deployment
 metadata:
   name: operator
   namespace: system
+  annotations:
+    configmap.reloader.stakater.com/reload: "koolna-images"
   labels:
     control-plane: operator
     app.kubernetes.io/name: koolna-operator
