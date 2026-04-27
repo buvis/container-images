@@ -19,7 +19,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -96,8 +95,6 @@ func main() {
 	sessionManagerImage := os.Getenv(controller.EnvKoolnaSessionManagerImage)
 	if err := controller.ValidatePinnedImageEnv(gitCloneImage, sessionManagerImage); err != nil {
 		setupLog.Error(err, "pinned image env validation failed")
-		// stderr fallback in case the logger is not yet wired up
-		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
