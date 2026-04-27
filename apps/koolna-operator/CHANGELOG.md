@@ -4,6 +4,8 @@
 
 ### Added
 
+- **koolna-operator**: pin operator-managed image references via the new `koolna-images` ConfigMap (loaded via `envFrom` and tracked by Renovate); operator now refuses to start if `KOOLNA_GIT_CLONE_IMAGE` or `KOOLNA_SESSION_MANAGER_IMAGE` is unset, so a missing pin surfaces as a deploy-time crash instead of silently shipping `:latest`
+- **koolna-operator**: `spec.images.gitClone` and `spec.images.sessionManager` per-CR override fields for testing pinned digests; override → ConfigMap-default precedence
 - **koolna-operator**: surface bootstrap state via a typed `Bootstrapped` condition on `Koolna.Status.Conditions` (Reasons: `Bootstrapped`, `BootstrapFailed`, `Bootstrapping`); a `Failed:` prefix in the `koolna.buvis.net/bootstrap-step` annotation drives the condition to `BootstrapFailed` so failures surface in seconds instead of after the 40-minute startup-probe ceiling
 - **koolna-operator**: `Bootstrapped` printer column so `kubectl get koolna` shows bootstrap state inline alongside Phase/Repo/Branch/Age
 - **koolna-operator**: `spec.runAsUser` (optional, default 1000) controls the UID the koolna container runs as and the owner of workspace/cache volumes.
