@@ -51,6 +51,17 @@ const (
 type KoolnaReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	// GitCloneImage is the default reference for the koolna-git-clone init
+	// container, loaded from the KOOLNA_GIT_CLONE_IMAGE env var at startup.
+	// Per-CR Spec.Images.GitClone overrides this value when set.
+	GitCloneImage string
+
+	// SessionManagerImage is the default reference for the
+	// koolna-session-manager sidecar, loaded from the
+	// KOOLNA_SESSION_MANAGER_IMAGE env var at startup. Per-CR
+	// Spec.Images.SessionManager overrides this value when set.
+	SessionManagerImage string
 }
 
 // +kubebuilder:rbac:groups=koolna.buvis.net,resources=koolnas,verbs=get;list;watch;create;update;patch;delete

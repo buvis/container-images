@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -86,6 +87,19 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	// Pinned image references for operator-managed containers come from
+	// env vars populated via the koolna-images ConfigMap (envFrom). The
+	// operator refuses to start without them so a missing pin surfaces as
+	// a deploy-time crash rather than a silent `:latest` fallback.
+	gitCloneImage := os.Getenv(controller.EnvKoolnaGitCloneImage)
+	sessionManagerImage := os.Getenv(controller.EnvKoolnaSessionManagerImage)
+	if err := controller.ValidatePinnedImageEnv(gitCloneImage, sessionManagerImage); err != nil {
+		setupLog.Error(err, "pinned image env validation failed")
+		// stderr fallback in case the logger is not yet wired up
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
@@ -179,8 +193,10 @@ func main() {
 	}
 
 	if err := (&controller.KoolnaReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		GitCloneImage:       gitCloneImage,
+		SessionManagerImage: sessionManagerImage,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Koolna")
 		os.Exit(1)
