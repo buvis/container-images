@@ -202,6 +202,108 @@ var _ = Describe("Koolna Controller", func() {
 		})
 	})
 
+	Context("When using Spec.Images overrides", func() {
+		const resourceName = "test-images-override"
+		const overrideGitClone = "ghcr.io/buvis/koolna-git-clone:override@sha256:cafe000000000000000000000000000000000000000000000000000000000000"
+		const overrideSessionManager = "ghcr.io/buvis/koolna-session-manager:override@sha256:beef000000000000000000000000000000000000000000000000000000000000"
+
+		AfterEach(func() {
+			cleanupKoolna(resourceName, "default")
+		})
+
+		It("should propagate Spec.Images.SessionManager and GitClone overrides into the rendered pod", func() {
+			gc := overrideGitClone
+			sm := overrideSessionManager
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+					Images: &koolnav1alpha1.KoolnaImages{
+						GitClone:       &gc,
+						SessionManager: &sm,
+					},
+				},
+			}
+
+			By("Creating the Koolna resource with image overrides")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Verifying overrides flow through to the rendered Pod")
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName,
+				Namespace: "default",
+			}, pod)).To(Succeed())
+
+			Expect(pod.Spec.InitContainers).To(HaveLen(1))
+			Expect(pod.Spec.InitContainers[0].Name).To(Equal("git-clone"))
+			Expect(pod.Spec.InitContainers[0].Image).To(Equal(overrideGitClone),
+				"per-CR Spec.Images.GitClone override should reach the init container")
+
+			var sidecarImage string
+			for _, c := range pod.Spec.Containers {
+				if c.Name == "session-manager" {
+					sidecarImage = c.Image
+				}
+			}
+			Expect(sidecarImage).To(Equal(overrideSessionManager),
+				"per-CR Spec.Images.SessionManager override should reach the sidecar")
+		})
+
+		It("should fall back to ConfigMap defaults when Spec.Images is unset", func() {
+			koolna := &koolnav1alpha1.Koolna{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      resourceName,
+					Namespace: "default",
+				},
+				Spec: koolnav1alpha1.KoolnaSpec{
+					Repo:    "https://github.com/owner/repo",
+					Branch:  "main",
+					Image:   "ghcr.io/buvis/koolna-base:latest",
+					Storage: resource.MustParse("1Gi"),
+				},
+			}
+
+			By("Creating the Koolna resource without overrides")
+			Expect(k8sClient.Create(ctx, koolna)).To(Succeed())
+
+			By("Reconciling to create resources")
+			_, err := reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{Name: resourceName, Namespace: "default"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Verifying ConfigMap defaults (set on the reconciler) flow through")
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      resourceName,
+				Namespace: "default",
+			}, pod)).To(Succeed())
+
+			Expect(pod.Spec.InitContainers[0].Image).To(Equal(testGitCloneImage))
+
+			var sidecarImage string
+			for _, c := range pod.Spec.Containers {
+				if c.Name == "session-manager" {
+					sidecarImage = c.Image
+				}
+			}
+			Expect(sidecarImage).To(Equal(testSessionManagerImage))
+		})
+	})
+
 	Context("When suspending Koolna", func() {
 		const resourceName = "test-suspend"
 
