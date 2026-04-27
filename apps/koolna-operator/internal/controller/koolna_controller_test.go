@@ -41,8 +41,10 @@ var _ = Describe("Koolna Controller", func() {
 
 	BeforeEach(func() {
 		reconciler = &KoolnaReconciler{
-			Client: k8sClient,
-			Scheme: k8sClient.Scheme(),
+			Client:              k8sClient,
+			Scheme:              k8sClient.Scheme(),
+			GitCloneImage:       testGitCloneImage,
+			SessionManagerImage: testSessionManagerImage,
 		}
 	})
 
@@ -139,7 +141,7 @@ var _ = Describe("Koolna Controller", func() {
 
 			sidecar := pod.Spec.Containers[1]
 			Expect(sidecar.Name).To(Equal("session-manager"))
-			Expect(sidecar.Image).To(Equal("ghcr.io/buvis/koolna-session-manager:latest"))
+			Expect(sidecar.Image).To(Equal(testSessionManagerImage))
 			Expect(sidecar.SecurityContext.Capabilities.Add).To(ContainElement(corev1.Capability("SYS_PTRACE")))
 			Expect(sidecar.VolumeMounts).To(HaveLen(2))
 			Expect(sidecar.VolumeMounts[0].Name).To(Equal("workspace"))
