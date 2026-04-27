@@ -76,6 +76,12 @@ PHASE="$KOOLNA_DIR/phase"
 FAILED="$KOOLNA_DIR/failed"
 PID_FILE="$KOOLNA_DIR/pid"
 
+# Clear stale signal files from any previous incarnation BEFORE publishing our
+# PID. session-manager waits for $PID_FILE before honoring $FAILED/$PHASE, so
+# this ordering guarantees the sidecar never observes leftover failure state
+# from a prior run as if it belonged to this one.
+rm -f "$READY" "$FAILED" "$PHASE"
+
 # Record our PID so the session-manager sidecar can nsenter into the right
 # process. Writing before any exec keeps the PID stable for the container's
 # lifetime: the final "exec sleep infinity" replaces this shell in place.
@@ -103,8 +109,6 @@ on_exit() {
   fi
 }
 trap on_exit EXIT
-
-rm -f "$READY" "$FAILED"
 
 if ! command -v mise >/dev/null 2>&1; then
   phase "Installing mise"
