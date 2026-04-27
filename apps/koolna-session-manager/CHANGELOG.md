@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-session-manager**: stop forwarding phase writes once `/cache/.koolna/failed` appears so a late-arriving phase string from a child process can't overwrite the recorded bootstrap-failure message; the sidecar then exits non-zero so the pod surfaces as not-ready
+
 ### Changed
 
 - **koolna-session-manager**: locate koolna's PID by reading `/cache/.koolna/pid` (written by bootstrap.sh) instead of scanning `/proc` for a `sleep infinity` cmdline. The old scan failed during the install phase because bootstrap.sh's cmdline isn't `sleep infinity` until the install completes.

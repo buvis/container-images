@@ -380,6 +380,7 @@ NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
 # un-ready and an operator can investigate via `kubectl logs ... -c koolna`.
 READY_MARKER="$KOOLNA_DIR/ready"
 PHASE_FILE="$KOOLNA_DIR/phase"
+FAILED_MARKER="$KOOLNA_DIR/failed"
 last_phase=""
 while [ ! -f "$READY_MARKER" ]; do
   if [ -f "$PHASE_FILE" ]; then
@@ -389,8 +390,24 @@ while [ ! -f "$READY_MARKER" ]; do
       last_phase="$cur_phase"
     fi
   fi
+  # Failed marker is one-way state set by bootstrap.sh's EXIT trap. Forward
+  # the final phase string once and stop polling so a late phase write from
+  # a child process can't overwrite the recorded failure.
+  if [ -f "$FAILED_MARKER" ]; then
+    break
+  fi
   sleep 2
 done
+
+if [ -f "$FAILED_MARKER" ]; then
+  # The phase string written by bootstrap.sh's trap is already in
+  # "Failed: <phase> (exit <rc>)" shape. Clear our own EXIT trap before
+  # exiting so it doesn't re-wrap that string with another "Failed: ..."
+  # prefix when we exit non-zero.
+  echo "bootstrap failed: $(cat "$PHASE_FILE" 2>/dev/null || echo unknown)"
+  trap - EXIT
+  exit 1
+fi
 
 export LANG=C.UTF-8
 export LC_CTYPE=C.UTF-8
