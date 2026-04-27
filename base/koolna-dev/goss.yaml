@@ -24,3 +24,17 @@ command:
     exit-status: 0
   rumdl --version:
     exit-status: 0
+  buvis-gems --version:
+    exit-status: 0
+  yt-dlp --version:
+    exit-status: 0
+  beet --version:
+    exit-status: 0
+  gita --version:
+    exit-status: 0
+  copilot --version:
+    exit-status: 0
+  pake --version:
+    exit-status: 0
+  claude --version:
+    exit-status: 0
