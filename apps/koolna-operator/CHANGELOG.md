@@ -6,6 +6,10 @@
 
 - **koolna-operator**: surface bootstrap state via a typed `Bootstrapped` condition on `Koolna.Status.Conditions` (Reasons: `Bootstrapped`, `BootstrapFailed`, `Bootstrapping`); a `Failed:` prefix in the `koolna.buvis.net/bootstrap-step` annotation drives the condition to `BootstrapFailed` so failures surface in seconds instead of after the 40-minute startup-probe ceiling
 - **koolna-operator**: `Bootstrapped` printer column so `kubectl get koolna` shows bootstrap state inline alongside Phase/Repo/Branch/Age
+- **koolna-operator**: `spec.runAsUser` (optional, default 1000) controls the UID the koolna container runs as and the owner of workspace/cache volumes.
+- **koolna-operator**: default resource requests and limits on both the `koolna` and `session-manager` containers, making pods Guaranteed/Burstable in a predictable way and protecting node capacity during the first-start install storm.
+- **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
+- **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates
 
 ### Changed
 
@@ -22,13 +26,6 @@
 - **koolna-operator**: mark the ssh-pubkey ConfigMap volume Optional so clearing `spec.sshPublicKey` (which deletes the ConfigMap) does not brick an existing pod on restart.
 - **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget
 - **koolna-operator**: readiness probe checks for the real `manager` tmux session so the Koolna CR only flips to Running once attach will actually succeed (prevents webui from enabling session buttons that fail with "session not found" while dotfiles is still installing)
-
-### Added
-
-- **koolna-operator**: `spec.runAsUser` (optional, default 1000) controls the UID the koolna container runs as and the owner of workspace/cache volumes.
-- **koolna-operator**: default resource requests and limits on both the `koolna` and `session-manager` containers, making pods Guaranteed/Burstable in a predictable way and protecting node capacity during the first-start install storm.
-- **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
-- **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates
 
 ### Removed
 
