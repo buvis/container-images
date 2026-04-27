@@ -51,7 +51,7 @@ exec`) can participate in the protocol.
 
 ### Forwarding
 
-`koolna-session-manager` polls `phase` (currently every 0.5s) and patches
+`koolna-session-manager` polls `phase` (currently every 1s) and patches
 each new value into the pod's `koolna.buvis.net/bootstrap-step` annotation.
 The koolna-operator mirrors that annotation into `Koolna.Status.Phase` and
 the typed `Bootstrapped` condition.
