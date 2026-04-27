@@ -396,7 +396,7 @@ while [ ! -f "$READY_MARKER" ]; do
   if [ -f "$FAILED_MARKER" ]; then
     break
   fi
-  sleep 0.5
+  sleep 1
 done
 
 if [ -f "$FAILED_MARKER" ]; then
