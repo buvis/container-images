@@ -258,7 +258,45 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	}
 
 	meta.SetStatusCondition(&koolna.Status.Conditions, condition)
+	meta.SetStatusCondition(&koolna.Status.Conditions, bootstrappedCondition(pod, koolna.Status.Phase, koolna.Generation))
 	return r.Status().Update(ctx, koolna)
+}
+
+// bootstrappedCondition derives the typed Bootstrapped condition from the
+// pod's bootstrap-step annotation and the resolved Koolna phase. It branches
+// on a Failed: prefix in the annotation rather than the Phase string so a
+// failure surfaces immediately even if Phase has not yet caught up.
+func bootstrappedCondition(pod *corev1.Pod, phase koolnav1alpha1.KoolnaPhase, generation int64) metav1.Condition {
+	c := metav1.Condition{
+		Type:               "Bootstrapped",
+		ObservedGeneration: generation,
+	}
+
+	step := ""
+	if pod != nil {
+		step = pod.Annotations["koolna.buvis.net/bootstrap-step"]
+	}
+
+	switch {
+	case strings.HasPrefix(step, "Failed:"):
+		c.Status = metav1.ConditionFalse
+		c.Reason = koolnav1alpha1.ReasonBootstrapFailed
+		c.Message = step
+	case phase == koolnav1alpha1.KoolnaPhaseRunning:
+		c.Status = metav1.ConditionTrue
+		c.Reason = koolnav1alpha1.ReasonBootstrapped
+		c.Message = "Pod ready"
+	default:
+		c.Status = metav1.ConditionFalse
+		c.Reason = koolnav1alpha1.ReasonBootstrapping
+		if step != "" {
+			c.Message = step
+		} else {
+			c.Message = string(phase)
+		}
+	}
+
+	return c
 }
 
 func (r *KoolnaReconciler) handleDeletion(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
