@@ -122,7 +122,7 @@ spec:
     sessionManager: "ghcr.io/buvis/koolna-session-manager:v0.4.1@sha256:..."
 ```
 
-When set, the override wins. When unset (or empty), the ConfigMap default applies.
+Precedence: a non-empty `Spec.Images.<x>` wins; an unset field or an explicit empty string both fall through to the ConfigMap default. The CRD also enforces a digest-pinned format (`repo:tag@sha256:<64hex>`) — bare tags such as `:latest` are rejected at admission.
 
 ### 2. `koolna-images` ConfigMap (default for the cluster)
 
