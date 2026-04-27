@@ -9,6 +9,20 @@
       "matchPackageNames": ["python"],
       "matchManagers": ["mise"],
       "groupName": "python"
+    },
+    {
+      "matchPackageNames": [
+        "k8s.io/api",
+        "k8s.io/apimachinery",
+        "k8s.io/client-go",
+        "k8s.io/apiextensions-apiserver",
+        "k8s.io/apiserver",
+        "k8s.io/component-base",
+        "sigs.k8s.io/controller-runtime"
+      ],
+      "matchManagers": ["gomod"],
+      "groupName": "kubernetes",
+      "allowedVersions": "<0.36.0"
     }
   ]
 }
