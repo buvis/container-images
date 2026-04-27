@@ -28,6 +28,7 @@ RUN bash -c 'eval "$(mise activate bash)" && mise install'
 ARG TREE_SITTER_CLI_VERSION=0.26.8
 RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TREE_SITTER_CLI_VERSION}'
 
+# Runtime convenience: kept for users adding cargo: tools at runtime
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
 ARG CARGO_BINSTALL_VERSION=v1.18.1
 ARG CARGO_BINSTALL_SHA256=c2e963fbab3bdd8653b59c28d349bf85740cf4998e5e398d250dcd2884cd667d
