@@ -24,9 +24,9 @@ command:
     exit-status: 0
   rumdl --version:
     exit-status: 0
-  dot --version:
+  dot --help:
     exit-status: 0
-  pidash --version:
+  pidash --help:
     exit-status: 0
   yt-dlp --version:
     exit-status: 0
