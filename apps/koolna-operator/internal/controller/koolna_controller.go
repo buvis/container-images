@@ -553,7 +553,11 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	if err != nil {
 		return nil, err
 	}
-	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles, gitCloneImage)
+	sessionManagerImage, err := r.resolveSessionManagerImage(koolna)
+	if err != nil {
+		return nil, err
+	}
+	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles, gitCloneImage, sessionManagerImage)
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -755,7 +759,7 @@ func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
 	}
 }
 
-func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig, gitCloneImage string) *corev1.Pod {
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig, gitCloneImage, sessionManagerImage string) *corev1.Pod {
 	shareProcessNamespace := true
 
 	shell := koolna.Spec.Shell
@@ -870,7 +874,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 				},
 				{
 					Name:      "session-manager",
-					Image:     "ghcr.io/buvis/koolna-session-manager:latest",
+					Image:     sessionManagerImage,
 					Command:   []string{"/entrypoint.sh"},
 					Resources: resolveContainerResources(sessionManagerDefaultResources, koolna.Spec.Resources.SessionManager),
 					EnvFrom:   envFrom,
