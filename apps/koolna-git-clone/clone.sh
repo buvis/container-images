@@ -103,7 +103,7 @@ fi
 mise trust /workspace 2>/dev/null || true
 
 if [ -n "${DOTFILES_METHOD:-}" ] && [ "$DOTFILES_METHOD" != "none" ]; then
-  phase "Installing dotfiles"
+  phase "Cloning dotfiles"
   case "$DOTFILES_METHOD" in
     bare-git)
       bare_dir="$HOME/${DOTFILES_BARE_DIR:-.cfg}"
@@ -115,6 +115,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "$DOTFILES_METHOD" != "none" ]; then
         fi
         cp -a "$cache" "$bare_dir"
         git --git-dir="$bare_dir" --work-tree="$HOME" config status.showUntrackedFiles no
+        phase "Running dotfiles install"
         git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>/dev/null || {
           mkdir -p "$bare_dir/backup"
           git --git-dir="$bare_dir" --work-tree="$HOME" checkout 2>&1 \
@@ -126,11 +127,13 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "$DOTFILES_METHOD" != "none" ]; then
         }
       else
         git --git-dir="$bare_dir" --work-tree="$HOME" fetch origin || true
+        phase "Running dotfiles install"
         git --git-dir="$bare_dir" --work-tree="$HOME" merge --ff-only || true
       fi
       git --git-dir="$bare_dir" --work-tree="$HOME" submodule update --init || true
       ;;
     command)
+      phase "Running dotfiles install"
       sh -c "${DOTFILES_COMMAND:-true}"
       ;;
     clone)
@@ -139,6 +142,7 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "$DOTFILES_METHOD" != "none" ]; then
       else
         git -C "$HOME/.dotfiles" pull --ff-only || true
       fi
+      phase "Running dotfiles install"
       ;;
   esac
 fi

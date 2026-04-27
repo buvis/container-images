@@ -5,6 +5,7 @@
 ### Added
 
 - **koolna-git-clone**: bootstrap.sh now traps non-zero exits, writes `Failed: <phase> (exit <rc>)` to `/cache/.koolna/phase`, and touches `/cache/.koolna/failed` so the session-manager and operator can surface bootstrap failures within seconds instead of waiting for the 40-minute startup-probe ceiling
+- **koolna-git-clone**: bootstrap.sh emits finer dotfiles sub-phases `Cloning dotfiles` and `Running dotfiles install` (replacing the coarser `Installing dotfiles`) so the bootstrap-step annotation distinguishes network-bound clone time from install/checkout time
 - **koolna-git-clone**: also write `/cache/.koolna/bootstrap.sh` and chown `/cache` + `/workspace` to `KOOLNA_UID`/`KOOLNA_GID`. The koolna container now execs that script as PID 1, so dotfiles install and `mise install` run inside koolna's own cgroup (8Gi limit) instead of the sidecar's 512Mi. The script self-installs mise on cold images that lack it.
 - **koolna-git-clone**: bootstrap.sh writes its PID to `/cache/.koolna/pid` as its first action so the session-manager sidecar can locate it without scanning `/proc` for a changing cmdline.
 
