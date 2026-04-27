@@ -63,6 +63,14 @@ type KoolnaSpec struct {
 	// +optional
 	Resources KoolnaResources `json:"resources,omitempty"`
 
+	// Images overrides the operator-managed container image references.
+	// When a field is omitted, the default from the koolna-images ConfigMap
+	// (loaded by the operator at startup) is used. Per-CR overrides are
+	// intended for testing pinned digests; production deployments should
+	// rely on the ConfigMap-driven defaults.
+	// +optional
+	Images *KoolnaImages `json:"images,omitempty"`
+
 	Suspended      bool           `json:"suspended,omitempty"`
 	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
 
@@ -86,6 +94,22 @@ type KoolnaResources struct {
 	// SessionManager overrides resource requirements for the `session-manager` sidecar.
 	// +optional
 	SessionManager *corev1.ResourceRequirements `json:"session-manager,omitempty"`
+}
+
+// KoolnaImages overrides the operator-managed container image references on
+// a per-CR basis. Each field accepts a full image reference (preferably a
+// digest-pinned form like `repo:tag@sha256:...`). When unset or empty, the
+// operator falls back to the value loaded from the koolna-images ConfigMap
+// at startup. Used primarily for testing pinned digests; routine bumps go
+// through the ConfigMap so Renovate can track them.
+type KoolnaImages struct {
+	// GitClone overrides the koolna-git-clone init-container image.
+	// +optional
+	GitClone *string `json:"gitClone,omitempty"`
+
+	// SessionManager overrides the koolna-session-manager sidecar image.
+	// +optional
+	SessionManager *string `json:"sessionManager,omitempty"`
 }
 
 // KoolnaPhase indicates the current lifecycle phase of a Koolna.
