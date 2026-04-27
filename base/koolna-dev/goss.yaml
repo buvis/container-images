@@ -24,7 +24,9 @@ command:
     exit-status: 0
   rumdl --version:
     exit-status: 0
-  buvis-gems --version:
+  dot --version:
+    exit-status: 0
+  pidash --version:
     exit-status: 0
   yt-dlp --version:
     exit-status: 0
