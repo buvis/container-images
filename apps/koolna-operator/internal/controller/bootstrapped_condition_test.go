@@ -107,3 +107,62 @@ func TestBootstrappedCondition_FailedPrefixedAnnotationOverridesPhase(t *testing
 		t.Errorf("Failed: annotation must dominate even when Phase=Running, got Reason=%q", got.Reason)
 	}
 }
+
+func TestBootstrappedCondition_PodFailedPhaseReportsBootstrapFailed(t *testing.T) {
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{}}
+
+	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 4)
+
+	if got.Status != metav1.ConditionFalse {
+		t.Errorf("expected ConditionFalse for pod-level failure, got %s", got.Status)
+	}
+	if got.Reason != koolnav1alpha1.ReasonBootstrapFailed {
+		t.Errorf("expected Reason=%s, got %q", koolnav1alpha1.ReasonBootstrapFailed, got.Reason)
+	}
+}
+
+func TestBootstrappedCondition_PodWithNilAnnotationsReportsBootstrapping(t *testing.T) {
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{}}
+
+	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
+
+	if got.Status != metav1.ConditionFalse {
+		t.Errorf("expected ConditionFalse, got %s", got.Status)
+	}
+	if got.Reason != koolnav1alpha1.ReasonBootstrapping {
+		t.Errorf("expected Reason=%s, got %q", koolnav1alpha1.ReasonBootstrapping, got.Reason)
+	}
+	if got.Message != "Bootstrapping" {
+		t.Errorf("expected Message=Bootstrapping, got %q", got.Message)
+	}
+}
+
+func TestBootstrappedCondition_EmptyFailedPrefixedAnnotation(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"koolna.buvis.net/bootstrap-step": "Failed:",
+			},
+		},
+	}
+
+	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase("Failed:"), 1)
+
+	if got.Reason != koolnav1alpha1.ReasonBootstrapFailed {
+		t.Errorf("expected BootstrapFailed for Failed:-prefix even with empty body, got %q", got.Reason)
+	}
+	if got.Message != "Failed:" {
+		t.Errorf("expected Message=Failed:, got %q", got.Message)
+	}
+}
+
+func TestBootstrappedCondition_NilPodWithRunningPhaseReportsBootstrapping(t *testing.T) {
+	got := bootstrappedCondition(nil, koolnav1alpha1.KoolnaPhaseRunning, 1)
+
+	if got.Status == metav1.ConditionTrue {
+		t.Errorf("nil pod must not produce Bootstrapped=True, got %s", got.Status)
+	}
+	if got.Reason != koolnav1alpha1.ReasonBootstrapping {
+		t.Errorf("expected Reason=%s for nil-pod guard, got %q", koolnav1alpha1.ReasonBootstrapping, got.Reason)
+	}
+}
