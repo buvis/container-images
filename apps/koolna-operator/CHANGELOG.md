@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-operator**: surface bootstrap state via a typed `Bootstrapped` condition on `Koolna.Status.Conditions` (Reasons: `Bootstrapped`, `BootstrapFailed`, `Bootstrapping`); a `Failed:` prefix in the `koolna.buvis.net/bootstrap-step` annotation drives the condition to `BootstrapFailed` so failures surface in seconds instead of after the 40-minute startup-probe ceiling
+- **koolna-operator**: `Bootstrapped` printer column so `kubectl get koolna` shows bootstrap state inline alongside Phase/Repo/Branch/Age
+
 ### Changed
 
+- **koolna-operator**: bump session-manager `StartupProbe.InitialDelaySeconds` to 60s so the kubelet stops emitting `Unhealthy: Startup probe failed` events during the first minute of pod startup
 - **koolna-operator**: run dotfiles install and `mise install` as PID 1 of the koolna container instead of via `nsenter` from the sidecar. The koolna container now execs `/cache/.koolna/bootstrap.sh` (written by koolna-git-clone), runs under `securityContext.runAsUser/Group`, and receives the `DOTFILES_*`/`INIT_COMMAND` env vars. Memory bills to the koolna cgroup (8Gi) instead of the sidecar's smaller limit, fixing first-start OOMKills on heavy installs.
 - **koolna-operator**: replace the inline `alpine/git` init container (shell script embedded in Go) with the dedicated `ghcr.io/buvis/koolna-git-clone` image, keeping the pod spec under `kubectl describe` readable and letting the image move independently of the operator.
 - **koolna-operator**: `spec.resources` is now per-container (`koolna`, `session-manager`); the previous flat `ResourceRequirements` shape is no longer accepted. Operator defaults apply when fields are omitted, and overrides merge by key (set `limits.cpu` alone without losing default memory limit).
