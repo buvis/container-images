@@ -11,6 +11,11 @@
       "groupName": "python"
     },
     {
+      "matchManagers": ["mise"],
+      "matchFileNames": ["base/koolna-dev/assets/config/mise/config.toml"],
+      "groupName": "koolna-dev mise tools"
+    },
+    {
       "matchPackageNames": [
         "k8s.io/api",
         "k8s.io/apimachinery",
