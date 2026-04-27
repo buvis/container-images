@@ -159,7 +159,6 @@ if [ -n "${DOTFILES_METHOD:-}" ] && [ "$DOTFILES_METHOD" != "none" ]; then
       else
         git -C "$HOME/.dotfiles" pull --ff-only || true
       fi
-      phase "Running dotfiles install"
       ;;
   esac
 fi
