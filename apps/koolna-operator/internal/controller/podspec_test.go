@@ -88,30 +88,36 @@ func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 	t.Error("koolna container not found")
 }
 
-func TestBuildPodSpec_XDGAndMiseEnvVars(t *testing.T) {
+func TestBuildPodSpec_MiseTrustedConfigPath(t *testing.T) {
 	koolna := minimalKoolna()
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
 
-	want := map[string]string{
-		"XDG_CACHE_HOME":            "/cache",
-		"MISE_CACHE_DIR":            "/cache/mise",
-		"MISE_TRUSTED_CONFIG_PATHS": "/workspace",
+	// Cache dirs (XDG_CACHE_HOME, MISE_CACHE_DIR, UV_CACHE_DIR) must NOT be
+	// pinned to /cache. Pinning them to the cache PVC puts the cache on a
+	// different filesystem from the install target ($HOME/.local/share/mise on
+	// overlay), which defeats hardlinks and produces "Failed to hardlink files"
+	// warnings on every install.
+	disallowed := map[string]struct{}{
+		"XDG_CACHE_HOME": {},
+		"MISE_CACHE_DIR": {},
+		"UV_CACHE_DIR":   {},
 	}
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "koolna" {
 			continue
 		}
-		got := make(map[string]string)
+		var miseTrusted string
 		for _, e := range c.Env {
-			if _, ok := want[e.Name]; ok {
-				got[e.Name] = e.Value
+			if _, bad := disallowed[e.Name]; bad {
+				t.Errorf("main container env %s must not be set (pinning caches to /cache breaks hardlinks)", e.Name)
+			}
+			if e.Name == "MISE_TRUSTED_CONFIG_PATHS" {
+				miseTrusted = e.Value
 			}
 		}
-		for k, v := range want {
-			if got[k] != v {
-				t.Errorf("main container env %s: got %q, want %q", k, got[k], v)
-			}
+		if miseTrusted != "/workspace" {
+			t.Errorf("main container env MISE_TRUSTED_CONFIG_PATHS: got %q, want /workspace", miseTrusted)
 		}
 		return
 	}
