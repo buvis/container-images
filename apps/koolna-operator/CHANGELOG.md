@@ -11,7 +11,7 @@
 
 ### Fixed
 
-- **koolna-operator**: stop pinning mise/uv caches to `/cache` on the koolna container — drop `XDG_CACHE_HOME`, `MISE_CACHE_DIR`, and `UV_CACHE_DIR` env vars so caches default to `$HOME/.cache/{mise,uv}` on overlay FS (same FS as install target), restoring hardlinks and silencing "Failed to hardlink files" warnings
+- **koolna-operator**: stop pinning mise/uv caches to `/cache` on the koolna container; drop `XDG_CACHE_HOME`, `MISE_CACHE_DIR`, and `UV_CACHE_DIR` env vars so caches default to `$HOME/.cache/{mise,uv}` on overlay FS (same FS as install target), restoring hardlinks and silencing "Failed to hardlink files" warnings
 - **koolna-operator**: replace `tmux has-session` probe with a `test -f /tmp/koolna-ready` sentinel written by the entrypoint, removing the tmux exec that otherwise ran every 30s for the pod's lifetime. Also removes spurious `Unhealthy: can't find session: manager` events during bootstrap.
 - **koolna-operator**: mark the ssh-pubkey ConfigMap volume Optional so clearing `spec.sshPublicKey` (which deletes the ConfigMap) does not brick an existing pod on restart.
 - **koolna-operator**: stop spamming Unhealthy events during dotfiles install by gating session-manager readiness behind a startup probe with a 40-minute budget
@@ -20,7 +20,6 @@
 ### Added
 
 - **koolna-operator**: `spec.runAsUser` (optional, default 1000) controls the UID the koolna container runs as and the owner of workspace/cache volumes.
-- **koolna-operator**: set `UV_CACHE_DIR=/cache/uv` on the koolna container so `uv` downloads land on the cache PVC and survive pod restarts, avoiding re-downloads of scipy/numba/llvmlite on every restart.
 - **koolna-operator**: default resource requests and limits on both the `koolna` and `session-manager` containers, making pods Guaranteed/Burstable in a predictable way and protecting node capacity during the first-start install storm.
 - **koolna-operator**: `Bootstrapping` phase when pod is running but session-manager is not yet ready, with condition message showing the current bootstrap step (Installing dotfiles, Syncing credentials, Installing tools, etc.)
 - **koolna-operator**: watch owned pods so annotation changes from session-manager trigger reconcile updates
