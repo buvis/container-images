@@ -209,6 +209,13 @@ func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 		if budget < 1800 {
 			t.Errorf("session-manager StartupProbe budget %ds is too tight for dotfiles install", budget)
 		}
+		// Initial delay silences the kubelet's "Unhealthy: Startup probe
+		// failed" warnings during the first minute of pod startup. The
+		// Bootstrapped condition surfaces real failures within seconds,
+		// so the kubelet never needs to learn about them via probe noise.
+		if c.StartupProbe.InitialDelaySeconds != 60 {
+			t.Errorf("session-manager StartupProbe should delay initial probing to 60s so kubelet stops logging Unhealthy events during the first minute of bootstrap, got %d", c.StartupProbe.InitialDelaySeconds)
+		}
 		if c.ReadinessProbe == nil {
 			t.Fatal("session-manager: expected ReadinessProbe to be set")
 		}
