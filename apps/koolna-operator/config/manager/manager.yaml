@@ -46,6 +46,9 @@ spec:
         image: ghcr.io/buvis/koolna-operator:latest
         imagePullPolicy: Always
         name: manager
+        envFrom:
+          - configMapRef:
+              name: koolna-images
         ports: []
         securityContext:
           readOnlyRootFilesystem: true
