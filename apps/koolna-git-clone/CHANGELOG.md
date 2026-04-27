@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- **koolna-git-clone**: bootstrap.sh template no longer pins `MISE_CACHE_DIR`, `UV_CACHE_DIR`, or `XDG_CACHE_HOME` to `/cache`; mise/uv caches default to `$HOME/.cache` so they share the install target's filesystem, restoring hardlinks and silencing "Failed to hardlink files" warnings
 - **koolna-git-clone**: export `GIT_CONFIG_GLOBAL` before cloning so git reads the credential helper written to `/cache/.koolna/.gitconfig` (private repo clones previously failed with "could not read Username")
 
 ### Added

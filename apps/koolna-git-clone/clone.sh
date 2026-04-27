@@ -65,10 +65,7 @@ echo "$$" > "$PID_FILE"
 
 export PATH="$HOME/.local/bin:$PATH"
 export GIT_CONFIG_GLOBAL="$KOOLNA_DIR/.gitconfig"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-/cache}"
-export MISE_CACHE_DIR="${MISE_CACHE_DIR:-/cache/mise}"
 export MISE_TRUSTED_CONFIG_PATHS="${MISE_TRUSTED_CONFIG_PATHS:-/workspace}"
-export UV_CACHE_DIR="${UV_CACHE_DIR:-/cache/uv}"
 
 phase() { echo "$1" > "$PHASE"; echo "[bootstrap] $1"; }
 
