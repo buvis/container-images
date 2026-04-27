@@ -829,8 +829,9 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 								Command: []string{"test", "-f", "/tmp/koolna-ready"},
 							},
 						},
-						PeriodSeconds:    10,
-						FailureThreshold: 240,
+						InitialDelaySeconds: 60,
+						PeriodSeconds:       10,
+						FailureThreshold:    240,
 					},
 					ReadinessProbe: &corev1.Probe{
 						ProbeHandler: corev1.ProbeHandler{
