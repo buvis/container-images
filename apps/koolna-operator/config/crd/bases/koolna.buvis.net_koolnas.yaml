@@ -24,6 +24,9 @@ spec:
     - jsonPath: .spec.branch
       name: Branch
       type: string
+    - jsonPath: .status.conditions[?(@.type=="Bootstrapped")].status
+      name: Bootstrapped
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
