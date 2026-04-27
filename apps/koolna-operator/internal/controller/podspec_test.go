@@ -10,6 +10,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// testGitCloneImage is a placeholder pinned reference used by buildPodSpec
+// and buildGitCloneInitContainer in tests. The real default flows from the
+// koolna-images ConfigMap at runtime.
+const testGitCloneImage = "ghcr.io/buvis/koolna-git-clone:test@sha256:dead"
+
 func minimalKoolna() *koolnav1alpha1.Koolna {
 	return &koolnav1alpha1.Koolna{
 		ObjectMeta: metav1.ObjectMeta{
@@ -26,7 +31,7 @@ func minimalKoolna() *koolnav1alpha1.Koolna {
 
 func TestBuildPodSpec_WorkspaceMount(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	var wsFound, cacheFound bool
 	for _, c := range pod.Spec.Containers {
@@ -53,7 +58,7 @@ func TestBuildPodSpec_WorkspaceMount(t *testing.T) {
 
 func TestBuildPodSpec_WorkingDir(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name == "koolna" {
@@ -68,7 +73,7 @@ func TestBuildPodSpec_WorkingDir(t *testing.T) {
 
 func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "koolna" {
@@ -90,7 +95,7 @@ func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 
 func TestBuildPodSpec_MiseTrustedConfigPath(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	// Cache dirs (XDG_CACHE_HOME, MISE_CACHE_DIR, UV_CACHE_DIR) must NOT be
 	// pinned to /cache. Pinning them to the cache PVC puts the cache on a
@@ -126,7 +131,7 @@ func TestBuildPodSpec_MiseTrustedConfigPath(t *testing.T) {
 
 func TestBuildPodSpec_KoolnaRunsAsRequestedUser(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "koolna" {
@@ -150,7 +155,7 @@ func TestBuildPodSpec_KoolnaRunAsUserHonorsSpec(t *testing.T) {
 	koolna := minimalKoolna()
 	custom := int64(2000)
 	koolna.Spec.RunAsUser = &custom
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "koolna" {
@@ -166,7 +171,7 @@ func TestBuildPodSpec_KoolnaRunAsUserHonorsSpec(t *testing.T) {
 
 func TestBuildPodSpec_SidecarNoUserEnvVars(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	forbidden := []string{"KOOLNA_HOME", "KOOLNA_UID", "KOOLNA_USERNAME"}
 
@@ -188,7 +193,7 @@ func TestBuildPodSpec_SidecarNoUserEnvVars(t *testing.T) {
 
 func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, c := range pod.Spec.Containers {
 		if c.Name != "session-manager" {
@@ -235,7 +240,7 @@ func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 
 func TestBuildGitCloneInitContainer_WorkspaceMount(t *testing.T) {
 	koolna := minimalKoolna()
-	c := buildGitCloneInitContainer(koolna)
+	c := buildGitCloneInitContainer(koolna, testGitCloneImage)
 
 	var found bool
 	for _, vm := range c.VolumeMounts {
@@ -250,7 +255,7 @@ func TestBuildGitCloneInitContainer_WorkspaceMount(t *testing.T) {
 
 func TestBuildGitCloneInitContainer_UsesKoolnaGitCloneImage(t *testing.T) {
 	koolna := minimalKoolna()
-	c := buildGitCloneInitContainer(koolna)
+	c := buildGitCloneInitContainer(koolna, testGitCloneImage)
 
 	if !strings.HasPrefix(c.Image, "ghcr.io/buvis/koolna-git-clone") {
 		t.Errorf("init container image: got %q, want prefix ghcr.io/buvis/koolna-git-clone", c.Image)
@@ -262,7 +267,7 @@ func TestBuildGitCloneInitContainer_UsesKoolnaGitCloneImage(t *testing.T) {
 
 func TestBuildGitCloneInitContainer_RepoEnv(t *testing.T) {
 	koolna := minimalKoolna()
-	c := buildGitCloneInitContainer(koolna)
+	c := buildGitCloneInitContainer(koolna, testGitCloneImage)
 
 	envByName := make(map[string]string, len(c.Env))
 	for _, e := range c.Env {
@@ -279,7 +284,7 @@ func TestBuildGitCloneInitContainer_RepoEnv(t *testing.T) {
 func TestBuildGitCloneInitContainer_WithGitSecret(t *testing.T) {
 	koolna := minimalKoolna()
 	koolna.Spec.GitSecretRef = "my-git-secret"
-	c := buildGitCloneInitContainer(koolna)
+	c := buildGitCloneInitContainer(koolna, testGitCloneImage)
 
 	wanted := map[string]bool{"GIT_USERNAME": false, "GIT_TOKEN": false, "GIT_NAME": false, "GIT_EMAIL": false}
 	for _, e := range c.Env {
@@ -297,7 +302,7 @@ func TestBuildGitCloneInitContainer_WithGitSecret(t *testing.T) {
 func TestBuildGitCloneInitContainer_WithoutGitSecret(t *testing.T) {
 	koolna := minimalKoolna()
 	koolna.Spec.GitSecretRef = ""
-	c := buildGitCloneInitContainer(koolna)
+	c := buildGitCloneInitContainer(koolna, testGitCloneImage)
 
 	for _, e := range c.Env {
 		switch e.Name {
@@ -318,7 +323,7 @@ func TestCachePVCName(t *testing.T) {
 
 func TestBuildPodSpec_CacheVolumeIsPVC(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, v := range pod.Spec.Volumes {
 		if v.Name != cacheVolumeName {
@@ -334,7 +339,7 @@ func TestBuildPodSpec_CacheVolumeIsPVC(t *testing.T) {
 
 func TestBuildPodSpec_CacheVolumeMount(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	containers := []string{"koolna", "session-manager"}
 	for _, name := range containers {
@@ -366,7 +371,7 @@ func containerByName(pod *corev1.Pod, name string) *corev1.Container {
 
 func TestBuildPodSpec_DefaultResources_Koolna(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	c := containerByName(pod, "koolna")
 	if c == nil {
@@ -388,7 +393,7 @@ func TestBuildPodSpec_DefaultResources_Koolna(t *testing.T) {
 
 func TestBuildPodSpec_DefaultResources_SessionManager(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	c := containerByName(pod, "session-manager")
 	if c == nil {
@@ -417,7 +422,7 @@ func TestBuildPodSpec_KoolnaCPULimitOverride_KeepsDefaultMemory(t *testing.T) {
 			},
 		},
 	}
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	c := containerByName(pod, "koolna")
 	if c == nil {
@@ -437,7 +442,7 @@ func TestBuildPodSpec_KoolnaCPULimitOverride_KeepsDefaultMemory(t *testing.T) {
 func TestBuildPodSpec_SSHPubkeyMount(t *testing.T) {
 	koolna := minimalKoolna()
 	koolna.Spec.SSHPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample test@example"
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	var vol *corev1.Volume
 	for i := range pod.Spec.Volumes {
@@ -491,7 +496,7 @@ func TestBuildPodSpec_SSHPubkeyMount(t *testing.T) {
 
 func TestBuildPodSpec_NoSSHPubkey_NoVolumeOrMount(t *testing.T) {
 	koolna := minimalKoolna()
-	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, testGitCloneImage)
 
 	for _, v := range pod.Spec.Volumes {
 		if v.Name == sshPubkeyVolumeName {
@@ -510,7 +515,7 @@ func TestBuildPodSpec_NoSSHPubkey_NoVolumeOrMount(t *testing.T) {
 func TestBuildPodSpec_CacheVolumeClaimName(t *testing.T) {
 	koolna := minimalKoolna()
 	cacheName := "my-custom-cache"
-	pod := buildPodSpec(koolna, "test-workspace", cacheName, dotfilesConfig{})
+	pod := buildPodSpec(koolna, "test-workspace", cacheName, dotfilesConfig{}, testGitCloneImage)
 
 	for _, v := range pod.Spec.Volumes {
 		if v.Name != cacheVolumeName {

@@ -549,7 +549,11 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	}
 
 	dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles)
+	gitCloneImage, err := r.resolveGitCloneImage(koolna)
+	if err != nil {
+		return nil, err
+	}
+	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles, gitCloneImage)
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -636,7 +640,7 @@ func resolveRunAsUser(koolna *koolnav1alpha1.Koolna) int64 {
 	return 1000
 }
 
-func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container {
+func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, image string) corev1.Container {
 	repoURL := resolveRepoURL(koolna.Spec.Repo)
 	uid := resolveRunAsUser(koolna)
 	uidStr := strconv.FormatInt(uid, 10)
@@ -651,7 +655,7 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna) corev1.Container 
 
 	return corev1.Container{
 		Name:  "git-clone",
-		Image: "ghcr.io/buvis/koolna-git-clone:latest",
+		Image: image,
 		Env:   env,
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -751,7 +755,7 @@ func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
 	}
 }
 
-func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig) *corev1.Pod {
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig, gitCloneImage string) *corev1.Pod {
 	shareProcessNamespace := true
 
 	shell := koolna.Spec.Shell
@@ -847,7 +851,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 			ServiceAccountName:    "koolna-auth-syncer",
 			ShareProcessNamespace: &shareProcessNamespace,
 			InitContainers: []corev1.Container{
-				buildGitCloneInitContainer(koolna),
+				buildGitCloneInitContainer(koolna, gitCloneImage),
 			},
 			Containers: []corev1.Container{
 				{
