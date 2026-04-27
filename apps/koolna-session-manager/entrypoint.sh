@@ -400,11 +400,20 @@ while [ ! -f "$READY_MARKER" ]; do
 done
 
 if [ -f "$FAILED_MARKER" ]; then
+  # Final forward of the failure phase. Closes a race where the trap's
+  # phase write lands AFTER this iteration's read but BEFORE the marker
+  # check, leaving last_phase pointing at the pre-trap value. Re-reading
+  # here and forwarding when it differs guarantees the annotation reflects
+  # "Failed: <phase> (exit <rc>)" before we exit.
+  final_phase=$(cat "$PHASE_FILE" 2>/dev/null || echo unknown)
+  if [ -n "$final_phase" ] && [ "$final_phase" != "$last_phase" ]; then
+    set_bootstrap_step "$final_phase"
+  fi
   # The phase string written by bootstrap.sh's trap is already in
   # "Failed: <phase> (exit <rc>)" shape. Clear our own EXIT trap before
   # exiting so it doesn't re-wrap that string with another "Failed: ..."
   # prefix when we exit non-zero.
-  echo "bootstrap failed: $(cat "$PHASE_FILE" 2>/dev/null || echo unknown)"
+  echo "bootstrap failed: $final_phase"
   trap - EXIT
   exit 1
 fi
