@@ -17,8 +17,8 @@
 	<div class="flex-1 flex flex-col min-w-0">
 		<!-- Mobile Header -->
 		<header class="lg:hidden flex items-center h-16 px-4 border-b border-slate-800 bg-[#1E293B]">
-			<button 
-				onclick={() => isSidebarOpen = !isSidebarOpen} 
+			<button
+				onclick={() => isSidebarOpen = !isSidebarOpen}
 				class="text-white p-2 -ml-2 rounded-md hover:bg-slate-700/50"
 				aria-label="Open sidebar"
 			>

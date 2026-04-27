@@ -142,10 +142,10 @@
     {#if editing}
       <div class="space-y-4 rounded-lg border border-neutral-700 bg-neutral-800/50 p-6">
         <Input label="Title" bind:value={editForm.title} />
-        
+
         <div class="grid gap-4 sm:grid-cols-2">
           <Input type="date" label="Due Date" bind:value={editForm.due_date} />
-          
+
           <div>
             <label class="mb-1 block text-sm font-medium text-neutral-300">Status</label>
             <select bind:value={editForm.status} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
@@ -177,9 +177,9 @@
 
         <div>
           <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
-          <textarea 
-            bind:value={editForm.description} 
-            rows="6" 
+          <textarea
+            bind:value={editForm.description}
+            rows="6"
             class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           ></textarea>
         </div>
@@ -223,7 +223,7 @@
         {:else}
           <p class="text-sm italic text-neutral-500">No description provided.</p>
         {/if}
-        
+
         {#if task.activity_id}
            <div class="text-xs text-neutral-600 font-mono">Linked Activity: {task.activity_id}</div>
         {/if}

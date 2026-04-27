@@ -17,7 +17,7 @@
     $: activeTab = (['backfill', 'symbols', 'backups'].includes($page.url.searchParams.get('tab') || '')
         ? $page.url.searchParams.get('tab')
         : 'backfill') as 'backfill' | 'symbols' | 'backups';
-    
+
     // Backfill state
     let backfillProvider = 'cnb';
     let backfillLength = 30;
@@ -180,11 +180,11 @@
 
     <div class="max-w-4xl mx-auto">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
-            
+
             <!-- Backfill Tab -->
             {#if activeTab === 'backfill'}
                 <div class="space-y-6">
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label for="backfill-provider" class="block text-sm font-medium text-slate-300">Provider</label>
@@ -208,7 +208,7 @@
 
                         <div class="col-span-1 md:col-span-2 space-y-2 relative">
                             <label for="backfill-symbols" class="block text-sm font-medium text-slate-300">Symbols (optional)</label>
-                            
+
                             <!-- Multi-select container -->
                             <div class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white min-h-[42px] relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
                                 <div class="flex flex-wrap gap-2">
@@ -223,7 +223,7 @@
                                             </button>
                                         </span>
                                     {/each}
-                                    
+
                                     <input
                                         id="backfill-symbols"
                                         type="text"
@@ -262,7 +262,7 @@
                         </div>
                     </div>
 
-                    <button 
+                    <button
                         on:click={handleBackfill}
                         class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors"
                     >
@@ -311,7 +311,7 @@
             <!-- Symbols Tab -->
             {#if activeTab === 'symbols'}
                 <div class="space-y-6">
-                    
+
                     <div class="space-y-2 max-w-md">
                         <label for="symbols-provider" class="block text-sm font-medium text-slate-300">Provider</label>
                         <select id="symbols-provider" bind:value={symbolsProvider} class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
@@ -339,10 +339,10 @@
             <!-- Backups Tab -->
             {#if activeTab === 'backups'}
                 <div class="space-y-6">
-                    
+
                     <div class="bg-slate-800 p-4 rounded border border-slate-700">
                         <h3 class="text-lg font-medium text-white mb-4">Create</h3>
-                        <button 
+                        <button
                             on:click={handleCreateBackup}
                             class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors"
                         >
@@ -364,7 +364,7 @@
                                     {/each}
                                 {/if}
                             </select>
-                            <button 
+                            <button
                                 on:click={handleRestoreBackup}
                                 disabled={!selectedBackup}
                                 class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded font-medium transition-colors"

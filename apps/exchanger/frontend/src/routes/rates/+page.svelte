@@ -1,15 +1,15 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { 
-        getRates, 
-        getRatesHistory, 
-        getFavorites, 
-        addFavorite, 
+    import {
+        getRates,
+        getRatesHistory,
+        getFavorites,
+        addFavorite,
         removeFavorite,
         type Rate,
         type Favorite
     } from '$lib/api';
-    
+
     import CalendarPicker from '$lib/components/CalendarPicker.svelte';
     import SymbolList from '$lib/components/SymbolList.svelte';
     import RateChart from '$lib/components/RateChart.svelte';
@@ -17,7 +17,7 @@
     let selectedDate = new Date().toISOString().split('T')[0];
     let selectedSymbol: string | null = null;
     let activeType: 'forex' | 'crypto' = 'forex';
-    
+
     let rates: Rate[] = [];
     let favorites: Favorite[] = [];
     let history: { date: string; rate: number | null }[] = [];
@@ -26,7 +26,7 @@
     let loadingHistory = false;
     let currentRange = '30d';
     let currentRangeDays = 30;
-    
+
     // Derived provider
     $: provider = activeType === 'crypto' ? 'fcs' : 'cnb';
     $: year = parseInt(selectedDate.split('-')[0]);
@@ -80,7 +80,7 @@
         const newDate = e.detail;
         const oldYear = year;
         selectedDate = newDate;
-        
+
         loadRates();
     }
 
@@ -130,11 +130,11 @@
         <!-- Sidebar -->
         <div class="w-full lg:w-96 flex flex-col gap-6">
             <CalendarPicker {selectedDate} on:change={handleDateChange} />
-            
+
             <div class="flex-1 min-h-[400px]">
-                <SymbolList 
-                    {rates} 
-                    {favorites} 
+                <SymbolList
+                    {rates}
+                    {favorites}
                     {selectedSymbol}
                     {activeType}
                     on:select={handleSelectSymbol}

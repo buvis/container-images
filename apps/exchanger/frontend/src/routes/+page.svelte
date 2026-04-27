@@ -82,7 +82,7 @@
                 </div>
               {/if}
             </div>
-            
+
             <div class="flex items-center gap-3 shrink-0 self-end sm:self-auto">
               <span class="text-xs text-slate-500">
                 <span class="text-slate-300 font-semibold">{provider.symbol_count}</span> total

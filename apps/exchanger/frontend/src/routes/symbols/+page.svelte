@@ -117,7 +117,7 @@
 
             <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <FilterPills options={typeOptions} bind:selected={selectedTypes} />
-                
+
                 <div class="hidden sm:block w-px h-6 bg-slate-800"></div>
 
                 <div class="flex-1">

@@ -134,7 +134,7 @@
         <h2 class="text-xl font-bold text-slate-200">
             {symbol ? `${symbol} History` : 'Select a symbol'}
         </h2>
-        
+
         <div class="flex bg-slate-900 rounded-lg p-1">
             {#each ranges as range}
                 <button
@@ -153,7 +153,7 @@
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
         {/if}
-        
+
         <div class="w-full h-full" style:display={symbol && history.length > 0 ? 'block' : 'none'}>
              <canvas bind:this={canvas}></canvas>
         </div>

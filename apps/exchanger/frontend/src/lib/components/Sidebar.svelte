@@ -1,6 +1,6 @@
 <script lang="ts">
     import { page } from '$app/stores';
-    
+
     let { isOpen = $bindable(false) } = $props();
 
     function isActive(href: string): boolean {
@@ -44,7 +44,7 @@
     ];
 </script>
 
-<aside 
+<aside
     class="fixed inset-y-0 left-0 z-50 w-64 bg-[#1E293B] border-r border-slate-700 text-white transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 {isOpen ? 'translate-x-0' : '-translate-x-full'}"
 >
     <!-- Sidebar Header -->
@@ -84,7 +84,7 @@
 
 <!-- Mobile Overlay -->
 {#if isOpen}
-    <div 
+    <div
         class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity duration-300"
         onclick={() => isOpen = false}
         role="button"

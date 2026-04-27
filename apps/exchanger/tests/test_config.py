@@ -72,4 +72,3 @@ class TestLoadSettings:
 
         assert settings.provider_api_keys["fcs"] == "fcs-key"
         assert settings.provider_api_keys["other"] == "other-key"
-

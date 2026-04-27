@@ -25,7 +25,7 @@
   let showDelete = $state(false);
   let deleting = $state(false);
   let editForm = $state<ActivityUpdateInput>({});
-  
+
   // Local state for participants editing
   let editParticipants = $state<ParticipantInput[]>([]);
 
@@ -47,7 +47,7 @@
 
   function startEdit() {
     if (!activity) return;
-    
+
     // Format happened_at for datetime-local input (YYYY-MM-DDThh:mm)
     const date = new Date(activity.happened_at);
     // Manually format to local YYYY-MM-DDTHH:MM
@@ -58,59 +58,59 @@
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const localISOTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
-    editForm = { 
-      activity_type_id: activity.activity_type_id, 
-      title: activity.title, 
-      description: activity.description, 
+    editForm = {
+      activity_type_id: activity.activity_type_id,
+      title: activity.title,
+      description: activity.description,
       happened_at: localISOTime,
       location: activity.location
     };
-    
+
     // Clone participants to avoid mutating original state until save
     editParticipants = activity.participants.map(p => ({
       contact_id: p.contact_id,
       role: p.role
     }));
-    
+
     editing = true;
   }
 
   async function handleSave() {
     saving = true;
-    try { 
+    try {
       // Include participants in the update
       const updateData: ActivityUpdateInput = {
         ...editForm,
         participants: editParticipants
       };
-      
+
       // Convert datetime-local back to ISO
       if (editForm.happened_at) {
         updateData.happened_at = new Date(editForm.happened_at).toISOString();
       }
 
-      activity = await activitiesApi.update(vaultId, activityId, updateData); 
-      editing = false; 
-    } finally { 
-      saving = false; 
+      activity = await activitiesApi.update(vaultId, activityId, updateData);
+      editing = false;
+    } finally {
+      saving = false;
     }
   }
 
   async function handleDelete() {
     deleting = true;
-    try { 
-      await activitiesApi.del(vaultId, activityId); 
-      goto(`/vaults/${vaultId}/activities`); 
-    } finally { 
-      deleting = false; 
+    try {
+      await activitiesApi.del(vaultId, activityId);
+      goto(`/vaults/${vaultId}/activities`);
+    } finally {
+      deleting = false;
     }
   }
 
   function formatDate(d: string): string {
-    return new Date(d).toLocaleDateString(undefined, { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
+    return new Date(d).toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -121,7 +121,7 @@
     if (!id) return null;
     return lookup.activityTypes.find(t => t.id === id)?.name;
   }
-  
+
 </script>
 
 <svelte:head>
@@ -154,7 +154,7 @@
       <div class="space-y-4">
         <div>
           <label class="mb-1 block text-sm font-medium text-neutral-300">Type</label>
-          <select 
+          <select
             bind:value={editForm.activity_type_id}
             class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           >
@@ -166,16 +166,16 @@
         </div>
 
         <Input label="Title" bind:value={editForm.title} />
-        
+
         <Input label="Date & Time" type="datetime-local" bind:value={editForm.happened_at} />
-        
+
         <Input label="Location" bind:value={editForm.location} />
-        
+
         <div>
           <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
-          <textarea 
-            bind:value={editForm.description} 
-            rows="6" 
+          <textarea
+            bind:value={editForm.description}
+            rows="6"
             class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           ></textarea>
         </div>
@@ -193,9 +193,9 @@
           {/if}
           <span class="text-sm text-neutral-500">{formatDate(activity.happened_at)}</span>
         </div>
-        
+
         <h1 class="text-2xl font-semibold text-white">{activity.title}</h1>
-        
+
         {#if activity.location}
           <div class="text-sm text-neutral-400">{activity.location}</div>
         {/if}

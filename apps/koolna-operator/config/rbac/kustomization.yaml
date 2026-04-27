@@ -25,4 +25,3 @@ resources:
 - koolna_admin_role.yaml
 - koolna_editor_role.yaml
 - koolna_viewer_role.yaml
-

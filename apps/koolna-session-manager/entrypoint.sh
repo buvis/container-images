@@ -423,4 +423,3 @@ echo "tmux sidecar ready"
 # correctly forces the pod un-ready until the entrypoint re-runs to completion.
 touch /tmp/koolna-ready
 exec sleep infinity
-

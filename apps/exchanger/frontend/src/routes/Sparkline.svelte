@@ -28,7 +28,7 @@
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { 
+      tooltip: {
         enabled: true,
         mode: 'index',
         intersect: false
