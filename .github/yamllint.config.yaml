@@ -1,0 +1,28 @@
+---
+extends: default
+
+ignore: |
+  **/node_modules/
+  **/.venv/
+  **/.svelte-kit/
+  **/dist/
+  **/build/
+  **/pnpm-lock.yaml
+  apps/sw-factory/
+
+rules:
+  line-length:
+    max: 250
+    level: warning
+  truthy:
+    allowed-values: ["true", "false", "on"]
+  comments: disable
+  comments-indentation: disable
+  document-start: disable
+  indentation:
+    spaces: 2
+    indent-sequences: whatever
+  braces:
+    max-spaces-inside: 1
+  brackets:
+    max-spaces-inside: 1
