@@ -31,6 +31,16 @@ func TestValidatePinnedImageEnv_GitCloneWhitespace(t *testing.T) {
 	}
 }
 
+func TestValidatePinnedImageEnv_SessionManagerWhitespace(t *testing.T) {
+	err := ValidatePinnedImageEnv("ghcr.io/buvis/koolna-git-clone:v1@sha256:abc", "  \n\t ")
+	if err == nil {
+		t.Fatal("expected error when KOOLNA_SESSION_MANAGER_IMAGE is whitespace-only")
+	}
+	if !strings.Contains(err.Error(), EnvKoolnaSessionManagerImage) {
+		t.Errorf("error must name the missing env var %s, got: %v", EnvKoolnaSessionManagerImage, err)
+	}
+}
+
 func TestValidatePinnedImageEnv_SessionManagerEmpty(t *testing.T) {
 	err := ValidatePinnedImageEnv("ghcr.io/buvis/koolna-git-clone:v1@sha256:abc", "")
 	if err == nil {
