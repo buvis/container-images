@@ -88,6 +88,23 @@ spec:
                 type: string
               image:
                 type: string
+              images:
+                description: |-
+                  Images overrides the operator-managed container image references.
+                  When a field is omitted, the default from the koolna-images ConfigMap
+                  (loaded by the operator at startup) is used. Per-CR overrides are
+                  intended for testing pinned digests; production deployments should
+                  rely on the ConfigMap-driven defaults.
+                properties:
+                  gitClone:
+                    description: GitClone overrides the koolna-git-clone init-container
+                      image.
+                    type: string
+                  sessionManager:
+                    description: SessionManager overrides the koolna-session-manager
+                      sidecar image.
+                    type: string
+                type: object
               initCommand:
                 type: string
               repo:
