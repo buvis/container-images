@@ -158,6 +158,7 @@ type KoolnaStatus struct {
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=".spec.repo"
 // +kubebuilder:printcolumn:name="Branch",type="string",JSONPath=".spec.branch"
+// +kubebuilder:printcolumn:name="Bootstrapped",type="string",JSONPath=".status.conditions[?(@.type==\"Bootstrapped\")].status"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Koolna is the Schema for the koolnas API
