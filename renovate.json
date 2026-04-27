@@ -4,6 +4,15 @@
   "mise": {
     "managerFilePatterns": ["**/assets/config/mise/config.toml"]
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/koolna-images-configmap\\.yaml$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+[A-Z_]+:\\s+\"[^\"]+:(?<currentValue>[^\"@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
+      ]
+    }
+  ],
   "packageRules": [
     {
       "matchPackageNames": ["python"],
