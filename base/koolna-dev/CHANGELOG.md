@@ -9,7 +9,7 @@
 
 ### Changed
 
-- **koolna-dev**: zoxide and rumdl now install via mise's cargo backend instead of cargo-binstall ARG/RUN — same versions, removes runtime install path
+- **koolna-dev**: zoxide and rumdl now install via mise's cargo backend instead of cargo-binstall ARG/RUN; same versions, removes runtime install path
 
 ## 2026-04-07
 
