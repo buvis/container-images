@@ -557,7 +557,10 @@ func (r *KoolnaReconciler) reconcilePod(ctx context.Context, koolna *koolnav1alp
 	if err != nil {
 		return nil, err
 	}
-	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles, gitCloneImage, sessionManagerImage)
+	pod := buildPodSpec(koolna, pvcName, cachePVCName, dotfiles, podImages{
+		GitClone:       gitCloneImage,
+		SessionManager: sessionManagerImage,
+	})
 	if err := controllerutil.SetControllerReference(koolna, pod, r.Scheme); err != nil {
 		return nil, err
 	}
@@ -759,7 +762,15 @@ func buildGitCredentialEnvVars(gitSecretRef string) []corev1.EnvVar {
 	}
 }
 
-func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig, gitCloneImage, sessionManagerImage string) *corev1.Pod {
+// podImages bundles the resolved image references passed into buildPodSpec.
+// Using a typed struct prevents callers from accidentally swapping the two
+// adjacent string parameters at the call site.
+type podImages struct {
+	GitClone       string
+	SessionManager string
+}
+
+func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, dotfiles dotfilesConfig, images podImages) *corev1.Pod {
 	shareProcessNamespace := true
 
 	shell := koolna.Spec.Shell
@@ -855,7 +866,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 			ServiceAccountName:    "koolna-auth-syncer",
 			ShareProcessNamespace: &shareProcessNamespace,
 			InitContainers: []corev1.Container{
-				buildGitCloneInitContainer(koolna, gitCloneImage),
+				buildGitCloneInitContainer(koolna, images.GitClone),
 			},
 			Containers: []corev1.Container{
 				{
@@ -874,7 +885,7 @@ func buildPodSpec(koolna *koolnav1alpha1.Koolna, pvcName, cachePVCName string, d
 				},
 				{
 					Name:      "session-manager",
-					Image:     sessionManagerImage,
+					Image:     images.SessionManager,
 					Command:   []string{"/entrypoint.sh"},
 					Resources: resolveContainerResources(sessionManagerDefaultResources, koolna.Spec.Resources.SessionManager),
 					EnvFrom:   envFrom,

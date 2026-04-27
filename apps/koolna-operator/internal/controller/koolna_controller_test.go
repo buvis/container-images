@@ -1243,7 +1243,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should mount PVC at /workspace with subpath in main container", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-workspace", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-workspace", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			koolnaC := pod.Spec.Containers[0]
 			var wsMount *corev1.VolumeMount
@@ -1260,7 +1260,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should mount PVC at /workspace with subpath in sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-workspace", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-workspace", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			sidecar := pod.Spec.Containers[1]
 			var wsMount *corev1.VolumeMount
@@ -1292,7 +1292,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should include cache PVC volume in pod spec", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-cache", "vol-test-cache-pvc", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-cache", "vol-test-cache-pvc", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			var cacheVol *corev1.Volume
 			for i := range pod.Spec.Volumes {
@@ -1308,7 +1308,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should mount cache volume at /cache in main container", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-cache", "vol-test-cache-pvc", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-cache", "vol-test-cache-pvc", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			koolnaC := pod.Spec.Containers[0]
 			var cacheMount *corev1.VolumeMount
@@ -1324,7 +1324,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should mount cache volume at /cache in sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-cache", "vol-test-cache-pvc", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-cache", "vol-test-cache-pvc", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			sidecar := pod.Spec.Containers[1]
 			var cacheMount *corev1.VolumeMount
@@ -1354,7 +1354,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should pass git credential env vars to sidecar when gitSecretRef set", func() {
 			koolna.Spec.GitSecretRef = "git-creds"
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-creds", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-creds", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			sidecar := pod.Spec.Containers[1]
 			envNames := map[string]bool{}
@@ -1370,7 +1370,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should not pass git credential env vars to sidecar when gitSecretRef empty", func() {
 			koolna.Spec.GitSecretRef = ""
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-no-creds", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-no-creds", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			sidecar := pod.Spec.Containers[1]
 			for _, e := range sidecar.Env {
@@ -1381,7 +1381,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should pass REPO_URL to sidecar", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-repo-url", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-repo-url", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			sidecar := pod.Spec.Containers[1]
 			var repoURL string
@@ -1396,7 +1396,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should set GIT_CONFIG_GLOBAL on main container pointing to /cache/.koolna/.gitconfig", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-gitconfig", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-gitconfig", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			koolnaC := pod.Spec.Containers[0]
 			var gitConfigGlobal string
@@ -1411,7 +1411,7 @@ var _ = Describe("Koolna Controller", func() {
 
 		It("should not include proxy env vars on containers", func() {
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-no-proxy", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-no-proxy", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
 				for _, e := range c.Env {
@@ -1424,7 +1424,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should add EnvFrom with SecretRef on both containers when envSecretRef is set", func() {
 			koolna.Spec.EnvSecretRef = "my-env"
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-envfrom", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-envfrom", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
 				var found bool
@@ -1442,7 +1442,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should not add env secret EnvFrom when envSecretRef is empty", func() {
 			koolna.Spec.EnvSecretRef = ""
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-no-envfrom", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-no-envfrom", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
 				for _, ef := range c.EnvFrom {
@@ -1456,7 +1456,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should include koolna-env-defaults in envFrom before per-workspace secret", func() {
 			koolna.Spec.EnvSecretRef = "my-env"
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-env-defaults", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-env-defaults", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
 				Expect(len(c.EnvFrom)).To(BeNumerically(">=", 2), "container %s should have at least 2 envFrom entries", c.Name)
@@ -1471,7 +1471,7 @@ var _ = Describe("Koolna Controller", func() {
 		It("should include koolna-env-defaults even without per-workspace secret", func() {
 			koolna.Spec.EnvSecretRef = ""
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
-			pod := buildPodSpec(koolna, "vol-test-env-defaults-only", "vol-test-cache", dotfiles, testGitCloneImage, testSessionManagerImage)
+			pod := buildPodSpec(koolna, "vol-test-env-defaults-only", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
 				Expect(len(c.EnvFrom)).To(Equal(1), "container %s should have 1 envFrom entry", c.Name)
