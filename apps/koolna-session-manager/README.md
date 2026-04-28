@@ -43,13 +43,13 @@ If `SYS_ADMIN` is unacceptable for your environment, an alternative architecture
 
 ## Verifying SSH host key persistence
 
-The host key is persisted on the cache PVC at `/cache/.koolna/ssh/ssh_host_ed25519_key` and reused across pod restarts. To confirm a given pod returns the same fingerprint after a plain restart:
+The host key is meant to live on the cache PVC at `/cache/.koolna/ssh/ssh_host_ed25519_key` and survive plain pod restarts. Whether that holds in practice is tracked under issue #428; verify on your cluster with:
 
 ```sh
 ssh-keyscan -p 2222 <pod-svc> 2>/dev/null | ssh-keygen -lf -
 ```
 
-Capture the fingerprint, run `kubectl delete pod <pod>` (NOT `kubectl delete koolna`, which wipes the cache PVC), wait for the new pod to become Ready, and run the command again. The fingerprints must match.
+Capture the fingerprint, run `kubectl delete pod <pod>` (NOT `kubectl delete koolna`, which wipes the cache PVC), wait for the new pod to become Ready, and run the command again. Fingerprints should match.
 
 If the pod service is not directly routable, run the keyscan from inside the pod against itself:
 
