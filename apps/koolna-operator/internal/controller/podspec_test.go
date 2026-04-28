@@ -12,9 +12,11 @@ import (
 
 // testGitCloneImage and testSessionManagerImage are placeholder pinned
 // references used by buildPodSpec/buildGitCloneInitContainer in tests. The
-// real defaults flow from the koolna-images ConfigMap at runtime.
-const testGitCloneImage = "ghcr.io/buvis/koolna-git-clone:test@sha256:dead"
-const testSessionManagerImage = "ghcr.io/buvis/koolna-session-manager:test@sha256:beef"
+// real defaults flow from the koolna-images ConfigMap at runtime. Digests
+// are padded to 64 hex chars so they match the CRD pattern and the runtime
+// validator's expected format.
+const testGitCloneImage = "ghcr.io/buvis/koolna-git-clone:test@sha256:dead000000000000000000000000000000000000000000000000000000000000"
+const testSessionManagerImage = "ghcr.io/buvis/koolna-session-manager:test@sha256:beef000000000000000000000000000000000000000000000000000000000000"
 
 func minimalKoolna() *koolnav1alpha1.Koolna {
 	return &koolnav1alpha1.Koolna{
