@@ -13,7 +13,13 @@ metadata:
   name: operator
   namespace: system
   annotations:
-    configmap.reloader.stakater.com/reload: "koolna-images"
+    # Auto-watch ConfigMaps/Secrets actually consumed by this Deployment.
+    # We use auto rather than the explicit `configmap.reloader.stakater.com/reload`
+    # annotation because kustomize namePrefix renames the koolna-images
+    # ConfigMap (envFrom is name-transformed automatically; the explicit
+    # annotation value is not), and there is exactly one ConfigMap on this
+    # Deployment so auto-watch is equivalent to an explicit watch.
+    reloader.stakater.com/auto: "true"
   labels:
     control-plane: operator
     app.kubernetes.io/name: koolna-operator
