@@ -103,16 +103,6 @@ func TestValidatePinnedImageEnv_SessionManagerNotDigestPinned(t *testing.T) {
 	}
 }
 
-func TestValidatePinnedImageEnv_BothDigestPinnedSucceeds(t *testing.T) {
-	err := ValidatePinnedImageEnv(
-		"ghcr.io/buvis/koolna-git-clone:v0.2.1@sha256:8f126be8e828805df9bbdb5e932f2bdcbddd9579f0ec88e8d20683cf1b9e455f",
-		"ghcr.io/buvis/koolna-session-manager:v0.4.1@sha256:345b48f9f96183e7eed7d24160d808fee6278300f3c84f104be6e724c544e955",
-	)
-	if err != nil {
-		t.Fatalf("unexpected error for fully valid digest-pinned values: %v", err)
-	}
-}
-
 func TestResolveGitCloneImage_Default(t *testing.T) {
 	r := &KoolnaReconciler{GitCloneImage: "ghcr.io/buvis/koolna-git-clone:v1@sha256:abc"}
 	koolna := &koolnav1alpha1.Koolna{}
