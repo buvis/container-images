@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec /usr/bin/snapserver -c /etc/snapserver.conf "$@"
+exec /usr/bin/snapserver --logging.sink=stdout -c /etc/snapserver.conf "$@"
