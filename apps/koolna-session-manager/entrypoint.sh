@@ -211,7 +211,9 @@ upsert_secret() {
   fi
   if [ "$resp" != "200" ] && [ "$resp" != "201" ]; then
     echo "credential-sync: failed ($resp) syncing to $ns/$secret_name"
+    return 1
   fi
+  return 0
 }
 
 sync_credentials() {
@@ -264,11 +266,18 @@ sync_credentials() {
 
   # Sync to per-workspace secret
   upsert_secret "$KOOLNA_AUTH_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
+  auth_rc=$?
 
   # Also sync to shared secret so new workspaces restore these credentials
   upsert_secret "$KOOLNA_SHARED_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
+  shared_rc=$?
 
-  printf '%s' "$current_hash" > "$last_hash_file"
+  # Only record the hash when at least one upsert succeeded. Otherwise a
+  # transient k8s API failure would pin the hash and skip every subsequent
+  # retry, leaving the Secret stale forever within this pod's lifetime.
+  if [ "$auth_rc" -eq 0 ] || [ "$shared_rc" -eq 0 ]; then
+    printf '%s' "$current_hash" > "$last_hash_file"
+  fi
 }
 
 # Ensure ~/.claude.json carries hasCompletedOnboarding=true so the interactive
