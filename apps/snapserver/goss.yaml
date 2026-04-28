@@ -1,8 +1,4 @@
 ---
-port:
-  tcp:1780:
-    listening: true
-  tcp:1704:
-    listening: true
-  tcp:1705:
-    listening: true
+process:
+  snapserver:
+    running: true
