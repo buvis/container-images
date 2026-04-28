@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	koolnav1alpha1 "github.com/buvis/koolna-operator/api/v1alpha1"
@@ -15,16 +16,33 @@ const EnvKoolnaGitCloneImage = "KOOLNA_GIT_CLONE_IMAGE"
 // koolna-session-manager image reference at operator startup.
 const EnvKoolnaSessionManagerImage = "KOOLNA_SESSION_MANAGER_IMAGE"
 
+// digestPinnedImageRef matches `repo:tag@sha256:<64hex>`. Same shape as
+// the +kubebuilder:validation:Pattern on KoolnaImages so admission
+// (per-CR) and startup (env-loaded defaults) enforce the same standard.
+var digestPinnedImageRef = regexp.MustCompile(`^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`)
+
 // ValidatePinnedImageEnv returns a non-nil error when either pinned image
-// env var is unset or contains only whitespace. The operator binary calls
-// this at startup and exits non-zero on error so a missing pin surfaces as
-// a deploy-time crash rather than silently shipping a `:latest` fallback.
+// env var is unset, whitespace-only, or not in digest-pinned form. The
+// operator binary calls this at startup and exits non-zero on error so a
+// missing or sloppy pin surfaces as a deploy-time crash rather than
+// silently shipping a `:latest` value.
 func ValidatePinnedImageEnv(gitCloneImage, sessionManagerImage string) error {
-	if strings.TrimSpace(gitCloneImage) == "" {
-		return fmt.Errorf("missing required env var %s", EnvKoolnaGitCloneImage)
+	if err := validatePinnedImageRef(EnvKoolnaGitCloneImage, gitCloneImage); err != nil {
+		return err
 	}
-	if strings.TrimSpace(sessionManagerImage) == "" {
-		return fmt.Errorf("missing required env var %s", EnvKoolnaSessionManagerImage)
+	if err := validatePinnedImageRef(EnvKoolnaSessionManagerImage, sessionManagerImage); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validatePinnedImageRef(envName, value string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return fmt.Errorf("missing required env var %s", envName)
+	}
+	if !digestPinnedImageRef.MatchString(trimmed) {
+		return fmt.Errorf("env var %s must be a digest-pinned reference of the form repo:tag@sha256:<64hex>, got %q", envName, value)
 	}
 	return nil
 }

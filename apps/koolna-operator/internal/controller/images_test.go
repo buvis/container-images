@@ -9,14 +9,21 @@ import (
 
 func ptrString(s string) *string { return &s }
 
+// Sample full-length digest-pinned references for the env-validation tests.
+// Same shape the CRD pattern + ValidatePinnedImageEnv enforce.
+const (
+	validGitCloneEnv       = "ghcr.io/buvis/koolna-git-clone:v0.2.1@sha256:8f126be8e828805df9bbdb5e932f2bdcbddd9579f0ec88e8d20683cf1b9e455f"
+	validSessionManagerEnv = "ghcr.io/buvis/koolna-session-manager:v0.4.1@sha256:345b48f9f96183e7eed7d24160d808fee6278300f3c84f104be6e724c544e955"
+)
+
 func TestValidatePinnedImageEnv_BothSet(t *testing.T) {
-	if err := ValidatePinnedImageEnv("ghcr.io/buvis/koolna-git-clone:v1@sha256:abc", "ghcr.io/buvis/koolna-session-manager:v1@sha256:def"); err != nil {
+	if err := ValidatePinnedImageEnv(validGitCloneEnv, validSessionManagerEnv); err != nil {
 		t.Fatalf("expected no error when both env vars set, got: %v", err)
 	}
 }
 
 func TestValidatePinnedImageEnv_GitCloneEmpty(t *testing.T) {
-	err := ValidatePinnedImageEnv("", "ghcr.io/buvis/koolna-session-manager:v1@sha256:def")
+	err := ValidatePinnedImageEnv("", validSessionManagerEnv)
 	if err == nil {
 		t.Fatal("expected error when KOOLNA_GIT_CLONE_IMAGE is empty")
 	}
@@ -26,13 +33,13 @@ func TestValidatePinnedImageEnv_GitCloneEmpty(t *testing.T) {
 }
 
 func TestValidatePinnedImageEnv_GitCloneWhitespace(t *testing.T) {
-	if err := ValidatePinnedImageEnv("   \t  ", "ghcr.io/buvis/koolna-session-manager:v1@sha256:def"); err == nil {
+	if err := ValidatePinnedImageEnv("   \t  ", validSessionManagerEnv); err == nil {
 		t.Error("expected error when KOOLNA_GIT_CLONE_IMAGE is whitespace-only")
 	}
 }
 
 func TestValidatePinnedImageEnv_SessionManagerWhitespace(t *testing.T) {
-	err := ValidatePinnedImageEnv("ghcr.io/buvis/koolna-git-clone:v1@sha256:abc", "  \n\t ")
+	err := ValidatePinnedImageEnv(validGitCloneEnv, "  \n\t ")
 	if err == nil {
 		t.Fatal("expected error when KOOLNA_SESSION_MANAGER_IMAGE is whitespace-only")
 	}
@@ -42,7 +49,7 @@ func TestValidatePinnedImageEnv_SessionManagerWhitespace(t *testing.T) {
 }
 
 func TestValidatePinnedImageEnv_SessionManagerEmpty(t *testing.T) {
-	err := ValidatePinnedImageEnv("ghcr.io/buvis/koolna-git-clone:v1@sha256:abc", "")
+	err := ValidatePinnedImageEnv(validGitCloneEnv, "")
 	if err == nil {
 		t.Fatal("expected error when KOOLNA_SESSION_MANAGER_IMAGE is empty")
 	}
@@ -54,6 +61,55 @@ func TestValidatePinnedImageEnv_SessionManagerEmpty(t *testing.T) {
 func TestValidatePinnedImageEnv_BothEmpty(t *testing.T) {
 	if err := ValidatePinnedImageEnv("", ""); err == nil {
 		t.Error("expected error when both env vars are empty")
+	}
+}
+
+func TestValidatePinnedImageEnv_GitCloneNotDigestPinned(t *testing.T) {
+	cases := []struct {
+		name  string
+		value string
+	}{
+		{"latest tag", "ghcr.io/buvis/koolna-git-clone:latest"},
+		{"bare tag", "ghcr.io/buvis/koolna-git-clone:v0.2.1"},
+		{"truncated digest", "ghcr.io/buvis/koolna-git-clone:v0.2.1@sha256:dead"},
+		{"missing tag before digest", "ghcr.io/buvis/koolna-git-clone@sha256:8f126be8e828805df9bbdb5e932f2bdcbddd9579f0ec88e8d20683cf1b9e455f"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidatePinnedImageEnv(tc.value, "ghcr.io/buvis/koolna-session-manager:v1@sha256:345b48f9f96183e7eed7d24160d808fee6278300f3c84f104be6e724c544e955")
+			if err == nil {
+				t.Fatalf("expected error for non-digest-pinned KOOLNA_GIT_CLONE_IMAGE %q", tc.value)
+			}
+			if !strings.Contains(err.Error(), EnvKoolnaGitCloneImage) {
+				t.Errorf("error should name %s, got: %v", EnvKoolnaGitCloneImage, err)
+			}
+			if !strings.Contains(err.Error(), "digest-pinned") {
+				t.Errorf("error should mention digest-pinned format, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidatePinnedImageEnv_SessionManagerNotDigestPinned(t *testing.T) {
+	err := ValidatePinnedImageEnv(
+		"ghcr.io/buvis/koolna-git-clone:v1@sha256:8f126be8e828805df9bbdb5e932f2bdcbddd9579f0ec88e8d20683cf1b9e455f",
+		"ghcr.io/buvis/koolna-session-manager:latest",
+	)
+	if err == nil {
+		t.Fatal("expected error for non-digest-pinned KOOLNA_SESSION_MANAGER_IMAGE")
+	}
+	if !strings.Contains(err.Error(), EnvKoolnaSessionManagerImage) {
+		t.Errorf("error should name %s, got: %v", EnvKoolnaSessionManagerImage, err)
+	}
+}
+
+func TestValidatePinnedImageEnv_BothDigestPinnedSucceeds(t *testing.T) {
+	err := ValidatePinnedImageEnv(
+		"ghcr.io/buvis/koolna-git-clone:v0.2.1@sha256:8f126be8e828805df9bbdb5e932f2bdcbddd9579f0ec88e8d20683cf1b9e455f",
+		"ghcr.io/buvis/koolna-session-manager:v0.4.1@sha256:345b48f9f96183e7eed7d24160d808fee6278300f3c84f104be6e724c544e955",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error for fully valid digest-pinned values: %v", err)
 	}
 }
 
