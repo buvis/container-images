@@ -15,6 +15,7 @@
 
 ### Fixed
 
+- **koolna-session-manager**: stop rewriting `~/.claude.json` on every credential poll by running `ensure_claude_onboarded` once after bootstrap completes and pushing the flagged file to the shared Secret immediately so subsequent `restore_credentials` polls no-op (closes #428 credential-loop portion). The 30s polling loop now starts only after the post-bootstrap sync, removing a race where a loop iteration could rewrite local back to the pre-flag content.
 - **koolna-session-manager**: enter the koolna container's cgroup (add `--cgroup` to `nsenter`) so any follow-up installs dispatched by the sidecar bill memory to koolna's limit (8Gi) instead of the sidecar's 512Mi
 
 ### Added
