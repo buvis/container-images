@@ -264,13 +264,16 @@ sync_credentials() {
     return
   fi
 
-  # Sync to per-workspace secret
-  upsert_secret "$KOOLNA_AUTH_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
-  auth_rc=$?
+  # Sync to per-workspace secret. The `|| rc=$?` form is required because
+  # `set -e` (script header) would otherwise exit the script on any non-zero
+  # upsert_secret return BEFORE the assignment runs, killing the sidecar
+  # instead of letting us record the failure.
+  auth_rc=0
+  upsert_secret "$KOOLNA_AUTH_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\"" || auth_rc=$?
 
   # Also sync to shared secret so new workspaces restore these credentials
-  upsert_secret "$KOOLNA_SHARED_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\""
-  shared_rc=$?
+  shared_rc=0
+  upsert_secret "$KOOLNA_SHARED_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\"" || shared_rc=$?
 
   # Only record the hash when at least one upsert succeeded. Otherwise a
   # transient k8s API failure would pin the hash and skip every subsequent
