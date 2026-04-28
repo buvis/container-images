@@ -101,8 +101,8 @@ The operator recreates the PVC on next reconcile. Tools will be re-installed on 
 
 The operator runs two helper images that it manages itself:
 
-- `koolna-git-clone` — init container that clones the workspace repo
-- `koolna-session-manager` — sidecar that proxies terminals and runs bootstrap
+- `koolna-git-clone`: init container that clones the workspace repo
+- `koolna-session-manager`: sidecar that proxies terminals and runs bootstrap
 
 Both must be pinned by digest so pod recreations are reproducible and `kubectl rollout undo` reaches a known-good version. There are three surfaces, in precedence order from most specific to least:
 
@@ -122,17 +122,17 @@ spec:
     sessionManager: "ghcr.io/buvis/koolna-session-manager:v0.4.1@sha256:..."
 ```
 
-Precedence: a non-empty `Spec.Images.<x>` wins; an unset field or an explicit empty string both fall through to the ConfigMap default. The CRD also enforces a digest-pinned format (`repo:tag@sha256:<64hex>`) — bare tags such as `:latest` are rejected at admission.
+Precedence: a non-empty `Spec.Images.<x>` wins; an unset field or an explicit empty string both fall through to the ConfigMap default. The CRD also enforces a digest-pinned format (`repo:tag@sha256:<64hex>`); bare tags such as `:latest` are rejected at admission.
 
 ### 2. `koolna-images` ConfigMap (default for the cluster)
 
-The operator's kustomize tree ships a ConfigMap named `koolna-images` whose two data keys (`KOOLNA_GIT_CLONE_IMAGE`, `KOOLNA_SESSION_MANAGER_IMAGE`) are loaded into the operator pod via `envFrom`. Renovate tracks each value via `# renovate: datasource=docker depName=...` markers and opens PRs on upstream releases. Bumping a pin is therefore: merge the Renovate PR, the stakater reloader (annotation `configmap.reloader.stakater.com/reload: "koolna-images"`) restarts the operator, and new Koolna pods use the new digest. Already-running pods keep their image until recreated — toggle `spec.suspended` to force a recreate.
+The operator's kustomize tree ships a ConfigMap named `koolna-images` whose two data keys (`KOOLNA_GIT_CLONE_IMAGE`, `KOOLNA_SESSION_MANAGER_IMAGE`) are loaded into the operator pod via `envFrom`. Renovate tracks each value via `# renovate: datasource=docker depName=...` markers and opens PRs on upstream releases. Bumping a pin is therefore: merge the Renovate PR, the stakater reloader (annotation `reloader.stakater.com/auto: "true"` on the operator Deployment) restarts the operator, and new Koolna pods use the new digest. Already-running pods keep their image until recreated; toggle `spec.suspended` to force a recreate.
 
 If the ConfigMap is missing or either env var is empty, the operator refuses to start (clear log message naming the missing var). Better than silently shipping `:latest`.
 
 ### 3. `Spec.Image` (user-controlled koolna dev image)
 
-The koolna-dev image you run *inside* the pod is fully user-controlled via `spec.image`. The operator does not enforce a digest here — pin it yourself (`tag` or `tag@sha256:...`) if reproducibility matters to you. Cluster-wide policy belongs in admission, not here.
+The koolna-dev image you run *inside* the pod is fully user-controlled via `spec.image`. The operator does not enforce a digest here; pin it yourself (`tag` or `tag@sha256:...`) if reproducibility matters to you. Cluster-wide policy belongs in admission, not here.
 
 > Known debt: the operator's own image (`config/manager/manager.yaml`) still uses `:latest` with `imagePullPolicy: Always`. Tracked separately as cluster-management debt.
 
