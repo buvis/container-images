@@ -272,10 +272,10 @@ sync_credentials() {
 }
 
 # Ensure ~/.claude.json carries hasCompletedOnboarding=true so the interactive
-# `claude` CLI skips the theme picker / login banner. This must run after every
-# restore_credentials, because the credential sync includes .claude.json in
-# KOOLNA_CREDENTIAL_PATHS and will overwrite our flag from the shared Secret on
-# every poll until the secret itself carries the flag.
+# `claude` CLI skips the theme picker / login banner. Runs once after the
+# main container's bootstrap finishes (post-`/cache/.koolna/ready`), then is
+# pushed straight to the shared Secret via sync_credentials so subsequent
+# restore_credentials polls see matching content and no-op.
 ensure_claude_onboarded() {
   $NSENTER_USER python3 -c "
 import json
@@ -292,22 +292,16 @@ if cfg.get('hasCompletedOnboarding') is not True:
 " 2>/dev/null || echo "warning: failed to set claude onboarding flag"
 }
 
+# Pre-bootstrap: restore once so the dev shell sees existing credentials when
+# it starts. The 30s polling loop deliberately does NOT start here; it is
+# launched post-bootstrap (after ensure_claude_onboarded + sync_credentials)
+# so the loop can never observe a transient flagless `.claude.json`.
 if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
   set_bootstrap_step "Syncing credentials"
-  echo "starting credential sync (30s polling)"
+  echo "restoring credentials from shared Secret"
   restore_credentials
-  ensure_claude_onboarded
-  (
-    while true; do
-      sync_credentials
-      sleep 30
-      restore_credentials
-      ensure_claude_onboarded
-    done
-  ) &
 else
   echo "KOOLNA_AUTH_SECRET not set, skipping credential sync"
-  ensure_claude_onboarded
 fi
 
 # --- sshd setup ---
@@ -422,9 +416,27 @@ export LANG=C.UTF-8
 export LC_CTYPE=C.UTF-8
 
 # `mise install` of claude (re)creates ~/.claude.json without the onboarding
-# flag, so re-merge after the install completes. The credential sync loop also
-# re-merges after every restore.
+# flag, so re-merge after the install completes. Push the flagged file to the
+# shared Secret immediately so the next restore_credentials loop iteration
+# sees matching content and no-ops, breaking the rewrite-on-every-poll loop.
+# Order matters: ensure_claude_onboarded MUST run before sync_credentials so
+# data_fields includes the flagged content. sync_credentials' hash-skip would
+# otherwise pin the secret at the pre-flag hash forever.
 ensure_claude_onboarded
+if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
+  sync_credentials
+  # Start the 30s polling loop only AFTER the flagged secret has been pushed,
+  # so an iteration's restore_credentials cannot race ahead and rewrite local
+  # `.claude.json` back to the pre-flag content.
+  echo "starting credential sync polling (30s)"
+  (
+    while true; do
+      sleep 30
+      sync_credentials
+      restore_credentials
+    done
+  ) &
+fi
 
 set_bootstrap_step "Creating sessions"
 echo "configuring tmux defaults"
