@@ -286,7 +286,8 @@ sync_credentials() {
 # pushed straight to the shared Secret via sync_credentials so subsequent
 # restore_credentials polls see matching content and no-op.
 ensure_claude_onboarded() {
-  $NSENTER_USER python3 -c "
+  err_file=$(mktemp)
+  if ! $NSENTER_USER python3 -c "
 import json
 path = '$HOME/.claude.json'
 try:
@@ -298,7 +299,13 @@ if cfg.get('hasCompletedOnboarding') is not True:
     cfg['hasCompletedOnboarding'] = True
     with open(path, 'w') as f:
         json.dump(cfg, f, indent=2)
-" 2>/dev/null || echo "warning: failed to set claude onboarding flag"
+" 2>"$err_file"; then
+    echo "warning: failed to set claude onboarding flag"
+    while IFS= read -r err_line; do
+      echo "  $err_line"
+    done <"$err_file"
+  fi
+  rm -f "$err_file"
 }
 
 # Pre-bootstrap: restore once so the dev shell sees existing credentials when
