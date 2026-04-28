@@ -15,7 +15,10 @@
 
 ### Fixed
 
-- **koolna-session-manager**: stop rewriting `~/.claude.json` on every credential poll by running `ensure_claude_onboarded` once after bootstrap completes and pushing the flagged file to the shared Secret immediately so subsequent `restore_credentials` polls no-op (closes #428 credential-loop portion). The 30s polling loop now starts only after the post-bootstrap sync, removing a race where a loop iteration could rewrite local back to the pre-flag content.
+- **koolna-session-manager**: stop rewriting `~/.claude.json` on every credential poll. `ensure_claude_onboarded` now runs once after bootstrap completes and pushes the flagged file to the shared Secret, so subsequent `restore_credentials` polls no-op. Addresses the credential-loop portion of #428; the SSH host key portion stays open pending on-cluster reproduction.
+- **koolna-session-manager**: start the 30s credential polling loop only after the post-bootstrap sync, closing a race where a loop iteration could rewrite local back to the pre-flag content.
+- **koolna-session-manager**: only record the credential-sync hash after at least one upsert succeeds, so a transient k8s API failure cannot pin the hash and silently suppress every retry for the rest of the pod's life.
+- **koolna-session-manager**: surface python stderr when `ensure_claude_onboarded` fails so the failure mode is observable in the sidecar log instead of swallowed behind a generic warning.
 - **koolna-session-manager**: enter the koolna container's cgroup (add `--cgroup` to `nsenter`) so any follow-up installs dispatched by the sidecar bill memory to koolna's limit (8Gi) instead of the sidecar's 512Mi
 
 ### Added
