@@ -30,8 +30,8 @@ RUN \
   && apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache \
-  && mkdir -p /var/lib/snapserver \
-  && chown -R kah:kah /var/lib/snapserver
+  && mkdir -p /home/kah/.config/snapserver \
+  && chown -R kah:kah /home/kah
 
 USER kah
 
