@@ -4,8 +4,9 @@
 
 ### Added
 
-- **koolna-operator**: pin operator-managed image references via the new `koolna-images` ConfigMap (loaded via `envFrom` and tracked by Renovate); operator now refuses to start if `KOOLNA_GIT_CLONE_IMAGE` or `KOOLNA_SESSION_MANAGER_IMAGE` is unset, so a missing pin surfaces as a deploy-time crash instead of silently shipping `:latest`
-- **koolna-operator**: `spec.images.gitClone` and `spec.images.sessionManager` per-CR override fields for testing pinned digests; override → ConfigMap-default precedence
+- **koolna-operator**: pin operator-managed image references via the new `koolna-images` ConfigMap (loaded via `envFrom` and tracked by Renovate); operator now refuses to start if `KOOLNA_GIT_CLONE_IMAGE` or `KOOLNA_SESSION_MANAGER_IMAGE` is unset or not in `repo:tag@sha256:<64hex>` form, so a missing or sloppy pin surfaces as a deploy-time crash instead of silently shipping `:latest`
+- **koolna-operator**: `spec.images.gitClone` and `spec.images.sessionManager` per-CR override fields for testing pinned digests; override -> ConfigMap-default precedence; CRD admission rejects non-digest-pinned references at apply time
+- **koolna-operator**: `reloader.stakater.com/auto: "true"` annotation on the operator Deployment so the cluster's stakater reloader restarts the operator when the `koolna-images` ConfigMap changes. Auto-mode (rather than the explicit `configmap.reloader.stakater.com/reload` annotation) is used because kustomize `namePrefix` rewrites the ConfigMap name but does not transform annotation values; the Deployment only consumes one ConfigMap so auto-watch is equivalent to an explicit watch.
 - **koolna-operator**: surface bootstrap state via a typed `Bootstrapped` condition on `Koolna.Status.Conditions` (Reasons: `Bootstrapped`, `BootstrapFailed`, `Bootstrapping`); a `Failed:` prefix in the `koolna.buvis.net/bootstrap-step` annotation drives the condition to `BootstrapFailed` so failures surface in seconds instead of after the 40-minute startup-probe ceiling
 - **koolna-operator**: `Bootstrapped` printer column so `kubectl get koolna` shows bootstrap state inline alongside Phase/Repo/Branch/Age
 - **koolna-operator**: `spec.runAsUser` (optional, default 1000) controls the UID the koolna container runs as and the owner of workspace/cache volumes.
