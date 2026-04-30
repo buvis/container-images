@@ -5,6 +5,8 @@
 ### Added
 
 - **koolna-session-manager**: stop forwarding phase writes once `/cache/.koolna/failed` appears so a late-arriving phase string from a child process can't overwrite the recorded bootstrap-failure message; the sidecar then exits non-zero so the pod surfaces as not-ready
+- **koolna-session-manager**: on non-zero exit, annotate the pod with `Failed: <step> (exit <code>)` so the Koolna CR condition surfaces the failing phase instead of freezing on the last successful one
+- **koolna-session-manager**: annotate pod with `koolna.buvis.net/bootstrap-step` at each entrypoint phase so the operator can surface progress in the Koolna CR condition
 
 ### Changed
 
@@ -12,6 +14,8 @@
 - **koolna-session-manager**: locate koolna's PID by reading `/cache/.koolna/pid` (written by bootstrap.sh) instead of scanning `/proc` for a `sleep infinity` cmdline. The old scan failed during the install phase because bootstrap.sh's cmdline isn't `sleep infinity` until the install completes.
 - **koolna-session-manager**: dotfiles and `mise install` no longer run here. The koolna-git-clone init container writes `/cache/.koolna/bootstrap.sh` which the main container execs as PID 1, so install memory bills to koolna's 8Gi cgroup instead of the sidecar's 512Mi. The sidecar now waits on `/cache/.koolna/ready` and forwards `/cache/.koolna/phase` into the `bootstrap-step` annotation, then handles only the root-privileged work (sshd, credential sync, tmux).
 - **koolna-session-manager**: drop chown+credential-helper setup blocks now handled by koolna-git-clone and bootstrap.sh.
+- **koolna-session-manager**: read authorized_keys from `/etc/koolna/ssh/authorized_keys` (mounted by the operator from a per-Koolna ConfigMap) instead of the `KOOLNA_SSH_PUBKEY` env var.
+- **koolna-session-manager**: write `/tmp/koolna-ready` sentinel at the end of the entrypoint for cheap file-based readiness probing; drop the tmux bootstrap placeholder session (no longer needed now that probes use the sentinel).
 
 ### Fixed
 
@@ -20,25 +24,9 @@
 - **koolna-session-manager**: only record the credential-sync hash after at least one upsert succeeds, so a transient k8s API failure cannot pin the hash and silently suppress every retry for the rest of the pod's life.
 - **koolna-session-manager**: surface python stderr when `ensure_claude_onboarded` fails so the failure mode is observable in the sidecar log instead of swallowed behind a generic warning.
 - **koolna-session-manager**: enter the koolna container's cgroup (add `--cgroup` to `nsenter`) so any follow-up installs dispatched by the sidecar bill memory to koolna's limit (8Gi) instead of the sidecar's 512Mi
-
-### Added
-
-- **koolna-session-manager**: on non-zero exit, annotate the pod with `Failed: <step> (exit <code>)` so the Koolna CR condition surfaces the failing phase instead of freezing on the last successful one
-
-### Changed
-
-- **koolna-session-manager**: read authorized_keys from `/etc/koolna/ssh/authorized_keys` (mounted by the operator from a per-Koolna ConfigMap) instead of the `KOOLNA_SSH_PUBKEY` env var.
-- **koolna-session-manager**: write `/tmp/koolna-ready` sentinel at the end of the entrypoint for cheap file-based readiness probing; drop the tmux bootstrap placeholder session (no longer needed now that probes use the sentinel).
-
-### Fixed
-
 - **koolna-session-manager**: credential restore/sync skips writes when content is unchanged
 - **koolna-session-manager**: merge `hasCompletedOnboarding=true` into `.claude.json` after every credential restore so claude never drops to the theme picker, even when the shared Secret carries a flagless version
 - **koolna-session-manager**: start a placeholder tmux session at entrypoint start so the startup probe passes within seconds, eliminating 60+ Unhealthy events per bootstrap while dotfiles install runs
-
-### Added
-
-- **koolna-session-manager**: annotate pod with `koolna.buvis.net/bootstrap-step` at each entrypoint phase so the operator can surface progress in the Koolna CR condition
 
 ### Removed
 
