@@ -43,7 +43,7 @@ If `SYS_ADMIN` is unacceptable for your environment, an alternative architecture
 
 ## Verifying SSH host key persistence
 
-The host key is meant to live on the cache PVC at `/cache/.koolna/ssh/ssh_host_ed25519_key` and survive plain pod restarts. Whether that holds in practice is tracked under issue #428; verify on your cluster with:
+The host key lives on the cache PVC at `/cache/.koolna/ssh/ssh_host_ed25519_key` and survives plain pod restarts (verified on test-private 2026-04-30). To confirm on your cluster:
 
 ```sh
 ssh-keyscan -p 2222 <pod-svc> 2>/dev/null | ssh-keygen -lf -

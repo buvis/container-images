@@ -15,7 +15,7 @@
 
 ### Fixed
 
-- **koolna-session-manager**: stop rewriting `~/.claude.json` on every credential poll. `ensure_claude_onboarded` now runs once after bootstrap completes and pushes the flagged file to the shared Secret, so subsequent `restore_credentials` polls no-op. Addresses the credential-loop portion of #428; the SSH host key portion stays open pending on-cluster reproduction.
+- **koolna-session-manager**: stop rewriting `~/.claude.json` on every credential poll. `ensure_claude_onboarded` now runs once after bootstrap completes and pushes the flagged file to the shared Secret, so subsequent `restore_credentials` polls no-op. Addresses the credential-loop portion of #428. The SSH host key portion of #428 was verified on test-private (2026-04-30): plain `kubectl delete pod` preserves the cache-PVC-stored host key (fingerprint unchanged, file mtime unchanged). The original report was from a CR delete/recreate path, which legitimately wipes the cache PVC by design.
 - **koolna-session-manager**: start the 30s credential polling loop only after the post-bootstrap sync, closing a race where a loop iteration could rewrite local back to the pre-flag content.
 - **koolna-session-manager**: only record the credential-sync hash after at least one upsert succeeds, so a transient k8s API failure cannot pin the hash and silently suppress every retry for the rest of the pod's life.
 - **koolna-session-manager**: surface python stderr when `ensure_claude_onboarded` fails so the failure mode is observable in the sidecar log instead of swallowed behind a generic warning.
