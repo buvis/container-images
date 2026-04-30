@@ -14,4 +14,4 @@ data:
   # renovate: datasource=docker depName=ghcr.io/buvis/koolna-git-clone
   KOOLNA_GIT_CLONE_IMAGE: "ghcr.io/buvis/koolna-git-clone:v0.3.0@sha256:52692012553ccd72eb5cd4abfa7b47e20cdecdd19da9e292b3350be06ad5ecf1"
   # renovate: datasource=docker depName=ghcr.io/buvis/koolna-session-manager
-  KOOLNA_SESSION_MANAGER_IMAGE: "ghcr.io/buvis/koolna-session-manager:v0.4.3@sha256:3d52f61b1c73b627b01d8108e16fc0e143cb3ede61709d66a1d68b542a25b866"
+  KOOLNA_SESSION_MANAGER_IMAGE: "ghcr.io/buvis/koolna-session-manager:v0.4.3@sha256:4ce22dd8268f09a4d983dbbdfe621b78a400ccfe1e31d73fd6ca8fc1e55ba7c3"
