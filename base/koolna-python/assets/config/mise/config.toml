@@ -5,4 +5,4 @@ experimental = true
 python = "3.14.4"
 uv = "0.11.8"
 ruff = "0.15.12"
-poetry = "2.3.4"
+poetry = "2.4.0"
