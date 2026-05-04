@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **koolna-git-clone**: extract bootstrap.sh from the heredoc inside clone.sh into a standalone file baked into the image at `/bootstrap.sh`. clone.sh now `cp`s it into `/cache/.koolna/bootstrap.sh` instead of writing via heredoc. Pure refactor for testability (the script is now unit-tested via bats); runtime contract unchanged.
+
 ### Added
 
 - **koolna-git-clone**: bootstrap.sh now traps non-zero exits, writes `Failed: <phase> (exit <rc>)` to `/cache/.koolna/phase`, and touches `/cache/.koolna/failed` so the session-manager and operator can surface bootstrap failures within seconds instead of waiting for the 40-minute startup-probe ceiling
