@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/**'
       - 'base/**'
+      - 'tests/**'
   pull_request:
 
 concurrency:
@@ -234,14 +235,25 @@ jobs:
           file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
           push: false
 
+  shell-tests:
+    name: Shell tests (bats)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Run bats
+        run: bats tests/shell/
+
   test-success:
     name: Test
-    needs: [hadolint, build-base, build-stack]
+    needs: [hadolint, build-base, build-stack, shell-tests]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build-base.result }}" == "failure" || "${{ needs.build-stack.result }}" == "failure" ]]; then
+          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build-base.result }}" == "failure" || "${{ needs.build-stack.result }}" == "failure" || "${{ needs.shell-tests.result }}" == "failure" ]]; then
             exit 1
           fi

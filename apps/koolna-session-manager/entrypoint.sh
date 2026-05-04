@@ -112,212 +112,9 @@ fi
 # --- credential sync ---
 KOOLNA_CREDENTIAL_PATHS="${KOOLNA_CREDENTIAL_PATHS:-.claude/.credentials.json,.codex}"
 
-extract_field() {
-  echo "$1" | sed -n 's/.*"'"$2"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
-}
-
-# Encode a relative path to a secret key: strip leading dots from segments, replace / with ---
-# .claude/.credentials.json -> claude---credentials.json
-path_to_key() {
-  echo "$1" | sed 's|^\./||; s|^\.|/|; s|/\.|/|g; s|^/||; s|/|---|g'
-}
-
-restore_credential_file() {
-  val="$1" key="$2" dest="$3"
-  [ -z "$val" ] && return
-
-  # Skip write if destination already matches incoming value. Compare the
-  # round-tripped base64 form (same encoding pipeline as sync_credentials)
-  # so the comparison is symmetric with what was last uploaded.
-  if $NSENTER_USER sh -c "[ -f '$dest' ]"; then
-    current=$($NSENTER_USER sh -c "base64 < '$dest' | tr -d '\\n'" 2>/dev/null || true)
-    if [ "$current" = "$val" ]; then
-      return
-    fi
-  fi
-
-  dir=$(dirname "$dest")
-  $NSENTER_ROOT mkdir -p "$dir"
-  $NSENTER_ROOT chown "$KOOLNA_UID:$KOOLNA_GID" "$dir"
-  if ! echo "$val" | $NSENTER_USER sh -c "base64 -d > '$dest'" 2>/dev/null; then
-    echo "credential-restore: failed decoding $key"
-  else
-    $NSENTER_ROOT chown "$KOOLNA_UID:$KOOLNA_GID" "$dest"
-    echo "credential-restore: wrote $dest"
-  fi
-}
-
-restore_credentials() {
-  [ -z "${KOOLNA_SHARED_SECRET:-}" ] && return
-  ns="${KOOLNA_NAMESPACE:-default}"
-  secret_name="$KOOLNA_SHARED_SECRET"
-
-  TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-  CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-  API_SERVER="https://kubernetes.default.svc"
-
-  resp=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $TOKEN" \
-    --cacert "$CA_CERT" \
-    "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name")
-  http_code=$(echo "$resp" | tail -n1)
-  body=$(echo "$resp" | sed '$d')
-
-  [ "$http_code" = "404" ] && return
-  if [ "$http_code" != "200" ]; then
-    echo "credential-restore: failed ($http_code) reading $ns/$secret_name"
-    return
-  fi
-
-  IFS=','
-  for cred_path in $KOOLNA_CREDENTIAL_PATHS; do
-    unset IFS
-    key=$(path_to_key "$cred_path")
-
-    # Try exact key match (file entry)
-    val=$(extract_field "$body" "$key")
-    if [ -n "$val" ]; then
-      restore_credential_file "$val" "$key" "$HOME/$cred_path"
-      continue
-    fi
-
-    # Try prefix match (directory entry)
-    dir_keys=$(echo "$body" | grep -o "\"${key}---[^\"]*\"" | tr -d '"')
-    for dk in $dir_keys; do
-      suffix=$(echo "$dk" | sed "s|^${key}---||")
-      val=$(extract_field "$body" "$dk")
-      restore_credential_file "$val" "$dk" "$HOME/$cred_path/$suffix"
-    done
-  done
-  unset IFS
-}
-
-upsert_secret() {
-  secret_name="$1" ns="$2" data_fields="$3" labels="$4"
-
-  TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-  CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-  API_SERVER="https://kubernetes.default.svc"
-
-  # Use PATCH to merge keys instead of PUT which replaces the entire secret.
-  # This prevents wiping credentials that exist in the secret but not yet in
-  # this pod (e.g. .claude/.credentials.json before the user authenticates).
-  payload="{\"apiVersion\": \"v1\", \"kind\": \"Secret\", \"metadata\": {\"name\": \"$secret_name\", \"namespace\": \"$ns\", \"labels\": {$labels}}, \"type\": \"Opaque\", \"data\": {$data_fields}}"
-
-  resp=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-    -H "Authorization: Bearer $TOKEN" \
-    -H "Content-Type: application/strategic-merge-patch+json" \
-    --cacert "$CA_CERT" \
-    "$API_SERVER/api/v1/namespaces/$ns/secrets/$secret_name" \
-    -d "$payload")
-  if [ "$resp" = "404" ]; then
-    resp=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-      -H "Authorization: Bearer $TOKEN" \
-      -H "Content-Type: application/json" \
-      --cacert "$CA_CERT" \
-      "$API_SERVER/api/v1/namespaces/$ns/secrets" \
-      -d "$payload")
-  fi
-  if [ "$resp" != "200" ] && [ "$resp" != "201" ]; then
-    echo "credential-sync: failed ($resp) syncing to $ns/$secret_name"
-    return 1
-  fi
-  return 0
-}
-
-sync_credentials() {
-  ns="${KOOLNA_NAMESPACE:-default}"
-
-  data_fields=""
-
-  IFS=','
-  for cred_path in $KOOLNA_CREDENTIAL_PATHS; do
-    unset IFS
-    full_path="$HOME/$cred_path"
-
-    if $NSENTER_USER sh -c "[ -f '$full_path' ]"; then
-      key=$(path_to_key "$cred_path")
-      encoded=$($NSENTER_USER sh -c "base64 < '$full_path' | tr -d '\\n'")
-      entry="\"$key\": \"$encoded\""
-      if [ -n "$data_fields" ]; then
-        data_fields="$data_fields, $entry"
-      else
-        data_fields="$entry"
-      fi
-    elif $NSENTER_USER sh -c "[ -d '$full_path' ]"; then
-      for fname in $($NSENTER_USER sh -c "ls '$full_path'" 2>/dev/null); do
-        $NSENTER_USER sh -c "[ -f '$full_path/$fname' ]" || continue
-        key=$(path_to_key "$cred_path/$fname")
-        encoded=$($NSENTER_USER sh -c "base64 < '$full_path/$fname' | tr -d '\\n'")
-        entry="\"$key\": \"$encoded\""
-        if [ -n "$data_fields" ]; then
-          data_fields="$data_fields, $entry"
-        else
-          data_fields="$entry"
-        fi
-      done
-    fi
-  done
-  unset IFS
-
-  if [ -z "$data_fields" ]; then
-    return
-  fi
-
-  # Skip the API round-trip entirely if nothing changed since the last sync.
-  # The hash covers the full data_fields payload, so any key add/remove or
-  # content change forces a resync.
-  current_hash=$(printf '%s' "$data_fields" | sha256sum | awk '{print $1}')
-  last_hash_file="/tmp/.koolna-last-sync-hash"
-  if [ -f "$last_hash_file" ] && [ "$(cat "$last_hash_file")" = "$current_hash" ]; then
-    return
-  fi
-
-  # Sync to per-workspace secret. The `|| rc=$?` form is required because
-  # `set -e` (script header) would otherwise exit the script on any non-zero
-  # upsert_secret return BEFORE the assignment runs, killing the sidecar
-  # instead of letting us record the failure.
-  auth_rc=0
-  upsert_secret "$KOOLNA_AUTH_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\"" || auth_rc=$?
-
-  # Also sync to shared secret so new workspaces restore these credentials
-  shared_rc=0
-  upsert_secret "$KOOLNA_SHARED_SECRET" "$ns" "$data_fields" "\"koolna.buvis.net/type\": \"credentials\"" || shared_rc=$?
-
-  # Only record the hash when at least one upsert succeeded. Otherwise a
-  # transient k8s API failure would pin the hash and skip every subsequent
-  # retry, leaving the Secret stale forever within this pod's lifetime.
-  if [ "$auth_rc" -eq 0 ] || [ "$shared_rc" -eq 0 ]; then
-    printf '%s' "$current_hash" > "$last_hash_file"
-  fi
-}
-
-# Ensure ~/.claude.json carries hasCompletedOnboarding=true so the interactive
-# `claude` CLI skips the theme picker / login banner. Runs once after the
-# main container's bootstrap finishes (post-`/cache/.koolna/ready`), then is
-# pushed straight to the shared Secret via sync_credentials so subsequent
-# restore_credentials polls see matching content and no-op.
-ensure_claude_onboarded() {
-  err_file=$(mktemp)
-  if ! $NSENTER_USER python3 -c "
-import json
-path = '$HOME/.claude.json'
-try:
-    with open(path) as f:
-        cfg = json.load(f)
-except (FileNotFoundError, ValueError):
-    cfg = {}
-if cfg.get('hasCompletedOnboarding') is not True:
-    cfg['hasCompletedOnboarding'] = True
-    with open(path, 'w') as f:
-        json.dump(cfg, f, indent=2)
-" 2>"$err_file"; then
-    echo "warning: failed to set claude onboarding flag"
-    while IFS= read -r err_line; do
-      echo "  $err_line"
-    done <"$err_file"
-  fi
-  rm -f "$err_file"
-}
+# Helper functions live in /lib.sh so they can be unit-tested via tests/shell/
+# without spinning up the whole entrypoint.
+. /lib.sh
 
 # Pre-bootstrap: restore once so the dev shell sees existing credentials when
 # it starts. The 30s polling loop deliberately does NOT start here; it is
@@ -394,47 +191,19 @@ fi
 
 NSENTER_CMD="$NSENTER_USER $KOOLNA_SHELL -l"
 
-# Wait for the main container's bootstrap.sh to finish dotfiles + mise install.
-# That script writes /cache/.koolna/ready when done. The phase file gives us a
-# live progress message to surface in the bootstrap-step annotation. No timeout
-# here: if the install genuinely hangs, the readiness probe will keep the pod
-# un-ready and an operator can investigate via `kubectl logs ... -c koolna`.
+# Wait for bootstrap.sh to finish (writes /cache/.koolna/ready) or fail
+# (touches /cache/.koolna/failed). wait_for_bootstrap is sourced from /lib.sh
+# and forwards each phase change to the bootstrap-step annotation as it goes.
+# No timeout: if the install genuinely hangs, the readiness probe keeps the
+# pod un-ready and an operator can investigate via `kubectl logs ... -c koolna`.
 READY_MARKER="$KOOLNA_DIR/ready"
 PHASE_FILE="$KOOLNA_DIR/phase"
 FAILED_MARKER="$KOOLNA_DIR/failed"
-last_phase=""
-while [ ! -f "$READY_MARKER" ]; do
-  if [ -f "$PHASE_FILE" ]; then
-    cur_phase=$(cat "$PHASE_FILE" 2>/dev/null || true)
-    if [ -n "$cur_phase" ] && [ "$cur_phase" != "$last_phase" ]; then
-      set_bootstrap_step "$cur_phase"
-      last_phase="$cur_phase"
-    fi
-  fi
-  # Failed marker is one-way state set by bootstrap.sh's EXIT trap. Forward
-  # the final phase string once and stop polling so a late phase write from
-  # a child process can't overwrite the recorded failure.
-  if [ -f "$FAILED_MARKER" ]; then
-    break
-  fi
-  sleep 1
-done
-
-if [ -f "$FAILED_MARKER" ]; then
-  # Final forward of the failure phase. Closes a race where the trap's
-  # phase write lands AFTER this iteration's read but BEFORE the marker
-  # check, leaving last_phase pointing at the pre-trap value. Re-reading
-  # here and forwarding when it differs guarantees the annotation reflects
-  # "Failed: <phase> (exit <rc>)" before we exit.
-  final_phase=$(cat "$PHASE_FILE" 2>/dev/null || echo unknown)
-  if [ -n "$final_phase" ] && [ "$final_phase" != "$last_phase" ]; then
-    set_bootstrap_step "$final_phase"
-  fi
+if ! wait_for_bootstrap; then
   # The phase string written by bootstrap.sh's trap is already in
   # "Failed: <phase> (exit <rc>)" shape. Clear our own EXIT trap before
   # exiting so it doesn't re-wrap that string with another "Failed: ..."
   # prefix when we exit non-zero.
-  echo "bootstrap failed: $final_phase"
   trap - EXIT
   exit 1
 fi
