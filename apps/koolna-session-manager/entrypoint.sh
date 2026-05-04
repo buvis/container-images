@@ -65,6 +65,13 @@ NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --cgr
 # it in the Koolna CR condition message. Uses the same SA token as credential sync.
 # Tracks the last announced step so the EXIT trap can report where we failed.
 LAST_STEP="starting"
+# Escape JSON-meaningful characters in a phase string so callers writing
+# arbitrary content (e.g. dotfiles repos appending diagnostic detail) can't
+# corrupt the merge-patch payload. Strips control chars (CR/LF/TAB) since the
+# bootstrap-step annotation is single-line by contract.
+json_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\r\n\t'
+}
 set_bootstrap_step() {
   step="$1"
   LAST_STEP="$step"
@@ -73,12 +80,13 @@ set_bootstrap_step() {
   TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null) || return 0
   CA_CERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
   API_SERVER="https://kubernetes.default.svc"
+  escaped_step=$(json_escape "$step")
   curl -s -o /dev/null -X PATCH \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/merge-patch+json" \
     --cacert "$CA_CERT" \
     "$API_SERVER/api/v1/namespaces/$ns/pods/$pod_name" \
-    -d "{\"metadata\":{\"annotations\":{\"koolna.buvis.net/bootstrap-step\":\"$step\"}}}" \
+    -d "{\"metadata\":{\"annotations\":{\"koolna.buvis.net/bootstrap-step\":\"$escaped_step\"}}}" \
     2>/dev/null || true
 }
 
