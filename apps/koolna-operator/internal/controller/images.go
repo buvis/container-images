@@ -47,34 +47,41 @@ func validatePinnedImageRef(envName, value string) error {
 	return nil
 }
 
-// resolveGitCloneImage returns the koolna-git-clone image reference for a
-// given Koolna CR. Precedence: Spec.Images.GitClone (per-CR override) →
-// r.GitCloneImage (ConfigMap default). Returns an error when neither is
-// set; never falls back to `:latest`.
-func (r *KoolnaReconciler) resolveGitCloneImage(koolna *koolnav1alpha1.Koolna) (string, error) {
-	if koolna.Spec.Images != nil && koolna.Spec.Images.GitClone != nil {
-		if override := strings.TrimSpace(*koolna.Spec.Images.GitClone); override != "" {
-			return override, nil
+// resolveImage returns the image reference for a given role using the
+// shared precedence rule: per-CR override pointer → ConfigMap default.
+// Returns an error when neither is set; never falls back to `:latest`.
+// roleLabel and specField shape the error message so callers preserve
+// their existing "git-clone" / "Spec.Images.GitClone" wording.
+func resolveImage(override *string, def, envName, roleLabel, specField string) (string, error) {
+	if override != nil {
+		if trimmed := strings.TrimSpace(*override); trimmed != "" {
+			return trimmed, nil
 		}
 	}
-	if def := strings.TrimSpace(r.GitCloneImage); def != "" {
-		return def, nil
+	if trimmed := strings.TrimSpace(def); trimmed != "" {
+		return trimmed, nil
 	}
-	return "", fmt.Errorf("no git-clone image configured (%s unset and Spec.Images.GitClone not provided)", EnvKoolnaGitCloneImage)
+	return "", fmt.Errorf("no %s image configured (%s unset and Spec.Images.%s not provided)", roleLabel, envName, specField)
+}
+
+// resolveGitCloneImage returns the koolna-git-clone image reference for a
+// given Koolna CR. Precedence: Spec.Images.GitClone (per-CR override) →
+// r.GitCloneImage (ConfigMap default).
+func (r *KoolnaReconciler) resolveGitCloneImage(koolna *koolnav1alpha1.Koolna) (string, error) {
+	var override *string
+	if koolna.Spec.Images != nil {
+		override = koolna.Spec.Images.GitClone
+	}
+	return resolveImage(override, r.GitCloneImage, EnvKoolnaGitCloneImage, "git-clone", "GitClone")
 }
 
 // resolveSessionManagerImage returns the koolna-session-manager image
 // reference for a given Koolna CR. Precedence: Spec.Images.SessionManager
-// (per-CR override) → r.SessionManagerImage (ConfigMap default). Returns
-// an error when neither is set; never falls back to `:latest`.
+// (per-CR override) → r.SessionManagerImage (ConfigMap default).
 func (r *KoolnaReconciler) resolveSessionManagerImage(koolna *koolnav1alpha1.Koolna) (string, error) {
-	if koolna.Spec.Images != nil && koolna.Spec.Images.SessionManager != nil {
-		if override := strings.TrimSpace(*koolna.Spec.Images.SessionManager); override != "" {
-			return override, nil
-		}
+	var override *string
+	if koolna.Spec.Images != nil {
+		override = koolna.Spec.Images.SessionManager
 	}
-	if def := strings.TrimSpace(r.SessionManagerImage); def != "" {
-		return def, nil
-	}
-	return "", fmt.Errorf("no session-manager image configured (%s unset and Spec.Images.SessionManager not provided)", EnvKoolnaSessionManagerImage)
+	return resolveImage(override, r.SessionManagerImage, EnvKoolnaSessionManagerImage, "session-manager", "SessionManager")
 }
