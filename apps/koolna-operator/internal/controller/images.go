@@ -16,10 +16,12 @@ const EnvKoolnaGitCloneImage = "KOOLNA_GIT_CLONE_IMAGE"
 // koolna-session-manager image reference at operator startup.
 const EnvKoolnaSessionManagerImage = "KOOLNA_SESSION_MANAGER_IMAGE"
 
-// digestPinnedImageRef matches `repo:tag@sha256:<64hex>`. Same shape as
-// the +kubebuilder:validation:Pattern on KoolnaImages so admission
-// (per-CR) and startup (env-loaded defaults) enforce the same standard.
-var digestPinnedImageRef = regexp.MustCompile(`^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`)
+// digestPinnedImageRef matches `[host[:port]/]repo:tag@sha256:<64hex>`. Same
+// shape as the +kubebuilder:validation:Pattern on KoolnaImages so admission
+// (per-CR) and startup (env-loaded defaults) enforce the same standard. The
+// optional `host[:port]/` prefix accepts registries like `ghcr.io/`,
+// `localhost:5000/`, or in-cluster registries with explicit ports.
+var digestPinnedImageRef = regexp.MustCompile(`^(?:[a-zA-Z0-9.-]+(?::[0-9]+)?/)?[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`)
 
 // ValidatePinnedImageEnv returns a non-nil error when either pinned image
 // env var is unset, whitespace-only, or not in digest-pinned form. The

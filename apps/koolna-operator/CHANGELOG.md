@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **koolna-operator**: extend the digest-pinned image reference pattern (CRD `Spec.Images.GitClone`/`SessionManager` and `KOOLNA_*_IMAGE` env-var validation) to accept an optional `host[:port]/` registry prefix, so refs like `localhost:5000/img:tag@sha256:<64hex>` validate. Refactor `resolveGitCloneImage` and `resolveSessionManagerImage` to share a common `resolveImage` helper.
+
 ### Added
 
 - **koolna-operator**: pin operator-managed image references via the new `koolna-images` ConfigMap (loaded via `envFrom` and tracked by Renovate); operator now refuses to start if `KOOLNA_GIT_CLONE_IMAGE` or `KOOLNA_SESSION_MANAGER_IMAGE` is unset or not in `repo:tag@sha256:<64hex>` form, so a missing or sloppy pin surfaces as a deploy-time crash instead of silently shipping `:latest`

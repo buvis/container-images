@@ -107,14 +107,14 @@ type KoolnaImages struct {
 	// Must be a digest-pinned reference (`repo:tag@sha256:<64hex>`); bare
 	// tags such as `:latest` are rejected at admission time.
 	// +optional
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`
+	// +kubebuilder:validation:Pattern=`^(?:[a-zA-Z0-9.-]+(?::[0-9]+)?/)?[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`
 	GitClone *string `json:"gitClone,omitempty"`
 
 	// SessionManager overrides the koolna-session-manager sidecar image.
 	// Must be a digest-pinned reference (`repo:tag@sha256:<64hex>`); bare
 	// tags such as `:latest` are rejected at admission time.
 	// +optional
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`
+	// +kubebuilder:validation:Pattern=`^(?:[a-zA-Z0-9.-]+(?::[0-9]+)?/)?[a-zA-Z0-9./_-]+:[a-zA-Z0-9._-]+@sha256:[a-f0-9]{64}$`
 	SessionManager *string `json:"sessionManager,omitempty"`
 }
 

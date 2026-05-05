@@ -64,6 +64,16 @@ func TestValidatePinnedImageEnv_BothEmpty(t *testing.T) {
 	}
 }
 
+func TestValidatePinnedImageEnv_AcceptsRegistryWithPort(t *testing.T) {
+	// Registry with explicit port (e.g. an in-cluster or local registry).
+	// The pattern must accept this; the original PRD 00022 regex did not.
+	gitClone := "localhost:5000/buvis/koolna-git-clone:v0.2.1@sha256:8f126be8e828805df9bbdb5e932f2bdcbddd9579f0ec88e8d20683cf1b9e455f"
+	sessionManager := "registry.example.com:5443/buvis/koolna-session-manager:v0.4.3@sha256:345b48f9f96183e7eed7d24160d808fee6278300f3c84f104be6e724c544e955"
+	if err := ValidatePinnedImageEnv(gitClone, sessionManager); err != nil {
+		t.Errorf("expected registry-with-port digest-pinned refs to validate, got: %v", err)
+	}
+}
+
 func TestValidatePinnedImageEnv_GitCloneNotDigestPinned(t *testing.T) {
 	cases := []struct {
 		name  string
