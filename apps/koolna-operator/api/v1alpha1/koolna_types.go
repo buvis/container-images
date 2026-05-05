@@ -57,8 +57,8 @@ type KoolnaSpec struct {
 
 	// Resources sets per-container resource requirements.
 	// When a field is omitted, operator defaults apply:
-	//   koolna:          requests cpu=250m memory=512Mi, limits cpu=6 memory=8Gi
-	//   session-manager: requests cpu=50m memory=128Mi, limits cpu=500m memory=512Mi
+	//   koolna:         requests cpu=250m memory=512Mi, limits cpu=6 memory=8Gi
+	//   sessionManager: requests cpu=50m memory=128Mi, limits cpu=500m memory=512Mi
 	// Overrides merge by key, so setting limits.cpu alone keeps default memory limits.
 	// +optional
 	Resources KoolnaResources `json:"resources,omitempty"`
@@ -93,7 +93,7 @@ type KoolnaResources struct {
 
 	// SessionManager overrides resource requirements for the `session-manager` sidecar.
 	// +optional
-	SessionManager *corev1.ResourceRequirements `json:"session-manager,omitempty"`
+	SessionManager *corev1.ResourceRequirements `json:"sessionManager,omitempty"`
 }
 
 // KoolnaImages overrides the operator-managed container image references on
