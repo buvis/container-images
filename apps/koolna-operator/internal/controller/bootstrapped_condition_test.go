@@ -248,6 +248,26 @@ func TestBootstrappedCondition_ErrorTerminationReportsContainerTerminated(t *tes
 	}
 }
 
+func TestBootstrappedCondition_ErrorTerminationWithEmptyStepOmitsPhaseFromMessage(t *testing.T) {
+	// Mirror of the OOMKilled-with-empty-step case for the ContainerTerminated
+	// (Error) branch. Exercises the step=="" branch of
+	// abnormalTerminationConditionFields for non-OOMKilled reasons.
+	pod := podWithTermination("Error", 1, 2, time.Now(), "")
+
+	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhasePending, 1)
+
+	if got.Status != metav1.ConditionFalse {
+		t.Errorf("expected ConditionFalse, got %s", got.Status)
+	}
+	if got.Reason != koolnav1alpha1.ReasonContainerTerminated {
+		t.Errorf("expected Reason=%s, got %q", koolnav1alpha1.ReasonContainerTerminated, got.Reason)
+	}
+	want := "Container koolna exited 1 (restart 2)"
+	if got.Message != want {
+		t.Errorf("expected Message=%q for empty step, got %q", want, got.Message)
+	}
+}
+
 func TestBootstrappedCondition_OOMKilledClearedWhenRunning(t *testing.T) {
 	// Recovery path: pod has prior OOMKilled in lastTerminationState but is
 	// now fully bootstrapped and running. PRD Phase 2 requires the OOM
