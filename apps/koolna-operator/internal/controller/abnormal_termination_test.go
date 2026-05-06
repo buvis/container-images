@@ -65,6 +65,25 @@ func TestDetectAbnormalTermination_NormalExitReturnsNil(t *testing.T) {
 	}
 }
 
+func TestDetectAbnormalTermination_NormalExitWithRestartReturnsNil(t *testing.T) {
+	// Exercises the (term.Reason != kubeletOOMKilledReason && term.ExitCode == 0)
+	// filter directly. RestartCount=1 passes the >=1 guard, so the function
+	// reaches the normal-exit check and must still return nil. Companion to
+	// TestDetectAbnormalTermination_NormalExitReturnsNil, which only exercises
+	// the earlier restartCount<1 guard despite its name implying "normal exit".
+	finishedAt := time.Now()
+	pod := &corev1.Pod{
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				terminatedAt("koolna", "Completed", 0, 1, finishedAt),
+			},
+		},
+	}
+	if got := detectAbnormalTermination(pod); got != nil {
+		t.Errorf("expected nil for normal exit with restart>=1, got %+v", got)
+	}
+}
+
 func TestDetectAbnormalTermination_OOMKilledSingleContainer(t *testing.T) {
 	finishedAt := time.Now()
 	pod := &corev1.Pod{
