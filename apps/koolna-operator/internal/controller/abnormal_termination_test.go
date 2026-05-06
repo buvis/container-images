@@ -180,6 +180,23 @@ func TestDetectAbnormalTermination_OOMKilledZeroExitStillAbnormal(t *testing.T) 
 	}
 }
 
+func TestDetectAbnormalTermination_RestartCountZeroReturnsNil(t *testing.T) {
+	// PRD 00024 requires restartCount >= 1 before surfacing abnormal termination.
+	// A non-nil LastTerminationState.Terminated with restartCount=0 is a
+	// degenerate kubelet state, but the explicit guard documents the spec.
+	finishedAt := time.Now()
+	pod := &corev1.Pod{
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				terminatedAt("koolna", "OOMKilled", 137, 0, finishedAt),
+			},
+		},
+	}
+	if got := detectAbnormalTermination(pod); got != nil {
+		t.Errorf("expected nil when restartCount<1, got %+v", got)
+	}
+}
+
 func TestDetectAbnormalTermination_IgnoresInitContainerStatuses(t *testing.T) {
 	// PRD scope is bootstrap-time, not the init-clone phase. Init container
 	// terminations should not surface here even if they look abnormal.

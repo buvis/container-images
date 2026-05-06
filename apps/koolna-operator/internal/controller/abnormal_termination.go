@@ -66,6 +66,13 @@ func detectAbnormalTermination(pod *corev1.Pod) *abnormalTermination {
 		if term == nil {
 			continue
 		}
+		// PRD 00024 specifies restartCount >= 1 as a precondition for surfacing
+		// abnormal termination. In practice the kubelet only populates
+		// LastTerminationState.Terminated after a restart, but guard explicitly
+		// so spec compliance is enforced rather than emergent.
+		if cs.RestartCount < 1 {
+			continue
+		}
 		if term.Reason != kubeletOOMKilledReason && term.ExitCode == 0 {
 			// Normal exit (Completed, etc.). Skip.
 			continue
