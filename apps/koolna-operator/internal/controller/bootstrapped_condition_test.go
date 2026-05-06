@@ -325,6 +325,9 @@ func TestBootstrappedCondition_AbnormalTerminationOverridesPhaseFailedFallback(t
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 3)
 
+	if got.Status != metav1.ConditionFalse {
+		t.Errorf("expected Status=%s, got %s", metav1.ConditionFalse, got.Status)
+	}
 	if got.Reason != koolnav1alpha1.ReasonOOMKilled {
 		t.Errorf("expected specific Reason=%s to override generic Failed fallback, got %q",
 			koolnav1alpha1.ReasonOOMKilled, got.Reason)
