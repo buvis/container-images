@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-operator**: surface OOMKilled and other abnormal container terminations during bootstrap on the `Bootstrapped` condition. New reasons `OOMKilled` and `ContainerTerminated`; condition message includes the bootstrap step at time of kill and the container restart count, e.g. `OOMKilled during phase "Running dotfiles install" (restart 1)`. Closes the SIGKILL/OOM observability gap PRD 00021 deferred to operator-side.
+
 ### Changed
 
 - **koolna-operator** (BREAKING): rename CRD JSON key `Spec.Resources.session-manager` to `Spec.Resources.sessionManager` for consistency with `Spec.Images.sessionManager` and idiomatic camelCase. CRs setting `spec.resources.session-manager` must update the key to `sessionManager`.

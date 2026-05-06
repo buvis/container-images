@@ -274,9 +274,21 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 }
 
 // bootstrappedCondition derives the typed Bootstrapped condition from the
-// pod's bootstrap-step annotation and the resolved Koolna phase. It branches
-// on a Failed: prefix in the annotation rather than the Phase string so a
-// failure surfaces immediately even if Phase has not yet caught up.
+// pod's bootstrap-step annotation, abnormal-termination signal, and the
+// resolved Koolna phase. Branch order matters:
+//
+//  1. A Failed: prefix in the annotation always wins so bootstrap.sh's own
+//     trap-reported failure surfaces immediately, even if Phase lags.
+//  2. A pod that has reached Phase=Running clears any stale OOM/error
+//     terminationState (PRD 00024 Phase 2: subsequent successful bootstrap
+//     clears the OOM annotation).
+//  3. abnormal-termination signal from containerStatuses[].lastTerminationState
+//     surfaces as a specific Reason (OOMKilled or ContainerTerminated) with
+//     phase + restart count in the message — covers SIGKILL/OOM cases that
+//     bootstrap.sh's EXIT trap cannot observe from the dying process.
+//  4. Phase=Failed falls back to a generic BootstrapFailed when no
+//     per-container terminationState is available.
+//  5. Default: report current bootstrap step.
 func bootstrappedCondition(pod *corev1.Pod, phase koolnav1alpha1.KoolnaPhase, generation int64) metav1.Condition {
 	c := metav1.Condition{
 		Type:               "Bootstrapped",
@@ -293,18 +305,24 @@ func bootstrappedCondition(pod *corev1.Pod, phase koolnav1alpha1.KoolnaPhase, ge
 		c.Status = metav1.ConditionFalse
 		c.Reason = koolnav1alpha1.ReasonBootstrapFailed
 		c.Message = step
-	case phase == koolnav1alpha1.KoolnaPhaseFailed:
-		// Pod-level failure (e.g. SIGKILL/OOM bypassing bootstrap.sh's trap).
-		// No Failed:-prefixed annotation, but the kubelet declared the pod
-		// dead, so Bootstrapped should not stay at Bootstrapping forever.
-		c.Status = metav1.ConditionFalse
-		c.Reason = koolnav1alpha1.ReasonBootstrapFailed
-		c.Message = "Pod failed"
 	case phase == koolnav1alpha1.KoolnaPhaseRunning && pod != nil:
 		c.Status = metav1.ConditionTrue
 		c.Reason = koolnav1alpha1.ReasonBootstrapped
 		c.Message = "Pod ready"
 	default:
+		if term := detectAbnormalTermination(pod); term != nil {
+			c.Status = metav1.ConditionFalse
+			c.Reason, c.Message = abnormalTerminationConditionFields(term, step)
+			break
+		}
+		if phase == koolnav1alpha1.KoolnaPhaseFailed {
+			// Pod-level failure (e.g. SIGKILL/OOM bypassing bootstrap.sh's trap)
+			// without a per-container terminationState we can pin the cause on.
+			c.Status = metav1.ConditionFalse
+			c.Reason = koolnav1alpha1.ReasonBootstrapFailed
+			c.Message = "Pod failed"
+			break
+		}
 		c.Status = metav1.ConditionFalse
 		c.Reason = koolnav1alpha1.ReasonBootstrapping
 		if step != "" {
@@ -315,6 +333,29 @@ func bootstrappedCondition(pod *corev1.Pod, phase koolnav1alpha1.KoolnaPhase, ge
 	}
 
 	return c
+}
+
+// abnormalTerminationConditionFields formats the Reason and Message fields
+// for the Bootstrapped condition when the pod's last container exit was
+// OOMKilled or another error. step is the bootstrap-step annotation at
+// observation time (may be empty).
+func abnormalTerminationConditionFields(term *abnormalTermination, step string) (reason, message string) {
+	if term.Reason == "OOMKilled" {
+		reason = koolnav1alpha1.ReasonOOMKilled
+		if step != "" {
+			message = fmt.Sprintf("OOMKilled during phase %q (restart %d)", step, term.RestartCount)
+		} else {
+			message = fmt.Sprintf("OOMKilled (restart %d)", term.RestartCount)
+		}
+		return
+	}
+	reason = koolnav1alpha1.ReasonContainerTerminated
+	if step != "" {
+		message = fmt.Sprintf("Container %s exited %d during phase %q", term.Container, term.ExitCode, step)
+	} else {
+		message = fmt.Sprintf("Container %s exited %d", term.Container, term.ExitCode)
+	}
+	return
 }
 
 func (r *KoolnaReconciler) handleDeletion(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
