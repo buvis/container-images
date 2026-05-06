@@ -242,7 +242,7 @@ func TestBootstrappedCondition_ErrorTerminationReportsContainerTerminated(t *tes
 	if got.Reason != koolnav1alpha1.ReasonContainerTerminated {
 		t.Errorf("expected Reason=%s, got %q", koolnav1alpha1.ReasonContainerTerminated, got.Reason)
 	}
-	want := `Container koolna exited 1 during phase "Cloning dotfiles"`
+	want := `Container koolna exited 1 during phase "Cloning dotfiles" (restart 2)`
 	if got.Message != want {
 		t.Errorf("expected Message=%q, got %q", want, got.Message)
 	}

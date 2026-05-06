@@ -351,9 +351,9 @@ func abnormalTerminationConditionFields(term *abnormalTermination, step string) 
 	}
 	reason = koolnav1alpha1.ReasonContainerTerminated
 	if step != "" {
-		message = fmt.Sprintf("Container %s exited %d during phase %q", term.Container, term.ExitCode, step)
+		message = fmt.Sprintf("Container %s exited %d during phase %q (restart %d)", term.Container, term.ExitCode, step, term.RestartCount)
 	} else {
-		message = fmt.Sprintf("Container %s exited %d", term.Container, term.ExitCode)
+		message = fmt.Sprintf("Container %s exited %d (restart %d)", term.Container, term.ExitCode, term.RestartCount)
 	}
 	return
 }

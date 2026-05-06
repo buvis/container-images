@@ -4,7 +4,7 @@
 
 ### Added
 
-- **koolna-operator**: surface OOMKilled and other abnormal container terminations during bootstrap on the `Bootstrapped` condition. New reasons `OOMKilled` and `ContainerTerminated`; condition message includes the bootstrap step at time of kill and the container restart count, e.g. `OOMKilled during phase "Running dotfiles install" (restart 1)`. Closes the SIGKILL/OOM observability gap PRD 00021 deferred to operator-side.
+- **koolna-operator**: surface OOMKilled and other abnormal container terminations during bootstrap on the `Bootstrapped` condition. New reasons `OOMKilled` and `ContainerTerminated`; condition message includes the bootstrap step at time of kill and the container restart count, e.g. `OOMKilled during phase "Running dotfiles install" (restart 1)` or `Container koolna exited 1 during phase "Cloning dotfiles" (restart 2)`. Closes the SIGKILL/OOM observability gap PRD 00021 deferred to operator-side.
 
 ### Changed
 
