@@ -12,6 +12,6 @@ data:
   # (annotation on the operator Deployment) and restarts the operator on
   # change so new koolna pods pick up the new digest.
   # renovate: datasource=docker depName=ghcr.io/buvis/koolna-git-clone
-  KOOLNA_GIT_CLONE_IMAGE: "ghcr.io/buvis/koolna-git-clone:v0.3.0@sha256:52692012553ccd72eb5cd4abfa7b47e20cdecdd19da9e292b3350be06ad5ecf1"
+  KOOLNA_GIT_CLONE_IMAGE: "ghcr.io/buvis/koolna-git-clone:v0.3.1@sha256:175287f4fde699121754555aba2f1bd4424ef350ff4213024074d612ee958a36"
   # renovate: datasource=docker depName=ghcr.io/buvis/koolna-session-manager
-  KOOLNA_SESSION_MANAGER_IMAGE: "ghcr.io/buvis/koolna-session-manager:v0.4.3@sha256:4ce22dd8268f09a4d983dbbdfe621b78a400ccfe1e31d73fd6ca8fc1e55ba7c3"
+  KOOLNA_SESSION_MANAGER_IMAGE: "ghcr.io/buvis/koolna-session-manager:v0.4.3@sha256:3f4316e724fe2ed7edd96e35d6ca0306fec42bc1d2365bb7a65bc85572065a10"
