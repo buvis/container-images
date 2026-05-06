@@ -14,7 +14,7 @@ rust = "1.95.0"
 "cargo:rumdl" = "0.1.67"
 "pipx:buvis-gems" = { version = "0.10.0", extras = "all" }
 "pipx:yt-dlp" = "2026.3.17"
-"pipx:beets" = "2.10.0"
+"pipx:beets" = "2.11.0"
 "pipx:gita" = "0.16.8.2"
 "npm:@github/copilot" = "1.0.40"
 "npm:pake-cli" = "3.11.4"
