@@ -340,7 +340,7 @@ func bootstrappedCondition(pod *corev1.Pod, phase koolnav1alpha1.KoolnaPhase, ge
 // OOMKilled or another error. step is the bootstrap-step annotation at
 // observation time (may be empty).
 func abnormalTerminationConditionFields(term *abnormalTermination, step string) (reason, message string) {
-	if term.Reason == "OOMKilled" {
+	if term.Reason == kubeletOOMKilledReason {
 		reason = koolnav1alpha1.ReasonOOMKilled
 		if step != "" {
 			message = fmt.Sprintf("OOMKilled during phase %q (restart %d)", step, term.RestartCount)

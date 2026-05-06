@@ -169,14 +169,16 @@ func TestBootstrappedCondition_NilPodWithRunningPhaseReportsBootstrapping(t *tes
 }
 
 // podWithTermination builds a pod whose koolna container previously OOM/Errored,
-// optionally with a current bootstrap-step annotation.
-func podWithTermination(container, reason string, exitCode, restartCount int32, finishedAt time.Time, step string) *corev1.Pod {
+// optionally with a current bootstrap-step annotation. Container name is fixed
+// at "koolna" because that is the only container under test for these cases;
+// multi-container scenarios live in abnormal_termination_test.go.
+func podWithTermination(reason string, exitCode, restartCount int32, finishedAt time.Time, step string) *corev1.Pod {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{},
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
 				{
-					Name:         container,
+					Name:         "koolna",
 					RestartCount: restartCount,
 					LastTerminationState: corev1.ContainerState{
 						Terminated: &corev1.ContainerStateTerminated{
@@ -196,7 +198,7 @@ func podWithTermination(container, reason string, exitCode, restartCount int32, 
 }
 
 func TestBootstrappedCondition_OOMKilledDuringBootstrapReportsReason(t *testing.T) {
-	pod := podWithTermination("koolna", "OOMKilled", 137, 1, time.Now(), "Running dotfiles install")
+	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Running dotfiles install")
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 5)
 
@@ -213,7 +215,7 @@ func TestBootstrappedCondition_OOMKilledDuringBootstrapReportsReason(t *testing.
 }
 
 func TestBootstrappedCondition_OOMKilledWithEmptyStepOmitsPhaseFromMessage(t *testing.T) {
-	pod := podWithTermination("koolna", "OOMKilled", 137, 1, time.Now(), "")
+	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "")
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhasePending, 1)
 
@@ -227,7 +229,10 @@ func TestBootstrappedCondition_OOMKilledWithEmptyStepOmitsPhaseFromMessage(t *te
 }
 
 func TestBootstrappedCondition_ErrorTerminationReportsContainerTerminated(t *testing.T) {
-	pod := podWithTermination("koolna", "Error", 137, 2, time.Now(), "Cloning dotfiles")
+	// Use a typical command-error exit code (1) to differentiate from the
+	// OOMKilled cases above which use 137. The helper's exitCode parameter
+	// must propagate into the condition message.
+	pod := podWithTermination("Error", 1, 2, time.Now(), "Cloning dotfiles")
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
 
@@ -237,7 +242,7 @@ func TestBootstrappedCondition_ErrorTerminationReportsContainerTerminated(t *tes
 	if got.Reason != koolnav1alpha1.ReasonContainerTerminated {
 		t.Errorf("expected Reason=%s, got %q", koolnav1alpha1.ReasonContainerTerminated, got.Reason)
 	}
-	want := `Container koolna exited 137 during phase "Cloning dotfiles"`
+	want := `Container koolna exited 1 during phase "Cloning dotfiles"`
 	if got.Message != want {
 		t.Errorf("expected Message=%q, got %q", want, got.Message)
 	}
@@ -247,7 +252,7 @@ func TestBootstrappedCondition_OOMKilledClearedWhenRunning(t *testing.T) {
 	// Recovery path: pod has prior OOMKilled in lastTerminationState but is
 	// now fully bootstrapped and running. PRD Phase 2 requires the OOM
 	// signal to clear once /cache/.koolna/ready is present (i.e. Phase=Running).
-	pod := podWithTermination("koolna", "OOMKilled", 137, 1, time.Now(), "Ready")
+	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Ready")
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 7)
 
@@ -264,7 +269,7 @@ func TestBootstrappedCondition_FailedPrefixDominatesOverOOMKilled(t *testing.T) 
 	// the container was OOMKilled at some prior point. The annotation wins,
 	// preserving the existing dominance contract verified by
 	// TestBootstrappedCondition_FailedPrefixedAnnotationOverridesPhase.
-	pod := podWithTermination("koolna", "OOMKilled", 137, 1, time.Now(),
+	pod := podWithTermination("OOMKilled", 137, 1, time.Now(),
 		"Failed: Cloning dotfiles (exit 128)")
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
@@ -281,7 +286,7 @@ func TestBootstrappedCondition_FailedPrefixDominatesOverOOMKilled(t *testing.T) 
 
 func TestBootstrappedCondition_OOMKilledIdempotent(t *testing.T) {
 	// Multiple reconcile cycles on the same pod must produce the same condition.
-	pod := podWithTermination("koolna", "OOMKilled", 137, 1, time.Now(), "Installing tools")
+	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Installing tools")
 
 	a := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
 	b := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
@@ -296,7 +301,7 @@ func TestBootstrappedCondition_AbnormalTerminationOverridesPhaseFailedFallback(t
 	// termination signal, prefer the specific reason (OOMKilled) over the
 	// generic ReasonBootstrapFailed fallback. This exposes the actual cause
 	// to the user instead of a vague "Pod failed".
-	pod := podWithTermination("koolna", "OOMKilled", 137, 1, time.Now(), "Running dotfiles install")
+	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Running dotfiles install")
 
 	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 3)
 

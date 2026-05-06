@@ -21,6 +21,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// kubeletOOMKilledReason is the literal reason string the kubelet sets on
+// containerStatuses[].lastTerminationState.terminated when the OOM killer
+// fires. This is an external contract (kubernetes/kubernetes), distinct
+// from koolnav1alpha1.ReasonOOMKilled (the operator's condition reason)
+// even though the two strings happen to match.
+const kubeletOOMKilledReason = "OOMKilled"
+
 // abnormalTermination summarizes a single container's last abnormal exit so
 // the reconciler can surface it on the Bootstrapped condition. SIGKILL and
 // OOMKills bypass bootstrap.sh's EXIT trap, so the only observable signal
@@ -59,7 +66,7 @@ func detectAbnormalTermination(pod *corev1.Pod) *abnormalTermination {
 		if term == nil {
 			continue
 		}
-		if term.Reason != "OOMKilled" && term.ExitCode == 0 {
+		if term.Reason != kubeletOOMKilledReason && term.ExitCode == 0 {
 			// Normal exit (Completed, etc.). Skip.
 			continue
 		}
