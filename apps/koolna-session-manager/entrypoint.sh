@@ -61,17 +61,16 @@ echo "detected uid=$KOOLNA_UID gid=$KOOLNA_GID home=$HOME user=$KOOLNA_USERNAME"
 
 NSENTER_USER="nsenter --target $TARGET_PID --mount --uts --ipc --net --pid --cgroup --setuid $KOOLNA_UID --setgid $KOOLNA_GID --"
 
+# Helper functions (json_escape, credential sync, wait_for_bootstrap, ...)
+# live in /lib.sh so they can be unit-tested via tests/shell/ without
+# spinning up the whole entrypoint. Source before defining set_bootstrap_step
+# so the EXIT trap (installed below) can rely on json_escape being available.
+. /lib.sh
+
 # Annotate the pod with the current bootstrap step so the operator can surface
 # it in the Koolna CR condition message. Uses the same SA token as credential sync.
 # Tracks the last announced step so the EXIT trap can report where we failed.
 LAST_STEP="starting"
-# Escape JSON-meaningful characters in a phase string so callers writing
-# arbitrary content (e.g. dotfiles repos appending diagnostic detail) can't
-# corrupt the merge-patch payload. Strips control chars (CR/LF/TAB) since the
-# bootstrap-step annotation is single-line by contract.
-json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\r\n\t'
-}
 set_bootstrap_step() {
   step="$1"
   LAST_STEP="$step"
@@ -111,10 +110,6 @@ fi
 
 # --- credential sync ---
 KOOLNA_CREDENTIAL_PATHS="${KOOLNA_CREDENTIAL_PATHS:-.claude/.credentials.json,.codex}"
-
-# Helper functions live in /lib.sh so they can be unit-tested via tests/shell/
-# without spinning up the whole entrypoint.
-. /lib.sh
 
 # Pre-bootstrap: restore once so the dev shell sees existing credentials when
 # it starts. The 30s polling loop deliberately does NOT start here; it is
