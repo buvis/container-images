@@ -133,10 +133,17 @@ const (
 // Ready condition's reasons so consumers can distinguish "Pod not yet
 // running" (Ready=False, Reason=Pending) from "Pod started but bootstrap
 // blew up" (Bootstrapped=False, Reason=BootstrapFailed).
+//
+// ReasonOOMKilled and ReasonContainerTerminated surface abnormal
+// container terminations that bootstrap.sh's EXIT trap cannot observe
+// from the dying process (see PRD 00024). The reconciler reads them
+// from `Pod.Status.ContainerStatuses[].LastTerminationState.Terminated`.
 const (
-	ReasonBootstrapped    = "Bootstrapped"
-	ReasonBootstrapFailed = "BootstrapFailed"
-	ReasonBootstrapping   = "Bootstrapping"
+	ReasonBootstrapped        = "Bootstrapped"
+	ReasonBootstrapFailed     = "BootstrapFailed"
+	ReasonBootstrapping       = "Bootstrapping"
+	ReasonOOMKilled           = "OOMKilled"
+	ReasonContainerTerminated = "ContainerTerminated"
 )
 
 // KoolnaStatus defines the observed state of Koolna.
