@@ -1,4 +1,4 @@
-package controller
+package status
 
 import (
 	"testing"
@@ -19,7 +19,7 @@ func TestBootstrappedCondition_RunningPhaseReportsTrue(t *testing.T) {
 		},
 	}
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 7)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 7)
 
 	if got.Type != "Bootstrapped" {
 		t.Errorf("expected Type=Bootstrapped, got %q", got.Type)
@@ -45,7 +45,7 @@ func TestBootstrappedCondition_FailedAnnotationReportsBootstrapFailed(t *testing
 		},
 	}
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase(failedMsg), 3)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase(failedMsg), 3)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse, got %s", got.Status)
@@ -67,7 +67,7 @@ func TestBootstrappedCondition_InProgressReportsBootstrapping(t *testing.T) {
 		},
 	}
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase("Installing tools"), 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase("Installing tools"), 1)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse, got %s", got.Status)
@@ -81,7 +81,7 @@ func TestBootstrappedCondition_InProgressReportsBootstrapping(t *testing.T) {
 }
 
 func TestBootstrappedCondition_NilPodReportsBootstrapping(t *testing.T) {
-	got := bootstrappedCondition(nil, koolnav1alpha1.KoolnaPhasePending, 1)
+	got := BootstrappedCondition(nil, koolnav1alpha1.KoolnaPhasePending, 1)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse, got %s", got.Status)
@@ -102,7 +102,7 @@ func TestBootstrappedCondition_FailedPrefixedAnnotationOverridesPhase(t *testing
 
 	// Phase happens to lag behind the annotation. The Failed: prefix in the
 	// annotation must still drive the condition to BootstrapFailed.
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 1)
 
 	if got.Reason != koolnav1alpha1.ReasonBootstrapFailed {
 		t.Errorf("Failed: annotation must dominate even when Phase=Running, got Reason=%q", got.Reason)
@@ -112,7 +112,7 @@ func TestBootstrappedCondition_FailedPrefixedAnnotationOverridesPhase(t *testing
 func TestBootstrappedCondition_PodFailedPhaseReportsBootstrapFailed(t *testing.T) {
 	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{}}
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 4)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 4)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse for pod-level failure, got %s", got.Status)
@@ -125,7 +125,7 @@ func TestBootstrappedCondition_PodFailedPhaseReportsBootstrapFailed(t *testing.T
 func TestBootstrappedCondition_PodWithNilAnnotationsReportsBootstrapping(t *testing.T) {
 	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{}}
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse, got %s", got.Status)
@@ -147,7 +147,7 @@ func TestBootstrappedCondition_EmptyFailedPrefixedAnnotation(t *testing.T) {
 		},
 	}
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase("Failed:"), 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhase("Failed:"), 1)
 
 	if got.Reason != koolnav1alpha1.ReasonBootstrapFailed {
 		t.Errorf("expected BootstrapFailed for Failed:-prefix even with empty body, got %q", got.Reason)
@@ -158,7 +158,7 @@ func TestBootstrappedCondition_EmptyFailedPrefixedAnnotation(t *testing.T) {
 }
 
 func TestBootstrappedCondition_NilPodWithRunningPhaseReportsBootstrapping(t *testing.T) {
-	got := bootstrappedCondition(nil, koolnav1alpha1.KoolnaPhaseRunning, 1)
+	got := BootstrappedCondition(nil, koolnav1alpha1.KoolnaPhaseRunning, 1)
 
 	if got.Status == metav1.ConditionTrue {
 		t.Errorf("nil pod must not produce Bootstrapped=True, got %s", got.Status)
@@ -200,7 +200,7 @@ func podWithTermination(reason string, exitCode, restartCount int32, finishedAt 
 func TestBootstrappedCondition_OOMKilledDuringBootstrapReportsReason(t *testing.T) {
 	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Running dotfiles install")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 5)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 5)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse for OOMKilled, got %s", got.Status)
@@ -217,7 +217,7 @@ func TestBootstrappedCondition_OOMKilledDuringBootstrapReportsReason(t *testing.
 func TestBootstrappedCondition_OOMKilledWithEmptyStepOmitsPhaseFromMessage(t *testing.T) {
 	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhasePending, 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhasePending, 1)
 
 	if got.Reason != koolnav1alpha1.ReasonOOMKilled {
 		t.Errorf("expected Reason=%s, got %q", koolnav1alpha1.ReasonOOMKilled, got.Reason)
@@ -234,7 +234,7 @@ func TestBootstrappedCondition_ErrorTerminationReportsContainerTerminated(t *tes
 	// must propagate into the condition message.
 	pod := podWithTermination("Error", 1, 2, time.Now(), "Cloning dotfiles")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse, got %s", got.Status)
@@ -254,7 +254,7 @@ func TestBootstrappedCondition_ErrorTerminationWithEmptyStepOmitsPhaseFromMessag
 	// abnormalTerminationConditionFields for non-OOMKilled reasons.
 	pod := podWithTermination("Error", 1, 2, time.Now(), "")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhasePending, 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhasePending, 1)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected ConditionFalse, got %s", got.Status)
@@ -274,7 +274,7 @@ func TestBootstrappedCondition_OOMKilledClearedWhenRunning(t *testing.T) {
 	// signal to clear once /cache/.koolna/ready is present (i.e. Phase=Running).
 	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Ready")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 7)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseRunning, 7)
 
 	if got.Status != metav1.ConditionTrue {
 		t.Errorf("expected ConditionTrue once pod is Running, got %s", got.Status)
@@ -292,7 +292,7 @@ func TestBootstrappedCondition_FailedPrefixDominatesOverOOMKilled(t *testing.T) 
 	pod := podWithTermination("OOMKilled", 137, 1, time.Now(),
 		"Failed: Cloning dotfiles (exit 128)")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
 
 	if got.Reason != koolnav1alpha1.ReasonBootstrapFailed {
 		t.Errorf("expected Failed: annotation to dominate (Reason=%s), got %q",
@@ -308,8 +308,8 @@ func TestBootstrappedCondition_OOMKilledIdempotent(t *testing.T) {
 	// Multiple reconcile cycles on the same pod must produce the same condition.
 	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Installing tools")
 
-	a := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
-	b := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
+	a := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
+	b := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseBootstrapping, 1)
 
 	if a.Type != b.Type || a.Status != b.Status || a.Reason != b.Reason || a.Message != b.Message {
 		t.Errorf("non-idempotent condition: a=%+v b=%+v", a, b)
@@ -323,7 +323,7 @@ func TestBootstrappedCondition_AbnormalTerminationOverridesPhaseFailedFallback(t
 	// to the user instead of a vague "Pod failed".
 	pod := podWithTermination("OOMKilled", 137, 1, time.Now(), "Running dotfiles install")
 
-	got := bootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 3)
+	got := BootstrappedCondition(pod, koolnav1alpha1.KoolnaPhaseFailed, 3)
 
 	if got.Status != metav1.ConditionFalse {
 		t.Errorf("expected Status=%s, got %s", metav1.ConditionFalse, got.Status)

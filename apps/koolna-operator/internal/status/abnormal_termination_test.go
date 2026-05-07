@@ -1,4 +1,4 @@
-package controller
+package status
 
 import (
 	"testing"
@@ -48,14 +48,14 @@ func terminatedAt(name, reason string, exitCode, restartCount int32, finishedAt 
 }
 
 func TestDetectAbnormalTermination_NilPodReturnsNil(t *testing.T) {
-	if got := detectAbnormalTermination(nil); got != nil {
+	if got := DetectAbnormalTermination(nil); got != nil {
 		t.Errorf("expected nil for nil pod, got %+v", got)
 	}
 }
 
 func TestDetectAbnormalTermination_NoContainerStatusesReturnsNil(t *testing.T) {
 	pod := &corev1.Pod{}
-	if got := detectAbnormalTermination(pod); got != nil {
+	if got := DetectAbnormalTermination(pod); got != nil {
 		t.Errorf("expected nil for pod with no container statuses, got %+v", got)
 	}
 }
@@ -68,7 +68,7 @@ func TestDetectAbnormalTermination_NoLastTerminationStateReturnsNil(t *testing.T
 			},
 		},
 	}
-	if got := detectAbnormalTermination(pod); got != nil {
+	if got := DetectAbnormalTermination(pod); got != nil {
 		t.Errorf("expected nil when no LastTerminationState.Terminated, got %+v", got)
 	}
 }
@@ -82,7 +82,7 @@ func TestDetectAbnormalTermination_NormalExitReturnsNil(t *testing.T) {
 			},
 		},
 	}
-	if got := detectAbnormalTermination(pod); got != nil {
+	if got := DetectAbnormalTermination(pod); got != nil {
 		t.Errorf("expected nil for normal exit (reason!=OOMKilled, exit==0), got %+v", got)
 	}
 }
@@ -101,7 +101,7 @@ func TestDetectAbnormalTermination_NormalExitWithRestartReturnsNil(t *testing.T)
 			},
 		},
 	}
-	if got := detectAbnormalTermination(pod); got != nil {
+	if got := DetectAbnormalTermination(pod); got != nil {
 		t.Errorf("expected nil for normal exit with restart>=1, got %+v", got)
 	}
 }
@@ -115,7 +115,7 @@ func TestDetectAbnormalTermination_OOMKilledSingleContainer(t *testing.T) {
 			},
 		},
 	}
-	got := detectAbnormalTermination(pod)
+	got := DetectAbnormalTermination(pod)
 	if got == nil {
 		t.Fatal("expected non-nil for OOMKilled, got nil")
 	}
@@ -142,7 +142,7 @@ func TestDetectAbnormalTermination_ErrorWithNonZeroExit(t *testing.T) {
 			},
 		},
 	}
-	got := detectAbnormalTermination(pod)
+	got := DetectAbnormalTermination(pod)
 	if got == nil {
 		t.Fatal("expected non-nil for Error with non-zero exit, got nil")
 	}
@@ -168,7 +168,7 @@ func TestDetectAbnormalTermination_LatestFinishedAtWins(t *testing.T) {
 			},
 		},
 	}
-	got := detectAbnormalTermination(pod)
+	got := DetectAbnormalTermination(pod)
 	if got == nil {
 		t.Fatal("expected non-nil, got nil")
 	}
@@ -190,7 +190,7 @@ func TestDetectAbnormalTermination_TieBrokenByContainerName(t *testing.T) {
 			},
 		},
 	}
-	got := detectAbnormalTermination(pod)
+	got := DetectAbnormalTermination(pod)
 	if got == nil {
 		t.Fatal("expected non-nil, got nil")
 	}
@@ -212,7 +212,7 @@ func TestDetectAbnormalTermination_OOMKilledZeroExitStillAbnormal(t *testing.T) 
 			},
 		},
 	}
-	got := detectAbnormalTermination(pod)
+	got := DetectAbnormalTermination(pod)
 	if got == nil {
 		t.Fatal("expected OOMKilled with exit=0 to still surface, got nil")
 	}
@@ -233,7 +233,7 @@ func TestDetectAbnormalTermination_RestartCountZeroReturnsNil(t *testing.T) {
 			},
 		},
 	}
-	if got := detectAbnormalTermination(pod); got != nil {
+	if got := DetectAbnormalTermination(pod); got != nil {
 		t.Errorf("expected nil when restartCount<1, got %+v", got)
 	}
 }
@@ -249,7 +249,7 @@ func TestDetectAbnormalTermination_IgnoresInitContainerStatuses(t *testing.T) {
 			},
 		},
 	}
-	if got := detectAbnormalTermination(pod); got != nil {
+	if got := DetectAbnormalTermination(pod); got != nil {
 		t.Errorf("expected init-container termination to be ignored, got %+v", got)
 	}
 }

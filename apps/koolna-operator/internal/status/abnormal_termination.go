@@ -14,7 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+// Package status provides helpers that translate Kubernetes pod state into
+// Koolna CR conditions. The package is intentionally narrow: every export
+// here turns observable kubelet/pod data into a Koolna-specific condition
+// or signal, so the controller package can stay focused on reconciliation
+// flow.
+package status
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -28,11 +33,11 @@ import (
 // even though the two strings happen to match.
 const kubeletOOMKilledReason = "OOMKilled"
 
-// abnormalTermination summarizes a single container's last abnormal exit so
+// AbnormalTermination summarizes a single container's last abnormal exit so
 // the reconciler can surface it on the Bootstrapped condition. SIGKILL and
 // OOMKills bypass bootstrap.sh's EXIT trap, so the only observable signal
 // is the kubelet's containerStatuses[].lastTerminationState.
-type abnormalTermination struct {
+type AbnormalTermination struct {
 	// Reason is the kubelet's raw reason string (e.g. "OOMKilled", "Error").
 	Reason string
 	// Container is the corev1.ContainerStatus.Name the signal came from.
@@ -45,7 +50,7 @@ type abnormalTermination struct {
 	FinishedAt metav1.Time
 }
 
-// detectAbnormalTermination returns the most recent abnormal termination
+// DetectAbnormalTermination returns the most recent abnormal termination
 // across pod.Status.ContainerStatuses, or nil if none qualifies. A
 // termination is "abnormal" when reason == "OOMKilled" OR exit code != 0.
 //
@@ -55,12 +60,12 @@ type abnormalTermination struct {
 //
 // On ties (same FinishedAt), the lexicographically smaller container name
 // wins so reconcile output stays deterministic.
-func detectAbnormalTermination(pod *corev1.Pod) *abnormalTermination {
+func DetectAbnormalTermination(pod *corev1.Pod) *AbnormalTermination {
 	if pod == nil {
 		return nil
 	}
 
-	var best *abnormalTermination
+	var best *AbnormalTermination
 	for _, cs := range pod.Status.ContainerStatuses {
 		term := cs.LastTerminationState.Terminated
 		if term == nil {
@@ -78,7 +83,7 @@ func detectAbnormalTermination(pod *corev1.Pod) *abnormalTermination {
 			continue
 		}
 
-		candidate := &abnormalTermination{
+		candidate := &AbnormalTermination{
 			Reason:       term.Reason,
 			Container:    cs.Name,
 			ExitCode:     term.ExitCode,
