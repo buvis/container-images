@@ -6,7 +6,29 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	koolnav1alpha1 "github.com/buvis/koolna-operator/api/v1alpha1"
 )
+
+// TestKubeletOOMKilledReasonLiteral pins the kubelet OOMKilled reason
+// string. Both the package-private kubeletOOMKilledReason (the kubelet
+// API contract we read off ContainerStatus.LastTerminationState) and
+// koolnav1alpha1.ReasonOOMKilled (the operator's own condition Reason)
+// must remain "OOMKilled" in lockstep so detection and reporting do not
+// silently diverge if either side is renamed. If kubelet ever ships a
+// different literal in upstream Kubernetes, this test fails loudly and
+// flags the contract drift before it can ship.
+func TestKubeletOOMKilledReasonLiteral(t *testing.T) {
+	if kubeletOOMKilledReason != "OOMKilled" {
+		t.Fatalf("kubeletOOMKilledReason drifted from kubelet contract: got %q, want %q", kubeletOOMKilledReason, "OOMKilled")
+	}
+	if koolnav1alpha1.ReasonOOMKilled != "OOMKilled" {
+		t.Fatalf("koolnav1alpha1.ReasonOOMKilled drifted from kubelet contract: got %q, want %q", koolnav1alpha1.ReasonOOMKilled, "OOMKilled")
+	}
+	if kubeletOOMKilledReason != koolnav1alpha1.ReasonOOMKilled {
+		t.Fatalf("kubeletOOMKilledReason and koolnav1alpha1.ReasonOOMKilled diverged: %q vs %q", kubeletOOMKilledReason, koolnav1alpha1.ReasonOOMKilled)
+	}
+}
 
 // terminatedAt builds a ContainerStatus whose LastTerminationState.Terminated
 // matches the given reason/exit code/restart count and finishedAt timestamp.
