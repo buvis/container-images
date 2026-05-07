@@ -246,14 +246,42 @@ jobs:
       - name: Run bats
         run: bats tests/shell/
 
+  koolna-operator-go:
+    name: Go lint+test (koolna-operator)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Detect koolna-operator changes
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+        id: filter
+        with:
+          filters: |
+            operator:
+            - 'apps/koolna-operator/**'
+      - name: Setup Go
+        if: steps.filter.outputs.operator == 'true'
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: apps/koolna-operator/go.mod
+          cache-dependency-path: apps/koolna-operator/go.sum
+      - name: Lint
+        if: steps.filter.outputs.operator == 'true'
+        working-directory: apps/koolna-operator
+        run: make lint
+      - name: Test
+        if: steps.filter.outputs.operator == 'true'
+        working-directory: apps/koolna-operator
+        run: make test
+
   test-success:
     name: Test
-    needs: [hadolint, build-base, build-stack, shell-tests]
+    needs: [hadolint, build-base, build-stack, shell-tests, koolna-operator-go]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build-base.result }}" == "failure" || "${{ needs.build-stack.result }}" == "failure" || "${{ needs.shell-tests.result }}" == "failure" ]]; then
+          if [[ "${{ needs.hadolint.result }}" == "failure" || "${{ needs.build-base.result }}" == "failure" || "${{ needs.build-stack.result }}" == "failure" || "${{ needs.shell-tests.result }}" == "failure" || "${{ needs.koolna-operator-go.result }}" == "failure" ]]; then
             exit 1
           fi
