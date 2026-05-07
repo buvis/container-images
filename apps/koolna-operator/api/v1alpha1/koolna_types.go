@@ -224,6 +224,6 @@ type KoolnaList struct {
 	Items           []Koolna `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Koolna{}, &KoolnaList{})
-}
+// Type registration moved to groupversion_info.go's addKnownTypes after the
+// migration from controller-runtime's deprecated scheme.Builder to
+// k8s.io/apimachinery's runtime.NewSchemeBuilder.

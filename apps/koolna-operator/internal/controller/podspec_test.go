@@ -18,6 +18,16 @@ import (
 const testGitCloneImage = "ghcr.io/buvis/koolna-git-clone:test@sha256:dead000000000000000000000000000000000000000000000000000000000000"
 const testSessionManagerImage = "ghcr.io/buvis/koolna-session-manager:test@sha256:beef000000000000000000000000000000000000000000000000000000000000"
 
+// Test fixture string constants. Names mirror the literal values used by the
+// production buildPodSpec/buildGitCloneInitContainer code paths; centralising
+// them here keeps assertions and fixtures in lockstep.
+const (
+	koolnaContainerName         = "koolna"
+	sessionManagerContainerName = "session-manager"
+	workspaceMountPath          = "/workspace"
+	testEnvSecretRef            = "my-env"
+)
+
 func minimalKoolna() *koolnav1alpha1.Koolna {
 	return &koolnav1alpha1.Koolna{
 		ObjectMeta: metav1.ObjectMeta{
@@ -38,11 +48,11 @@ func TestBuildPodSpec_WorkspaceMount(t *testing.T) {
 
 	var wsFound, cacheFound bool
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "koolna" {
+		if c.Name != koolnaContainerName {
 			continue
 		}
 		for _, vm := range c.VolumeMounts {
-			if vm.MountPath == "/workspace" && vm.SubPath == "workspace" {
+			if vm.MountPath == workspaceMountPath && vm.SubPath == workspaceVolumeName {
 				wsFound = true
 			}
 			if vm.MountPath == "/cache" {
@@ -64,8 +74,8 @@ func TestBuildPodSpec_WorkingDir(t *testing.T) {
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name == "koolna" {
-			if c.WorkingDir != "/workspace" {
+		if c.Name == koolnaContainerName {
+			if c.WorkingDir != workspaceMountPath {
 				t.Errorf("main container WorkingDir: got %q, want /workspace", c.WorkingDir)
 			}
 			return
@@ -79,7 +89,7 @@ func TestBuildPodSpec_GitConfigGlobal(t *testing.T) {
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "koolna" {
+		if c.Name != koolnaContainerName {
 			continue
 		}
 		for _, e := range c.Env {
@@ -112,7 +122,7 @@ func TestBuildPodSpec_MiseTrustedConfigPath(t *testing.T) {
 	}
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "koolna" {
+		if c.Name != koolnaContainerName {
 			continue
 		}
 		var miseTrusted string
@@ -124,7 +134,7 @@ func TestBuildPodSpec_MiseTrustedConfigPath(t *testing.T) {
 				miseTrusted = e.Value
 			}
 		}
-		if miseTrusted != "/workspace" {
+		if miseTrusted != workspaceMountPath {
 			t.Errorf("main container env MISE_TRUSTED_CONFIG_PATHS: got %q, want /workspace", miseTrusted)
 		}
 		return
@@ -137,7 +147,7 @@ func TestBuildPodSpec_KoolnaRunsAsRequestedUser(t *testing.T) {
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "koolna" {
+		if c.Name != koolnaContainerName {
 			continue
 		}
 		if c.SecurityContext == nil {
@@ -161,7 +171,7 @@ func TestBuildPodSpec_KoolnaRunAsUserHonorsSpec(t *testing.T) {
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "koolna" {
+		if c.Name != koolnaContainerName {
 			continue
 		}
 		if c.SecurityContext == nil || c.SecurityContext.RunAsUser == nil || *c.SecurityContext.RunAsUser != 2000 {
@@ -179,7 +189,7 @@ func TestBuildPodSpec_SidecarNoUserEnvVars(t *testing.T) {
 	forbidden := []string{"KOOLNA_HOME", "KOOLNA_UID", "KOOLNA_USERNAME"}
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "session-manager" {
+		if c.Name != sessionManagerContainerName {
 			continue
 		}
 		for _, e := range c.Env {
@@ -199,7 +209,7 @@ func TestBuildPodSpec_SidecarStartupProbeAllowsSlowDotfiles(t *testing.T) {
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 	for _, c := range pod.Spec.Containers {
-		if c.Name != "session-manager" {
+		if c.Name != sessionManagerContainerName {
 			continue
 		}
 		if c.StartupProbe == nil {
@@ -247,7 +257,7 @@ func TestBuildGitCloneInitContainer_WorkspaceMount(t *testing.T) {
 
 	var found bool
 	for _, vm := range c.VolumeMounts {
-		if vm.MountPath == "/workspace" && vm.SubPath == "workspace" {
+		if vm.MountPath == workspaceMountPath && vm.SubPath == workspaceVolumeName {
 			found = true
 		}
 	}
@@ -332,7 +342,7 @@ func TestBuildPodSpec_CacheVolumeIsPVC(t *testing.T) {
 		if v.Name != cacheVolumeName {
 			continue
 		}
-		if v.VolumeSource.PersistentVolumeClaim == nil {
+		if v.PersistentVolumeClaim == nil {
 			t.Error("cache volume should use PersistentVolumeClaim source, not EmptyDir")
 		}
 		return
@@ -344,7 +354,7 @@ func TestBuildPodSpec_CacheVolumeMount(t *testing.T) {
 	koolna := minimalKoolna()
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
-	containers := []string{"koolna", "session-manager"}
+	containers := []string{koolnaContainerName, sessionManagerContainerName}
 	for _, name := range containers {
 		var found bool
 		for _, c := range pod.Spec.Containers {
@@ -376,7 +386,7 @@ func TestBuildPodSpec_DefaultResources_Koolna(t *testing.T) {
 	koolna := minimalKoolna()
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
-	c := containerByName(pod, "koolna")
+	c := containerByName(pod, koolnaContainerName)
 	if c == nil {
 		t.Fatal("koolna container not found")
 	}
@@ -427,7 +437,7 @@ func TestBuildPodSpec_KoolnaCPULimitOverride_KeepsDefaultMemory(t *testing.T) {
 	}
 	pod := buildPodSpec(koolna, "test-workspace", "test-cache", dotfilesConfig{}, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
-	c := containerByName(pod, "koolna")
+	c := containerByName(pod, koolnaContainerName)
 	if c == nil {
 		t.Fatal("koolna container not found")
 	}
@@ -457,13 +467,13 @@ func TestBuildPodSpec_SSHPubkeyMount(t *testing.T) {
 	if vol == nil {
 		t.Fatal("expected ssh-pubkey volume on pod spec")
 	}
-	if vol.VolumeSource.ConfigMap == nil {
+	if vol.ConfigMap == nil {
 		t.Fatal("ssh-pubkey volume should be a ConfigMap source")
 	}
-	if got, want := vol.VolumeSource.ConfigMap.Name, "test-ssh"; got != want {
+	if got, want := vol.ConfigMap.Name, "test-ssh"; got != want {
 		t.Errorf("ssh-pubkey ConfigMap name: got %q, want %q", got, want)
 	}
-	if vol.VolumeSource.ConfigMap.Optional == nil || !*vol.VolumeSource.ConfigMap.Optional {
+	if vol.ConfigMap.Optional == nil || !*vol.ConfigMap.Optional {
 		t.Error("ssh-pubkey ConfigMap should be Optional so clearing sshPublicKey does not brick pod restart")
 	}
 
@@ -524,10 +534,10 @@ func TestBuildPodSpec_CacheVolumeClaimName(t *testing.T) {
 		if v.Name != cacheVolumeName {
 			continue
 		}
-		if v.VolumeSource.PersistentVolumeClaim == nil {
+		if v.PersistentVolumeClaim == nil {
 			t.Fatal("cache volume: PersistentVolumeClaim source is nil")
 		}
-		got := v.VolumeSource.PersistentVolumeClaim.ClaimName
+		got := v.PersistentVolumeClaim.ClaimName
 		if got != cacheName {
 			t.Errorf("cache volume claim name: got %q, want %q", got, cacheName)
 		}

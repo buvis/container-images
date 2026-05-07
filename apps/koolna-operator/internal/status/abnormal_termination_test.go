@@ -19,11 +19,12 @@ import (
 // different literal in upstream Kubernetes, this test fails loudly and
 // flags the contract drift before it can ship.
 func TestKubeletOOMKilledReasonLiteral(t *testing.T) {
-	if kubeletOOMKilledReason != "OOMKilled" {
-		t.Fatalf("kubeletOOMKilledReason drifted from kubelet contract: got %q, want %q", kubeletOOMKilledReason, "OOMKilled")
+	const want = "OOMKilled"
+	if kubeletOOMKilledReason != want {
+		t.Fatalf("kubeletOOMKilledReason drifted from kubelet contract: got %q, want %q", kubeletOOMKilledReason, want)
 	}
-	if koolnav1alpha1.ReasonOOMKilled != "OOMKilled" {
-		t.Fatalf("koolnav1alpha1.ReasonOOMKilled drifted from kubelet contract: got %q, want %q", koolnav1alpha1.ReasonOOMKilled, "OOMKilled")
+	if koolnav1alpha1.ReasonOOMKilled != want {
+		t.Fatalf("koolnav1alpha1.ReasonOOMKilled drifted from kubelet contract: got %q, want %q", koolnav1alpha1.ReasonOOMKilled, want)
 	}
 	if kubeletOOMKilledReason != koolnav1alpha1.ReasonOOMKilled {
 		t.Fatalf("kubeletOOMKilledReason and koolnav1alpha1.ReasonOOMKilled diverged: %q vs %q", kubeletOOMKilledReason, koolnav1alpha1.ReasonOOMKilled)

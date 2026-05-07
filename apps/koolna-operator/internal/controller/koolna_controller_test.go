@@ -140,7 +140,7 @@ var _ = Describe("Koolna Controller", func() {
 			Expect(*koolnaContainer.SecurityContext.RunAsGroup).To(Equal(int64(1000)))
 
 			sidecar := pod.Spec.Containers[1]
-			Expect(sidecar.Name).To(Equal("session-manager"))
+			Expect(sidecar.Name).To(Equal(sessionManagerContainerName))
 			Expect(sidecar.Image).To(Equal(testSessionManagerImage))
 			Expect(sidecar.SecurityContext.Capabilities.Add).To(ContainElement(corev1.Capability("SYS_PTRACE")))
 			Expect(sidecar.VolumeMounts).To(HaveLen(2))
@@ -254,7 +254,7 @@ var _ = Describe("Koolna Controller", func() {
 
 			var sidecarImage string
 			for _, c := range pod.Spec.Containers {
-				if c.Name == "session-manager" {
+				if c.Name == sessionManagerContainerName {
 					sidecarImage = c.Image
 				}
 			}
@@ -344,7 +344,7 @@ var _ = Describe("Koolna Controller", func() {
 
 			var sidecarImage string
 			for _, c := range pod.Spec.Containers {
-				if c.Name == "session-manager" {
+				if c.Name == sessionManagerContainerName {
 					sidecarImage = c.Image
 				}
 			}
@@ -1398,7 +1398,7 @@ var _ = Describe("Koolna Controller", func() {
 			koolnaC := pod.Spec.Containers[0]
 			var wsMount *corev1.VolumeMount
 			for i := range koolnaC.VolumeMounts {
-				if koolnaC.VolumeMounts[i].Name == "workspace" {
+				if koolnaC.VolumeMounts[i].Name == workspaceVolumeName {
 					wsMount = &koolnaC.VolumeMounts[i]
 					break
 				}
@@ -1415,7 +1415,7 @@ var _ = Describe("Koolna Controller", func() {
 			sidecar := pod.Spec.Containers[1]
 			var wsMount *corev1.VolumeMount
 			for i := range sidecar.VolumeMounts {
-				if sidecar.VolumeMounts[i].Name == "workspace" {
+				if sidecar.VolumeMounts[i].Name == workspaceVolumeName {
 					wsMount = &sidecar.VolumeMounts[i]
 					break
 				}
@@ -1430,7 +1430,7 @@ var _ = Describe("Koolna Controller", func() {
 
 			var wsMount *corev1.VolumeMount
 			for i := range c.VolumeMounts {
-				if c.VolumeMounts[i].Name == "workspace" {
+				if c.VolumeMounts[i].Name == workspaceVolumeName {
 					wsMount = &c.VolumeMounts[i]
 					break
 				}
@@ -1446,14 +1446,14 @@ var _ = Describe("Koolna Controller", func() {
 
 			var cacheVol *corev1.Volume
 			for i := range pod.Spec.Volumes {
-				if pod.Spec.Volumes[i].Name == "cache" {
+				if pod.Spec.Volumes[i].Name == cacheVolumeName {
 					cacheVol = &pod.Spec.Volumes[i]
 					break
 				}
 			}
 			Expect(cacheVol).NotTo(BeNil(), "expected volume named 'cache'")
-			Expect(cacheVol.VolumeSource.PersistentVolumeClaim).NotTo(BeNil(), "expected cache volume to use PVC")
-			Expect(cacheVol.VolumeSource.PersistentVolumeClaim.ClaimName).To(Equal("vol-test-cache-pvc"))
+			Expect(cacheVol.PersistentVolumeClaim).NotTo(BeNil(), "expected cache volume to use PVC")
+			Expect(cacheVol.PersistentVolumeClaim.ClaimName).To(Equal("vol-test-cache-pvc"))
 		})
 
 		It("should mount cache volume at /cache in main container", func() {
@@ -1463,7 +1463,7 @@ var _ = Describe("Koolna Controller", func() {
 			koolnaC := pod.Spec.Containers[0]
 			var cacheMount *corev1.VolumeMount
 			for i := range koolnaC.VolumeMounts {
-				if koolnaC.VolumeMounts[i].Name == "cache" {
+				if koolnaC.VolumeMounts[i].Name == cacheVolumeName {
 					cacheMount = &koolnaC.VolumeMounts[i]
 					break
 				}
@@ -1479,7 +1479,7 @@ var _ = Describe("Koolna Controller", func() {
 			sidecar := pod.Spec.Containers[1]
 			var cacheMount *corev1.VolumeMount
 			for i := range sidecar.VolumeMounts {
-				if sidecar.VolumeMounts[i].Name == "cache" {
+				if sidecar.VolumeMounts[i].Name == cacheVolumeName {
 					cacheMount = &sidecar.VolumeMounts[i]
 					break
 				}
@@ -1493,7 +1493,7 @@ var _ = Describe("Koolna Controller", func() {
 
 			var cacheMount *corev1.VolumeMount
 			for i, vm := range c.VolumeMounts {
-				if vm.Name == "cache" {
+				if vm.Name == cacheVolumeName {
 					cacheMount = &c.VolumeMounts[i]
 				}
 			}
@@ -1572,14 +1572,14 @@ var _ = Describe("Koolna Controller", func() {
 		})
 
 		It("should add EnvFrom with SecretRef on both containers when envSecretRef is set", func() {
-			koolna.Spec.EnvSecretRef = "my-env"
+			koolna.Spec.EnvSecretRef = testEnvSecretRef
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
 			pod := buildPodSpec(koolna, "vol-test-envfrom", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
 				var found bool
 				for _, ef := range c.EnvFrom {
-					if ef.SecretRef != nil && ef.SecretRef.Name == "my-env" {
+					if ef.SecretRef != nil && ef.SecretRef.Name == testEnvSecretRef {
 						found = true
 						Expect(ef.SecretRef.Optional).NotTo(BeNil())
 						Expect(*ef.SecretRef.Optional).To(BeTrue())
@@ -1604,7 +1604,7 @@ var _ = Describe("Koolna Controller", func() {
 		})
 
 		It("should include koolna-env-defaults in envFrom before per-workspace secret", func() {
-			koolna.Spec.EnvSecretRef = "my-env"
+			koolna.Spec.EnvSecretRef = testEnvSecretRef
 			dotfiles := dotfilesConfigFromSpec(koolna.Spec)
 			pod := buildPodSpec(koolna, "vol-test-env-defaults", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
@@ -1614,7 +1614,7 @@ var _ = Describe("Koolna Controller", func() {
 				Expect(c.EnvFrom[0].SecretRef.Name).To(Equal("koolna-env-defaults"))
 				Expect(c.EnvFrom[0].SecretRef.Optional).NotTo(BeNil())
 				Expect(*c.EnvFrom[0].SecretRef.Optional).To(BeTrue())
-				Expect(c.EnvFrom[1].SecretRef.Name).To(Equal("my-env"))
+				Expect(c.EnvFrom[1].SecretRef.Name).To(Equal(testEnvSecretRef))
 			}
 		})
 
@@ -1624,7 +1624,7 @@ var _ = Describe("Koolna Controller", func() {
 			pod := buildPodSpec(koolna, "vol-test-env-defaults-only", "vol-test-cache", dotfiles, podImages{GitClone: testGitCloneImage, SessionManager: testSessionManagerImage})
 
 			for _, c := range pod.Spec.Containers {
-				Expect(len(c.EnvFrom)).To(Equal(1), "container %s should have 1 envFrom entry", c.Name)
+				Expect(c.EnvFrom).To(HaveLen(1), "container %s should have 1 envFrom entry", c.Name)
 				Expect(c.EnvFrom[0].SecretRef).NotTo(BeNil())
 				Expect(c.EnvFrom[0].SecretRef.Name).To(Equal("koolna-env-defaults"))
 			}

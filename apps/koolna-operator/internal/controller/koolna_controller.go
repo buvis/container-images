@@ -207,7 +207,6 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	}
 
 	koolna.Status.LastError = ""
-	var notReady []string
 	if koolna.Spec.Suspended {
 		koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseSuspended
 		koolna.Status.PodName = ""
@@ -221,7 +220,7 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 			for _, cs := range pod.Status.ContainerStatuses {
 				if !cs.Ready {
 					allReady = false
-					notReady = append(notReady, cs.Name)
+					break
 				}
 			}
 			if allReady {
@@ -533,6 +532,16 @@ const workspaceVolumeName = "workspace"
 const cacheVolumeName = "cache"
 const sshPubkeyVolumeName = "ssh-pubkey"
 
+// dotfilesMethod* mirrors the bounded set of values KoolnaSpec.DotfilesMethod
+// accepts. Kept as package constants so validation, envvar wiring, and error
+// messages cannot drift.
+const (
+	dotfilesMethodNone    = "none"
+	dotfilesMethodBareGit = "bare-git"
+	dotfilesMethodClone   = "clone"
+	dotfilesMethodCommand = "command"
+)
+
 type dotfilesConfig struct {
 	Repo    string
 	Method  string
@@ -577,17 +586,17 @@ func validateSpec(spec koolnav1alpha1.KoolnaSpec) error {
 		return fmt.Errorf("invalid dotfilesRepo format %q: use https://host/owner/repo or owner/repo", spec.DotfilesRepo)
 	}
 	switch spec.DotfilesMethod {
-	case "", "none":
-	case "bare-git", "clone":
+	case "", dotfilesMethodNone:
+	case dotfilesMethodBareGit, dotfilesMethodClone:
 		if spec.DotfilesRepo == "" {
 			return fmt.Errorf("dotfilesMethod %q requires dotfilesRepo", spec.DotfilesMethod)
 		}
-	case "command":
+	case dotfilesMethodCommand:
 		if spec.DotfilesCommand == "" {
-			return fmt.Errorf("dotfilesMethod \"command\" requires dotfilesCommand")
+			return fmt.Errorf("dotfilesMethod %q requires dotfilesCommand", dotfilesMethodCommand)
 		}
 	default:
-		return fmt.Errorf("invalid dotfilesMethod %q: must be none, bare-git, clone, or command", spec.DotfilesMethod)
+		return fmt.Errorf("invalid dotfilesMethod %q: must be %s, %s, %s, or %s", spec.DotfilesMethod, dotfilesMethodNone, dotfilesMethodBareGit, dotfilesMethodClone, dotfilesMethodCommand)
 	}
 	if spec.SSHPublicKey != "" && strings.ContainsAny(spec.SSHPublicKey, "\n\r") {
 		return fmt.Errorf("invalid sshPublicKey: must not contain newlines")
@@ -636,7 +645,7 @@ func buildGitCloneInitContainer(koolna *koolnav1alpha1.Koolna, image string) cor
 }
 
 func buildDotfilesEnvVars(cfg dotfilesConfig) []corev1.EnvVar {
-	if cfg.Method == "none" {
+	if cfg.Method == dotfilesMethodNone {
 		return nil
 	}
 	if cfg.Repo == "" && cfg.Command == "" {
@@ -646,9 +655,9 @@ func buildDotfilesEnvVars(cfg dotfilesConfig) []corev1.EnvVar {
 	method := cfg.Method
 	if method == "" {
 		if cfg.Command != "" {
-			method = "command"
+			method = dotfilesMethodCommand
 		} else {
-			method = "clone"
+			method = dotfilesMethodClone
 		}
 	}
 
@@ -656,11 +665,11 @@ func buildDotfilesEnvVars(cfg dotfilesConfig) []corev1.EnvVar {
 		{Name: "DOTFILES_METHOD", Value: method},
 	}
 
-	if (method == "bare-git" || method == "clone") && cfg.Repo != "" {
+	if (method == dotfilesMethodBareGit || method == dotfilesMethodClone) && cfg.Repo != "" {
 		env = append(env, corev1.EnvVar{Name: "DOTFILES_REPO", Value: cfg.Repo})
 	}
 
-	if method == "bare-git" && cfg.BareDir != "" {
+	if method == dotfilesMethodBareGit && cfg.BareDir != "" {
 		env = append(env, corev1.EnvVar{Name: "DOTFILES_BARE_DIR", Value: cfg.BareDir})
 	}
 
