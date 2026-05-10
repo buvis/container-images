@@ -33,6 +33,12 @@ var wsUpgrader = websocket.Upgrader{
 	},
 }
 
+// attachCommand is the command exec'd inside the session-manager container
+// when the WebUI opens a shell. The koolna-attach helper ensures the
+// `web-remote` tmux session exists (recreating it from the persisted command
+// if the user destroyed it) before attaching.
+var attachCommand = []string{"koolna-attach"}
+
 // TerminalHandler proxies WebSocket connections to pod exec.
 type TerminalHandler struct {
 	kube   kubernetes.Interface
@@ -125,7 +131,7 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
 			Container: "session-manager",
-			Command:   []string{"koolna-attach"},
+			Command:   attachCommand,
 			Stdin:     true,
 			Stdout:    true,
 			Stderr:    true,

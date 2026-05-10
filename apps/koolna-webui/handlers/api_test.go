@@ -27,8 +27,10 @@ func setupTest(t *testing.T, objects ...runtime.Object) *mux.Router {
 	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrMap, objects...)
 	kubeClient := kubefake.NewSimpleClientset()
 	handler := NewAPIHandler(dynClient, kubeClient, nil, testNS)
+	terminalHandler := NewTerminalHandler(kubeClient, nil, testNS)
 	router := mux.NewRouter()
 	RegisterRoutes(router, handler)
+	RegisterTerminalRoutes(router, terminalHandler)
 	return router
 }
 
@@ -639,5 +641,57 @@ func TestUpdateDefaults_WithSSHPublicKey(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	if resp["sshPublicKey"] != "ssh-ed25519 AAAAC3default user@host" {
 		t.Errorf("sshPublicKey = %v, want ssh-ed25519 key", resp["sshPublicKey"])
+	}
+}
+
+// TestTerminalProxy_AttachCommand pins the exec command shape that the
+// terminal handler runs inside the session-manager container. It must be the
+// koolna-attach helper (not `tmux attach -t manager|worker`) so that killing
+// `web-remote` from inside the shell can be recovered.
+func TestTerminalProxy_AttachCommand(t *testing.T) {
+	if got, want := len(attachCommand), 1; got != want {
+		t.Fatalf("attachCommand length = %d, want %d (got %v)", got, want, attachCommand)
+	}
+	if got, want := attachCommand[0], "koolna-attach"; got != want {
+		t.Errorf("attachCommand[0] = %q, want %q", got, want)
+	}
+}
+
+// TestTerminalProxy_NoSessionValidation asserts the handler no longer rejects
+// requests based on a `?session=` query parameter. Under the previous
+// manager/worker contract, `?session=garbage` returned 400; under the
+// single-session contract any value (or none) must be accepted (the request
+// then fails with 404 because no pods exist in the fake client, which proves
+// the session-validation branch was removed).
+func TestTerminalProxy_NoSessionValidation(t *testing.T) {
+	router := setupTest(t)
+
+	cases := []struct {
+		name string
+		path string
+	}{
+		{"no session query", "/api/koolnas/missing/terminal"},
+		{"manager session (legacy)", "/api/koolnas/missing/terminal?session=manager"},
+		{"worker session (legacy)", "/api/koolnas/missing/terminal?session=worker"},
+		{"garbage session", "/api/koolnas/missing/terminal?session=garbage"},
+		{"empty session", "/api/koolnas/missing/terminal?session="},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", tc.path, nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if w.Code == http.StatusBadRequest {
+				t.Fatalf("session-validation 400 should be gone; got body: %s", w.Body.String())
+			}
+			if w.Code != http.StatusNotFound {
+				t.Fatalf("expected 404 (no pods found), got %d: %s", w.Code, w.Body.String())
+			}
+			if !strings.Contains(w.Body.String(), "no pods found") {
+				t.Errorf("expected 'no pods found' body, got %q", w.Body.String())
+			}
+		})
 	}
 }
