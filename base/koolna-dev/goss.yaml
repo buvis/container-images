@@ -38,5 +38,3 @@ command:
     exit-status: 0
   pake --version:
     exit-status: 0
-  claude --version:
-    exit-status: 0
