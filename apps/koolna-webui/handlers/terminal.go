@@ -93,14 +93,6 @@ type controlMessage struct {
 func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
-	session := r.URL.Query().Get("session")
-	if session == "" {
-		session = "manager"
-	}
-	if session != "manager" && session != "worker" {
-		http.Error(w, "invalid session: must be manager or worker", http.StatusBadRequest)
-		return
-	}
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -133,7 +125,7 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 		SubResource("exec").
 		VersionedParams(&corev1.PodExecOptions{
 			Container: "session-manager",
-			Command:   []string{"tmux", "-2", "attach-session", "-t", session},
+			Command:   []string{"koolna-attach"},
 			Stdin:     true,
 			Stdout:    true,
 			Stderr:    true,
