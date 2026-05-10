@@ -237,11 +237,15 @@ set -g terminal-features[0] "xterm*:256:clipboard:ccolour:cstyle:focus:title"
 set -g remain-on-exit on
 set-hook -g pane-died 'respawn-pane'
 set -g set-clipboard on
+set -g exit-empty off
 EOF
 
-echo "creating tmux sessions"
-tmux -f /tmp/tmux.conf new-session -d -s manager "$NSENTER_CMD"
-tmux new-session -d -s worker "$NSENTER_CMD"
+# Persist the recreate command so /usr/local/bin/koolna-attach can rebuild
+# the session if the user kills it from inside the shell.
+printf '%s\n' "$NSENTER_CMD" > /tmp/koolna-web-remote-cmd
+
+echo "creating tmux session"
+tmux -f /tmp/tmux.conf new-session -d -s web-remote "$NSENTER_CMD"
 tmux set -s codepoint-widths "E0B0-E0D6=1" 2>/dev/null || true
 rm -f /tmp/tmux.conf
 
