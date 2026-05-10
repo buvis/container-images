@@ -10,7 +10,7 @@ import {
 
 type KoolnaListProps = {
   onCreate: () => void
-  onTerminal: (name: string, session: string) => void
+  onTerminal: (name: string) => void
 }
 
 const phaseBadgeStyles: Record<string, string> = {
@@ -50,9 +50,27 @@ const TrashIcon = () => (
   </svg>
 )
 
+const TerminalIcon = () => (
+  <svg
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.75}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width={12}
+    height={12}
+  >
+    <rect x="2.5" y="4" width="15" height="12" rx="1.5" />
+    <path d="M5.5 8.5l2.5 2-2.5 2" />
+    <path d="M9.5 13h4" />
+  </svg>
+)
+
 type KoolnaActionsProps = {
   koolna: Koolna
-  onTerminal: (name: string, session: string) => void
+  onTerminal: (name: string) => void
   onPause: () => void
   onResume: () => void
   onMount: () => void
@@ -64,18 +82,12 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
     <button
       type="button"
       className="rounded-lg border border-border bg-surface-raised px-3 py-1 text-xs font-semibold text-text transition hover:border-text-muted disabled:opacity-40 disabled:pointer-events-none"
-      onClick={() => onTerminal(koolna.name, 'manager')}
+      onClick={() => onTerminal(koolna.name)}
       disabled={koolna.phase !== 'Running'}
+      aria-label="Open shell"
+      title="Open shell"
     >
-      Manager
-    </button>
-    <button
-      type="button"
-      className="rounded-lg border border-border bg-surface-raised px-3 py-1 text-xs font-semibold text-text transition hover:border-text-muted disabled:opacity-40 disabled:pointer-events-none"
-      onClick={() => onTerminal(koolna.name, 'worker')}
-      disabled={koolna.phase !== 'Running'}
-    >
-      Worker
+      <TerminalIcon />
     </button>
     {koolna.suspended ? (
       <button
@@ -161,11 +173,16 @@ const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
   )
 
   useEffect(() => {
-    loadKoolnas()
+    const initial = setTimeout(() => {
+      loadKoolnas()
+    }, 0)
     const interval = setInterval(() => {
       loadKoolnas()
     }, 10000)
-    return () => clearInterval(interval)
+    return () => {
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
   }, [loadKoolnas])
 
   const actionProps = (koolna: Koolna) => ({

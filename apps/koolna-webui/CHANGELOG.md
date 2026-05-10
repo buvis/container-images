@@ -6,6 +6,10 @@
 
 - **koolna-webui**: blue Bootstrapping phase badge so the new operator phase renders with proper styling
 
+### Changed
+
+- **koolna-webui**: replace Manager/Worker buttons with a single shell button and drop the session URL segment
+
 ## 2026-04-11
 
 ### Removed

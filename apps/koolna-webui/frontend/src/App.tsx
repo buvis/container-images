@@ -33,11 +33,11 @@ const HomePage = () => {
         <header className="rounded-2xl border border-border bg-surface px-6 py-5 shadow-lg shadow-black/40">
           <p className="text-sm uppercase tracking-wide text-accent">Koolna</p>
           <h1 className="text-3xl font-semibold text-text">Environment library</h1>
-          <p className="text-sm text-text-muted">Manage live Koolna sessions from one console.</p>
+          <p className="text-sm text-text-muted">Manage live Koolna environments from one console.</p>
         </header>
         <KoolnaList
           onCreate={() => navigate('/create')}
-          onTerminal={(name, session) => { window.open(`/terminal/${name}/${session}`, '_blank', 'noopener'); }}
+          onTerminal={(name) => { window.open(`/terminal/${name}`, '_blank', 'noopener'); }}
         />
       </div>
     </main>
@@ -95,9 +95,9 @@ const SettingsPage = () => {
 }
 
 const TerminalPage = () => {
-  const { name, session } = useParams<{ name: string; session: string }>()
+  const { name } = useParams<{ name: string }>()
 
-  if (!name || !session) {
+  if (!name) {
     return (
       <main className={layoutWrapper}>
         <div className={contentWrapper}>
@@ -110,7 +110,7 @@ const TerminalPage = () => {
   }
 
   return (
-    <Terminal name={name} session={session} />
+    <Terminal name={name} />
   )
 }
 
@@ -121,7 +121,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/terminal/:name/:session" element={<TerminalPage />} />
+        <Route path="/terminal/:name" element={<TerminalPage />} />
       </Routes>
     </BrowserRouter>
   )

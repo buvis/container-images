@@ -6,12 +6,11 @@ import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
   name: string;
-  session: string;
 }
 
-function buildWebsocketUrl(name: string, session: string): string {
+function buildWebsocketUrl(name: string): string {
   const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${scheme}://${location.host}/api/koolnas/${name}/terminal?session=${encodeURIComponent(session)}`;
+  return `${scheme}://${location.host}/api/koolnas/${name}/terminal`;
 }
 
 const statusColors: Record<ConnectionStatus, string> = {
@@ -20,7 +19,7 @@ const statusColors: Record<ConnectionStatus, string> = {
   reconnecting: 'text-phase-pending',
 };
 
-export function Terminal({ name, session }: TerminalProps) {
+export function Terminal({ name }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rawTermRef = useRef<RawTerminal | null>(null);
   const adapterRef = useRef<XtermAdapter | null>(null);
@@ -39,7 +38,7 @@ export function Terminal({ name, session }: TerminalProps) {
 
       const encoder = new TextEncoder();
       const { columns, rows } = adapter.info();
-      const wsUrl = buildWebsocketUrl(name, session);
+      const wsUrl = buildWebsocketUrl(name);
 
       const rawTerm = new RawTerminal(wsUrl, {
         onData: (data) => adapter.term.write(data),
@@ -67,7 +66,7 @@ export function Terminal({ name, session }: TerminalProps) {
       rawTermRef.current = null;
       adapterRef.current = null;
     };
-  }, [name, session]);
+  }, [name]);
 
   const handleKeypadKey = useCallback((seq: string) => {
     const encoder = new TextEncoder();
@@ -78,7 +77,7 @@ export function Terminal({ name, session }: TerminalProps) {
   return (
     <div className="h-screen flex flex-col bg-bg">
       <header className="flex items-center justify-between px-4 py-2 bg-surface border-b border-border">
-        <span className="text-text-muted font-mono">{session}</span>
+        <span className="text-text-muted font-mono">{name}</span>
         <span className={`font-mono text-sm ${statusColors[status]}`}>
           {status}
         </span>
