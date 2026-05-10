@@ -173,12 +173,8 @@ const KoolnaList = ({ onCreate, onTerminal }: KoolnaListProps) => {
   )
 
   useEffect(() => {
-    // react-hooks v6 (`react-hooks/set-state-in-effect`) bars setState in the
-    // synchronous body of a useEffect; both the kick-off load and the
-    // recurring poll have to run via an external system callback. The
-    // microtask (Promise.resolve) handles the immediate first load and the
-    // setInterval handles the 10s poll thereafter. The `cancelled` flag drops
-    // the microtask result if the component unmounts before it resolves.
+    // Defer the initial load to satisfy react-hooks/set-state-in-effect while
+    // keeping the existing 10s polling behavior.
     let cancelled = false
     Promise.resolve().then(() => {
       if (!cancelled) loadKoolnas()

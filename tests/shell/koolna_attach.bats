@@ -70,17 +70,14 @@ block_at_index() {
   HAS_SESSION_RC=0 run sh "$ATTACH"
   [ "$status" -eq 0 ]
 
-  # Two invocations: has-session, then attach-session. No new-session.
   [ "$(grep -c '^---$' "$TMUX_LOG")" -eq 2 ]
 
-  # 1st: tmux has-session -t web-remote   (argc=3)
   run block_at_index "$TMUX_LOG" 1
   [ "${lines[0]}" = "argc=3" ]
   [ "${lines[1]}" = "arg=has-session" ]
   [ "${lines[2]}" = "arg=-t" ]
   [ "${lines[3]}" = "arg=web-remote" ]
 
-  # 2nd: tmux -2 attach-session -t web-remote   (argc=4)
   run block_at_index "$TMUX_LOG" 2
   [ "${lines[0]}" = "argc=4" ]
   [ "${lines[1]}" = "arg=-2" ]
@@ -97,7 +94,6 @@ block_at_index() {
   HAS_SESSION_RC=1 run sh "$ATTACH"
   [ "$status" -eq 0 ]
 
-  # Three invocations: has-session, new-session, attach-session.
   [ "$(grep -c '^---$' "$TMUX_LOG")" -eq 3 ]
 
   # 2nd invocation must be: tmux new-session -d -s web-remote <cmd>

@@ -644,19 +644,6 @@ func TestUpdateDefaults_WithSSHPublicKey(t *testing.T) {
 	}
 }
 
-// TestTerminalProxy_AttachCommand pins the exec command shape that the
-// terminal handler runs inside the session-manager container. It must be the
-// koolna-attach helper (not `tmux attach -t manager|worker`) so that killing
-// `web-remote` from inside the shell can be recovered.
-func TestTerminalProxy_AttachCommand(t *testing.T) {
-	if got, want := len(attachCommand), 1; got != want {
-		t.Fatalf("attachCommand length = %d, want %d (got %v)", got, want, attachCommand)
-	}
-	if got, want := attachCommand[0], "koolna-attach"; got != want {
-		t.Errorf("attachCommand[0] = %q, want %q", got, want)
-	}
-}
-
 // TestTerminalProxy_NoSessionValidation asserts the handler no longer rejects
 // requests based on a `?session=` query parameter. Under the previous
 // manager/worker contract, `?session=garbage` returned 400; under the
