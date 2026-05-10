@@ -229,7 +229,7 @@ if [ -n "${KOOLNA_AUTH_SECRET:-}" ]; then
   ) &
 fi
 
-set_bootstrap_step "Creating sessions"
+set_bootstrap_step "Creating session"
 echo "configuring tmux defaults"
 cat > /tmp/tmux.conf <<'EOF'
 set -g default-terminal "tmux-256color"
