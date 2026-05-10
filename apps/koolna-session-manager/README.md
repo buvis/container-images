@@ -1,13 +1,13 @@
 # koolna-session-manager
 
-Lightweight sidecar that manages dev pod sessions for koolna. Handles tmux sessions, SSH/sshd, credential sync, dotfiles installation, mise tool bootstrap, and environment propagation via nsenter. Runs alongside the main container, sharing the PID namespace.
+Lightweight sidecar that manages dev pod sessions for koolna. Handles the user-facing tmux session, SSH/sshd, credential sync, dotfiles installation, mise tool bootstrap, and environment propagation via nsenter. Runs alongside the main container, sharing the PID namespace.
 
 ## What it does
 
 1. Discovers the main container's process via `/proc`
 2. Installs user dotfiles into the shared home volume
 3. Bootstraps [mise](https://mise.jdx.dev) tools when a mise config exists in the workspace
-4. Creates `manager` and `worker` tmux sessions using `nsenter` into the main container's mount namespace
+4. Creates a single `web-remote` tmux session using `nsenter` into the main container's mount namespace, and ships a `koolna-attach` helper at `/usr/local/bin/koolna-attach` that the WebUI execs to attach (and recreate the session from `/tmp/koolna-web-remote-cmd` if the user killed it from inside the shell)
 5. Syncs credentials (Claude, Codex) to a Kubernetes Secret on a 30s polling loop
 
 ## Mise integration
@@ -31,7 +31,7 @@ The sidecar requires two Linux capabilities beyond the default set:
 
 ### Why SYS_ADMIN?
 
-The tmux sessions need to run shells inside the main container's filesystem (where dev tools, language runtimes, and the workspace live). Pod containers already share PID and network namespaces, but each container has its own mount namespace. `nsenter --mount` requires `SYS_ADMIN` to cross that boundary.
+The tmux session needs to run a shell inside the main container's filesystem (where dev tools, language runtimes, and the workspace live). Pod containers already share PID and network namespaces, but each container has its own mount namespace. `nsenter --mount` requires `SYS_ADMIN` to cross that boundary.
 
 The scope is limited:
 
@@ -39,7 +39,7 @@ The scope is limited:
 - The sidecar has no exposed ports and no user-facing shell
 - The sidecar runs a single-purpose entrypoint script, not an interactive workload
 
-If `SYS_ADMIN` is unacceptable for your environment, an alternative architecture moves tmux session creation back into the main container, eliminating the need for `nsenter` and extra capabilities entirely.
+If `SYS_ADMIN` is unacceptable for your environment, an alternative architecture moves tmux session creation back into the main container, eliminating the need for `nsenter` and the extra capability entirely.
 
 ## Verifying SSH host key persistence
 
