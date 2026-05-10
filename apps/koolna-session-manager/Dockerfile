@@ -13,5 +13,6 @@ ENV LC_ALL=C.UTF-8
 ENV TERM=xterm-256color
 COPY entrypoint.sh /entrypoint.sh
 COPY lib.sh /lib.sh
-RUN chmod +x /entrypoint.sh
+COPY koolna-attach.sh /usr/local/bin/koolna-attach
+RUN chmod +x /entrypoint.sh /usr/local/bin/koolna-attach
 ENTRYPOINT ["/entrypoint.sh"]
