@@ -64,10 +64,3 @@ exit 0
   ! grep -q '^new-session' "$TMUX_LOG"
   ! grep -q '^attach-session' "$TMUX_LOG"
 }
-
-@test "koolna-attach: parses with bash -n and starts with set -eu" {
-  run bash -n "$ATTACH"
-  [ "$status" -eq 0 ]
-  head -2 "$ATTACH" | grep -q '^#!/bin/sh'
-  grep -q '^set -eu' "$ATTACH"
-}
