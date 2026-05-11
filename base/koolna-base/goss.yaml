@@ -21,3 +21,11 @@ file:
 env:
   XDG_DATA_HOME:
     value: /cache/xdg-data
+  # Negative invariant: XDG_CACHE_HOME must stay unset at the image layer.
+  # Pinning it to /cache/* re-introduces the uv-hardlink regression that the
+  # operator team already fixed (see operator CHANGELOG, "stop pinning mise/uv
+  # caches to /cache"). goss reads via os.Getenv, which returns "" for unset,
+  # so an empty-value assertion fails at build time if anyone re-adds an
+  # `ENV XDG_CACHE_HOME=...` directive.
+  XDG_CACHE_HOME:
+    value: ""
