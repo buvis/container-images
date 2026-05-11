@@ -117,3 +117,13 @@ block_at_index() {
   ! grep -q '^arg=new-session$' "$TMUX_LOG"
   ! grep -q '^arg=attach-session$' "$TMUX_LOG"
 }
+
+# Guards PRD 00026 Phase 0 acceptance: koolna-attach.sh must have a shebang,
+# enable `set -eu`, and parse cleanly. The runtime tests above cover behavior;
+# this one catches edits that silently drop the failure-fast contract.
+@test "koolna-attach: shebang, set -eu, parses with bash -n" {
+  run bash -n "$ATTACH"
+  [ "$status" -eq 0 ]
+  head -1 "$ATTACH" | grep -q '^#!'
+  grep -q '^set -eu' "$ATTACH"
+}
