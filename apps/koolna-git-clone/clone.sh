@@ -53,8 +53,10 @@ fi
 cp /bootstrap.sh "$BOOTSTRAP"
 chmod 0755 "$BOOTSTRAP"
 
-# Pre-create XDG roots so the koolna container can write to them as KOOLNA_UID.
-mkdir -p /cache/xdg-data /cache/xdg-cache
+# Pre-create the XDG_DATA_HOME root so the koolna container can write to it
+# as KOOLNA_UID. XDG_CACHE_HOME is intentionally not set on the image, so its
+# cache dir defaults to $HOME/.cache and does not need pre-creation under /cache.
+mkdir -p /cache/xdg-data
 
 # Let the koolna container (running as KOOLNA_UID) own its workspace and cache
 # so bootstrap.sh can write without elevation.

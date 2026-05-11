@@ -4,7 +4,7 @@
 
 ### Added
 
-- **koolna-base**: set XDG_DATA_HOME=/cache/xdg-data and XDG_CACHE_HOME=/cache/xdg-cache so nvim/mason and npm/pip/uv caches persist across pod recreations on the /cache PVC
+- **koolna-base**: set XDG_DATA_HOME=/cache/xdg-data so nvim/mason data persists across pod recreations on the /cache PVC. XDG_CACHE_HOME is intentionally left at its default to keep uv/npm/pip caches on the same overlay filesystem as their install targets, preserving hardlinks (see koolna-operator's prior fix)
 - **koolna-base**: ship /etc/profile.d/koolna-paths.sh so login-shell PATH keeps mise shims and ~/.local/bin even when dotfiles overwrite ~/.profile
 
 ## 2026-04-14

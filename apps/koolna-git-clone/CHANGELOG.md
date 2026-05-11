@@ -4,7 +4,7 @@
 
 ### Added
 
-- **koolna-git-clone**: pre-create /cache/xdg-data and /cache/xdg-cache before the chown sweep so koolna-base's XDG_DATA_HOME and XDG_CACHE_HOME paths exist and are writable by the koolna runAsUser on first boot
+- **koolna-git-clone**: pre-create /cache/xdg-data before the chown sweep so koolna-base's XDG_DATA_HOME path exists and is writable by the koolna runAsUser on first boot
 
 ### Changed
 

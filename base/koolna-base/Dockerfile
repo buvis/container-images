@@ -44,7 +44,6 @@ USER $USERNAME
 ENV HOME=/home/$USERNAME
 ENV PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/usr/local/bin:$PATH"
 ENV XDG_DATA_HOME=/cache/xdg-data
-ENV XDG_CACHE_HOME=/cache/xdg-cache
 ENV MISE_DATA_DIR="$HOME/.local/share/mise"
 ENV MISE_CONFIG_DIR="$HOME/.config/mise"
 ENV MISE_CACHE_DIR="$HOME/.cache/mise"

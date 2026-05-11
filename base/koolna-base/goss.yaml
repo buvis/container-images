@@ -21,5 +21,3 @@ file:
 env:
   XDG_DATA_HOME:
     value: /cache/xdg-data
-  XDG_CACHE_HOME:
-    value: /cache/xdg-cache
