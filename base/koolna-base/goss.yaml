@@ -12,3 +12,14 @@ command:
     exit-status: 0
   vifm --version:
     exit-status: 0
+file:
+  /etc/profile.d/koolna-paths.sh:
+    exists: true
+    mode: "0644"
+    contains:
+      - 'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/usr/local/bin:$PATH"'
+env:
+  XDG_DATA_HOME:
+    value: /cache/xdg-data
+  XDG_CACHE_HOME:
+    value: /cache/xdg-cache
