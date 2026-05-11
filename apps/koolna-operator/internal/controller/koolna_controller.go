@@ -221,34 +221,33 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 		koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
 	}
 
-	switch koolna.Status.Phase {
-	case koolnav1alpha1.KoolnaPhaseRunning:
-		condition.Status = metav1.ConditionTrue
-		condition.Reason = "Running"
-		condition.Message = "Koolna pod is running"
-	case koolnav1alpha1.KoolnaPhasePending:
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "Pending"
-		condition.Message = "Koolna pod is pending"
-	case koolnav1alpha1.KoolnaPhaseSuspended:
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "Suspended"
-		condition.Message = "Koolna is suspended"
-	case koolnav1alpha1.KoolnaPhaseFailed:
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "Failed"
-		condition.Message = "Koolna pod failed"
-	default:
-		// Dynamic bootstrap step phases (e.g. "Installing dotfiles",
-		// "Syncing credentials") fall through here.
-		condition.Status = metav1.ConditionFalse
-		condition.Reason = "Bootstrapping"
-		condition.Message = string(koolna.Status.Phase)
-	}
+	condition.Status, condition.Reason, condition.Message = readyConditionFor(koolna.Status.Phase)
 
 	meta.SetStatusCondition(&koolna.Status.Conditions, condition)
 	meta.SetStatusCondition(&koolna.Status.Conditions, status.BootstrappedCondition(pod, koolna.Status.Phase, koolna.Generation))
 	return r.Status().Update(ctx, koolna)
+}
+
+// readyConditionFor maps a Koolna phase to the Ready-condition tuple
+// (Status, Reason, Message) it should produce on koolna.Status.Conditions.
+// Extracted from updateStatus() for unit testability (see phase_test.go).
+// The default branch covers dynamic bootstrap-step phase values
+// (e.g. "Installing dotfiles") that flow from the pod annotation.
+func readyConditionFor(phase koolnav1alpha1.KoolnaPhase) (metav1.ConditionStatus, string, string) {
+	switch phase {
+	case koolnav1alpha1.KoolnaPhaseRunning:
+		return metav1.ConditionTrue, "Running", "Koolna pod is running"
+	case koolnav1alpha1.KoolnaPhasePending:
+		return metav1.ConditionFalse, "Pending", "Koolna pod is pending"
+	case koolnav1alpha1.KoolnaPhasePullingImage:
+		return metav1.ConditionFalse, "PullingImage", "kubelet is pulling the image"
+	case koolnav1alpha1.KoolnaPhaseSuspended:
+		return metav1.ConditionFalse, "Suspended", "Koolna is suspended"
+	case koolnav1alpha1.KoolnaPhaseFailed:
+		return metav1.ConditionFalse, "Failed", "Koolna pod failed"
+	default:
+		return metav1.ConditionFalse, "Bootstrapping", string(phase)
+	}
 }
 
 // phaseFromPodStatus classifies a pod's status into the corresponding
