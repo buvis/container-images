@@ -114,6 +114,34 @@ const TerminalPage = () => {
   )
 }
 
+// NotFoundPage catches unknown client paths so old bookmarks (e.g.
+// /terminal/{name}/manager from the manager/worker split removed in PRD
+// 00026) render an explicit "not found" instead of a blank app shell.
+const NotFoundPage = () => {
+  const navigate = useNavigate()
+  return (
+    <main className={layoutWrapper}>
+      <div className={contentWrapper}>
+        <header className="rounded-2xl border border-border bg-surface px-6 py-5 shadow-lg shadow-black/40">
+          <p className="text-sm uppercase tracking-wide text-accent">404</p>
+          <h1 className="text-3xl font-semibold text-text">Page not found</h1>
+          <p className="text-sm text-text-muted">
+            That URL has no Koolna page. If you arrived from an old bookmark,
+            the path layout changed: terminal links are now <code>/terminal/&lt;name&gt;</code>.
+          </p>
+        </header>
+        <button
+          type="button"
+          className="self-start rounded-2xl border border-border bg-surface-raised px-5 py-2 text-sm font-semibold text-text transition hover:border-text-muted"
+          onClick={() => navigate('/')}
+        >
+          Back to home
+        </button>
+      </div>
+    </main>
+  )
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -122,6 +150,7 @@ function App() {
         <Route path="/create" element={<CreatePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/terminal/:name" element={<TerminalPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   )

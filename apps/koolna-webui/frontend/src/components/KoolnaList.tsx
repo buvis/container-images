@@ -82,7 +82,7 @@ const KoolnaActions = ({ koolna, onTerminal, onPause, onResume, onMount, onDelet
   <div className="flex flex-wrap items-center gap-2">
     <button
       type="button"
-      className="rounded-lg border border-border bg-surface-raised px-3 py-1 text-xs font-semibold text-text transition hover:border-text-muted disabled:opacity-40 disabled:pointer-events-none"
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface-raised text-text transition hover:border-text-muted disabled:opacity-40 disabled:pointer-events-none sm:h-8 sm:w-8"
       onClick={() => onTerminal(koolna.name)}
       disabled={koolna.phase !== 'Running'}
       aria-label="Open shell"

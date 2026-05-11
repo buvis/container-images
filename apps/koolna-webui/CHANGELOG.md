@@ -6,10 +6,12 @@
 
 - **koolna-webui**: render the operator's new `PullingImage` phase with the existing pending (amber) badge styling so users can distinguish "kubelet is pulling the image" from generic "Pending" without a Tailwind config change (PRD 00028).
 - **koolna-webui**: blue Bootstrapping phase badge so the new operator phase renders with proper styling
+- **koolna-webui**: catch-all `*` route renders an explicit "Page not found" page for unknown SPA paths (e.g. legacy `/terminal/{name}/manager` bookmarks left over from PRD 00026's manager/worker collapse) instead of a blank app shell.
 
 ### Changed
 
 - **koolna-webui**: replace Manager/Worker buttons with a single shell button and drop the session URL segment. Hard cut: bookmarks of the old `/terminal/{name}/manager` or `/terminal/{name}/worker` URLs no longer route to a working terminal.
+- **koolna-webui**: standardize the shell button to the same fixed-square dimensions (`h-11 w-11 sm:h-8 sm:w-8`) as the sibling pause/resume/mount/delete action buttons so glyph-only actions render with consistent geometry.
 
 ## 2026-04-11
 
