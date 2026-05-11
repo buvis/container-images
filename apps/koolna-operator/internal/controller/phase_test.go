@@ -136,6 +136,72 @@ func TestPhaseFromPodStatus_PullingImage(t *testing.T) {
 	}
 }
 
+// TestContainerIsPulling exercises the helper directly to lock each guard:
+// the nil-Waiting short-circuit, the non-ContainerCreating reason
+// short-circuit, and the Running/Terminated precedence guards. These paths
+// are exercised indirectly via TestPhaseFromPodStatus_PullingImage, but a
+// helper-level test keeps the guards from regressing in isolation.
+func TestContainerIsPulling(t *testing.T) {
+	cases := []struct {
+		name string
+		cs   corev1.ContainerStatus
+		want bool
+	}{
+		{
+			name: "no state set at all (newly created status)",
+			cs:   corev1.ContainerStatus{Name: "koolna"},
+			want: false,
+		},
+		{
+			name: "waiting with non-ContainerCreating reason (PodInitializing)",
+			cs: corev1.ContainerStatus{
+				Name:  "koolna",
+				State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "PodInitializing"}},
+			},
+			want: false,
+		},
+		{
+			name: "running state short-circuits even when Waiting is concurrently set",
+			cs: corev1.ContainerStatus{
+				Name: "koolna",
+				State: corev1.ContainerState{
+					Running: &corev1.ContainerStateRunning{StartedAt: metav1.Now()},
+					Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "terminated state short-circuits even when Waiting is concurrently set",
+			cs: corev1.ContainerStatus{
+				Name: "git-clone",
+				State: corev1.ContainerState{
+					Terminated: &corev1.ContainerStateTerminated{ExitCode: 0, FinishedAt: metav1.Now()},
+					Waiting:    &corev1.ContainerStateWaiting{Reason: "ContainerCreating"},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "ContainerCreating with empty ImageID reports pulling",
+			cs: corev1.ContainerStatus{
+				Name:    "koolna",
+				State:   corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}},
+				ImageID: "",
+			},
+			want: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := containerIsPulling(tc.cs); got != tc.want {
+				t.Errorf("containerIsPulling: got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestReadyConditionFor_PullingImage locks the human-readable surface for
 // `kubectl describe koolna` during the image-pull window. The Ready
 // condition must be False with Reason=PullingImage and a static message
