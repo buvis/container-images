@@ -228,9 +228,6 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	return r.Status().Update(ctx, koolna)
 }
 
-// readyConditionFor maps a Koolna phase to the Ready-condition tuple
-// (Status, Reason, Message) it should produce on koolna.Status.Conditions.
-// Extracted from updateStatus() for unit testability (see phase_test.go).
 // The default branch covers dynamic bootstrap-step phase values
 // (e.g. "Installing dotfiles") that flow from the pod annotation.
 func readyConditionFor(phase koolnav1alpha1.KoolnaPhase) (metav1.ConditionStatus, string, string) {
@@ -250,9 +247,6 @@ func readyConditionFor(phase koolnav1alpha1.KoolnaPhase) (metav1.ConditionStatus
 	}
 }
 
-// phaseFromPodStatus classifies a pod's status into the corresponding
-// Koolna phase. Extracted from updateStatus() for unit testability (see
-// phase_test.go) and to surface the PullingImage sub-state of Pending.
 func phaseFromPodStatus(pod *corev1.Pod) koolnav1alpha1.KoolnaPhase {
 	switch pod.Status.Phase {
 	case corev1.PodRunning:
