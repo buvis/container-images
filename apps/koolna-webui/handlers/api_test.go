@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -649,12 +648,6 @@ func TestUpdateDefaults_WithSSHPublicKey(t *testing.T) {
 	}
 }
 
-// TestTerminalProxy_BuildsKoolnaAttachExec exercises the exec-request build
-// path inside TerminalProxy and asserts the constructed kubernetes exec URL
-// runs `koolna-attach` in the session-manager container. The handler's
-// TerminalProxy delegates to buildAttachExecRequest, so this is the same
-// chain a real request would traverse - a regression that swapped the
-// command would change the URL's `command` query and fail this test.
 func TestTerminalProxy_BuildsKoolnaAttachExec(t *testing.T) {
 	// The fake clientset's RESTClient() is nil, so we use a real Clientset
 	// pointed at an unreachable host. We never issue HTTP calls - we only
@@ -674,11 +667,7 @@ func TestTerminalProxy_BuildsKoolnaAttachExec(t *testing.T) {
 
 	req := h.buildAttachExecRequest("any-pod")
 	u := req.URL()
-
-	values, err := url.ParseQuery(u.RawQuery)
-	if err != nil {
-		t.Fatalf("parse query %q: %v", u.RawQuery, err)
-	}
+	values := u.Query()
 
 	commands := values["command"]
 	if len(commands) != 1 || commands[0] != "koolna-attach" {

@@ -137,7 +137,6 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 	}
 	defer clientConn.Close()
 
-	// Build exec request.
 	req := h.buildAttachExecRequest(podName)
 
 	executor, err := remotecommand.NewSPDYExecutor(h.config, http.MethodPost, req.URL())
