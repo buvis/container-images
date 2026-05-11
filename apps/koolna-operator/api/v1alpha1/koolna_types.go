@@ -123,6 +123,7 @@ type KoolnaPhase string
 
 const (
 	KoolnaPhasePending       KoolnaPhase = "Pending"
+	KoolnaPhasePullingImage  KoolnaPhase = "PullingImage"
 	KoolnaPhaseBootstrapping KoolnaPhase = "Bootstrapping"
 	KoolnaPhaseRunning       KoolnaPhase = "Running"
 	KoolnaPhaseSuspended     KoolnaPhase = "Suspended"

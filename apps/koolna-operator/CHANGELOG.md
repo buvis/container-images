@@ -4,6 +4,7 @@
 
 ### Added
 
+- **koolna-operator**: surface the kubelet image-pull window as a new `KoolnaPhasePullingImage` value on `Koolna.Status.Phase` (PRD 00028). While any init or main container reports `Waiting.Reason=ContainerCreating` with an empty `imageID`, the CR reports `Phase: PullingImage` and the `Ready` condition flips to `Reason=PullingImage, Message="kubelet is pulling the image"` so `kubectl describe koolna` and the webui can distinguish "still pulling" from "stuck pending". Existing `Pending` behavior is preserved for `PodScheduled=False`, `ImagePullBackOff`, and stale-imageID edge cases.
 - **koolna-operator**: surface OOMKilled and other abnormal container terminations during bootstrap on the `Bootstrapped` condition (PRD 00024). New reasons `OOMKilled` and `ContainerTerminated`; condition message includes the bootstrap step at time of kill and the container restart count, e.g. `OOMKilled during phase "Running dotfiles install" (restart 1)` or `Container koolna exited 1 during phase "Cloning dotfiles" (restart 2)`. Closes the SIGKILL/OOM observability gap that PRD 00021 deferred to the operator side.
 
 ### Changed
