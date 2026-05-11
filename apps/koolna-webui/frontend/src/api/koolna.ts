@@ -1,4 +1,4 @@
-export type KoolnaPhase = 'Running' | 'Pending' | 'Suspended' | 'Failed' | (string & {})
+export type KoolnaPhase = 'Running' | 'Pending' | 'PullingImage' | 'Suspended' | 'Failed' | (string & {})
 
 export interface Koolna {
   name: string

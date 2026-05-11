@@ -4,6 +4,7 @@
 
 ### Added
 
+- **koolna-webui**: render the operator's new `PullingImage` phase with the existing pending (amber) badge styling so users can distinguish "kubelet is pulling the image" from generic "Pending" without a Tailwind config change (PRD 00028).
 - **koolna-webui**: blue Bootstrapping phase badge so the new operator phase renders with proper styling
 
 ### Changed
