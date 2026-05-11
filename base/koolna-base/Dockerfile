@@ -63,7 +63,7 @@ USER root
 
 RUN cp /home/$USERNAME/.local/bin/mise /usr/local/bin/mise
 
-COPY etc/profile.d/koolna-paths.sh /etc/profile.d/koolna-paths.sh
+COPY --chmod=0644 etc/profile.d/koolna-paths.sh /etc/profile.d/koolna-paths.sh
 
 WORKDIR $HOME
 
