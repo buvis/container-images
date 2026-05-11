@@ -53,7 +53,6 @@ ENV MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS="false"
 COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERNAME/.config/mise/config.toml
 
 RUN echo 'eval "$(mise activate bash)"' >> ~/.bashrc \
-  && echo 'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"' >> ~/.profile \
   && curl -fsSL "https://mise.jdx.dev/v${MISE_VERSION}/install.sh" -o /tmp/mise-install.sh \
   && sh /tmp/mise-install.sh \
   && rm /tmp/mise-install.sh \
