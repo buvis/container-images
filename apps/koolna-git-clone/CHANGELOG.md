@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **koolna-git-clone**: pre-create /cache/xdg-data and /cache/xdg-cache before the chown sweep so koolna-base's XDG_DATA_HOME and XDG_CACHE_HOME paths exist and are writable by the koolna runAsUser on first boot
+
 ### Changed
 
 - **koolna-git-clone**: extract bootstrap.sh from the heredoc inside clone.sh into a standalone file baked into the image at `/bootstrap.sh`. clone.sh now `cp`s it into `/cache/.koolna/bootstrap.sh` instead of writing via heredoc. Pure refactor for testability (the script is now unit-tested via bats); runtime contract unchanged.
