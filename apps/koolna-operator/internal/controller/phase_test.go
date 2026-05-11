@@ -90,7 +90,7 @@ func TestPhaseFromPodStatus_PullingImage(t *testing.T) {
 			want: koolnav1alpha1.KoolnaPhasePullingImage,
 		},
 		{
-			name: "pending when Running state defeats Waiting.ContainerCreating (stale-imageID guard)",
+			name: "pending when Running state takes precedence over Waiting.ContainerCreating",
 			pod: &corev1.Pod{
 				Status: corev1.PodStatus{
 					Phase: corev1.PodPending,
@@ -102,6 +102,22 @@ func TestPhaseFromPodStatus_PullingImage(t *testing.T) {
 								Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"},
 							},
 							ImageID: "",
+						},
+					},
+				},
+			},
+			want: koolnav1alpha1.KoolnaPhasePending,
+		},
+		{
+			name: "pending when ContainerCreating but imageID already set (stale-layer guard)",
+			pod: &corev1.Pod{
+				Status: corev1.PodStatus{
+					Phase: corev1.PodPending,
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name:    "koolna",
+							State:   corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}},
+							ImageID: "sha256:aaaa000000000000000000000000000000000000000000000000000000000000",
 						},
 					},
 				},
