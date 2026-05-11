@@ -136,11 +136,6 @@ func TestPhaseFromPodStatus_PullingImage(t *testing.T) {
 	}
 }
 
-// TestContainerIsPulling exercises the helper directly to lock each guard:
-// the nil-Waiting short-circuit, the non-ContainerCreating reason
-// short-circuit, and the Running/Terminated precedence guards. These paths
-// are exercised indirectly via TestPhaseFromPodStatus_PullingImage, but a
-// helper-level test keeps the guards from regressing in isolation.
 func TestContainerIsPulling(t *testing.T) {
 	cases := []struct {
 		name string

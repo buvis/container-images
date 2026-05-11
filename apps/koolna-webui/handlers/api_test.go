@@ -651,15 +651,7 @@ func TestUpdateDefaults_WithSSHPublicKey(t *testing.T) {
 	}
 }
 
-// TestTerminalProxy_WebSocketUpgradeHappyPath proves the spec-mandated
-// "happy path" the cycle-2 blind reviewer flagged as untested: a request
-// against an existing koolna pod reaches the WebSocket Upgrade and returns
-// 101 Switching Protocols. The downstream SPDY exec fails (no real kubelet
-// behind the mock), but the handler must propagate that as a WS error
-// frame, not as an HTTP 4xx/5xx — the upgrade must already have completed.
 func TestTerminalProxy_WebSocketUpgradeHappyPath(t *testing.T) {
-	// Mock k8s API: serve the pod list for koolna.buvis.net/name=demo,
-	// 404 for anything else so we notice if the handler issues unexpected calls.
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "demo-0",
@@ -713,15 +705,6 @@ func TestTerminalProxy_WebSocketUpgradeHappyPath(t *testing.T) {
 	if resp.StatusCode != http.StatusSwitchingProtocols {
 		t.Fatalf("upgrade status = %d, want 101", resp.StatusCode)
 	}
-
-	// The handler's SPDY exec will fail against the mock; the error must
-	// flow through the WS, not break the upgrade. Read the next message to
-	// confirm the handler is sending — content is opaque to this test.
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	if _, _, err := conn.ReadMessage(); err == nil {
-		// Got a message before close; that's fine — the handler is alive.
-	}
-	// Either way, the upgrade succeeded; the spec requirement is met.
 }
 
 func TestTerminalProxy_BuildsKoolnaAttachExec(t *testing.T) {

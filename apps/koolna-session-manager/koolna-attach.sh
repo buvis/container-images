@@ -19,17 +19,8 @@ if [ "$rc" -ne 0 ]; then
     exit 1
   fi
   cmd=$(cat "$CMD_FILE")
-  # $cmd is passed as a single string; tmux re-shells it via $SHELL -c, so
-  # the persisted command must NOT contain shell metacharacters, glob
-  # patterns, or whitespace-in-args. Today entrypoint.sh writes
-  # `nsenter ... /bin/bash -l` which is safe. If that shape ever changes,
-  # switch to an argv-array form (`tmux new-session -d -s "$SESSION" --
-  # "$@"`) sourced from a NUL-delimited file.
-  #
-  # TOCTOU absorber: another koolna-attach invocation may have created the
-  # session between has-session above and new-session below. The fallback
-  # `has-session` distinguishes "raced creation" (benign, attach below) from
-  # "real tmux failure" (propagate via set -e).
+  # Another invocation may create the session after the has-session check;
+  # accept that race only if the session now exists.
   tmux new-session -d -s "$SESSION" "$cmd" 2>/dev/null || tmux has-session -t "$SESSION"
 fi
 

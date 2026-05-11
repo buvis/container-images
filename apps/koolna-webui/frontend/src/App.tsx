@@ -114,9 +114,6 @@ const TerminalPage = () => {
   )
 }
 
-// NotFoundPage catches unknown client paths so old bookmarks (e.g.
-// /terminal/{name}/manager from the manager/worker split removed in PRD
-// 00026) render an explicit "not found" instead of a blank app shell.
 const NotFoundPage = () => {
   const navigate = useNavigate()
   return (
