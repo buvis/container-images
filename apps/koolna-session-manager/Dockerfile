@@ -14,5 +14,5 @@ ENV TERM=xterm-256color
 COPY entrypoint.sh /entrypoint.sh
 COPY lib.sh /lib.sh
 COPY koolna-attach.sh /usr/local/bin/koolna-attach
-RUN chmod +x /entrypoint.sh /usr/local/bin/koolna-attach
+RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
