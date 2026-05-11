@@ -5,19 +5,16 @@
 ### Added
 
 - **koolna-git-clone**: pre-create /cache/xdg-data before the chown sweep so koolna-base's XDG_DATA_HOME path exists and is writable by the koolna runAsUser on first boot
-
-### Changed
-
-- **koolna-git-clone**: extract bootstrap.sh from the heredoc inside clone.sh into a standalone file baked into the image at `/bootstrap.sh`. clone.sh now `cp`s it into `/cache/.koolna/bootstrap.sh` instead of writing via heredoc. Pure refactor for testability (the script is now unit-tested via bats); runtime contract unchanged.
-
-### Added
-
 - **koolna-git-clone**: bootstrap.sh now traps non-zero exits, writes `Failed: <phase> (exit <rc>)` to `/cache/.koolna/phase`, and touches `/cache/.koolna/failed` so the session-manager and operator can surface bootstrap failures within seconds instead of waiting for the 40-minute startup-probe ceiling
 - **koolna-git-clone**: bootstrap.sh emits finer dotfiles sub-phases `Cloning dotfiles` and `Running dotfiles install` (replacing the coarser `Installing dotfiles`) so the bootstrap-step annotation distinguishes network-bound clone time from install/checkout time
 - **koolna-git-clone**: document the bootstrap-state protocol (`/cache/.koolna/phase`, `/cache/.koolna/failed`, `/cache/.koolna/ready`) in README and bootstrap.sh comments so dotfiles repos and other in-pod consumers can participate
 - **koolna-git-clone**: also write `/cache/.koolna/bootstrap.sh` and chown `/cache` + `/workspace` to `KOOLNA_UID`/`KOOLNA_GID`. The koolna container now execs that script as PID 1, so dotfiles install and `mise install` run inside koolna's own cgroup (8Gi limit) instead of the sidecar's 512Mi. The script self-installs mise on cold images that lack it.
 - **koolna-git-clone**: bootstrap.sh writes its PID to `/cache/.koolna/pid` as its first action so the session-manager sidecar can locate it without scanning `/proc` for a changing cmdline.
 - **koolna-git-clone**: new init-container image replacing the inline `alpine/git` script that the koolna-operator previously embedded in the pod template
+
+### Changed
+
+- **koolna-git-clone**: extract bootstrap.sh from the heredoc inside clone.sh into a standalone file baked into the image at `/bootstrap.sh`. clone.sh now `cp`s it into `/cache/.koolna/bootstrap.sh` instead of writing via heredoc. Pure refactor for testability (the script is now unit-tested via bats); runtime contract unchanged.
 
 ### Fixed
 
