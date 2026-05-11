@@ -228,8 +228,6 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	return r.Status().Update(ctx, koolna)
 }
 
-// The default branch covers dynamic bootstrap-step phase values
-// (e.g. "Installing dotfiles") that flow from the pod annotation.
 func readyConditionFor(phase koolnav1alpha1.KoolnaPhase) (metav1.ConditionStatus, string, string) {
 	switch phase {
 	case koolnav1alpha1.KoolnaPhaseRunning:
@@ -243,6 +241,8 @@ func readyConditionFor(phase koolnav1alpha1.KoolnaPhase) (metav1.ConditionStatus
 	case koolnav1alpha1.KoolnaPhaseFailed:
 		return metav1.ConditionFalse, "Failed", "Koolna pod failed"
 	default:
+		// Dynamic bootstrap-step phase values (e.g. "Installing dotfiles")
+		// flow from the pod annotation; pass them through verbatim.
 		return metav1.ConditionFalse, "Bootstrapping", string(phase)
 	}
 }
