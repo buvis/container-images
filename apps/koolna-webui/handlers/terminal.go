@@ -53,6 +53,26 @@ func RegisterTerminalRoutes(r *mux.Router, h *TerminalHandler) {
 	r.HandleFunc("/api/koolnas/{name}/terminal", h.TerminalProxy)
 }
 
+// buildAttachExecRequest constructs the exec REST request that runs
+// koolna-attach inside the session-manager container of the given pod. The
+// koolna-attach helper recreates the `web-remote` tmux session from the
+// persisted command if it was destroyed, then attaches.
+func (h *TerminalHandler) buildAttachExecRequest(podName string) *rest.Request {
+	return h.kube.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Namespace(h.ns).
+		Name(podName).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: "session-manager",
+			Command:   []string{"koolna-attach"},
+			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
+		}, k8sscheme.ParameterCodec)
+}
+
 // terminalSizeQueue implements remotecommand.TerminalSizeQueue.
 type terminalSizeQueue struct {
 	resize chan remotecommand.TerminalSize
@@ -118,19 +138,7 @@ func (h *TerminalHandler) TerminalProxy(w http.ResponseWriter, r *http.Request) 
 	defer clientConn.Close()
 
 	// Build exec request.
-	req := h.kube.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Namespace(h.ns).
-		Name(podName).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: "session-manager",
-			Command:   []string{"koolna-attach"},
-			Stdin:     true,
-			Stdout:    true,
-			Stderr:    true,
-			TTY:       true,
-		}, k8sscheme.ParameterCodec)
+	req := h.buildAttachExecRequest(podName)
 
 	executor, err := remotecommand.NewSPDYExecutor(h.config, http.MethodPost, req.URL())
 	if err != nil {

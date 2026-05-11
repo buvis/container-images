@@ -4,16 +4,21 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/buvis/container-images/apps/koolna-webui/k8s"
 	"github.com/gorilla/mux"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	k8sscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 )
 
 const testNS = "test-ns"
@@ -641,6 +646,54 @@ func TestUpdateDefaults_WithSSHPublicKey(t *testing.T) {
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	if resp["sshPublicKey"] != "ssh-ed25519 AAAAC3default user@host" {
 		t.Errorf("sshPublicKey = %v, want ssh-ed25519 key", resp["sshPublicKey"])
+	}
+}
+
+// TestTerminalProxy_BuildsKoolnaAttachExec exercises the exec-request build
+// path inside TerminalProxy and asserts the constructed kubernetes exec URL
+// runs `koolna-attach` in the session-manager container. The handler's
+// TerminalProxy delegates to buildAttachExecRequest, so this is the same
+// chain a real request would traverse - a regression that swapped the
+// command would change the URL's `command` query and fail this test.
+func TestTerminalProxy_BuildsKoolnaAttachExec(t *testing.T) {
+	// The fake clientset's RESTClient() is nil, so we use a real Clientset
+	// pointed at an unreachable host. We never issue HTTP calls - we only
+	// build the request and inspect its URL().
+	config := &rest.Config{
+		Host: "http://kubernetes.invalid",
+		ContentConfig: rest.ContentConfig{
+			GroupVersion:         &corev1.SchemeGroupVersion,
+			NegotiatedSerializer: k8sscheme.Codecs.WithoutConversion(),
+		},
+	}
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		t.Fatalf("NewForConfig: %v", err)
+	}
+	h := NewTerminalHandler(kubeClient, config, testNS)
+
+	req := h.buildAttachExecRequest("any-pod")
+	u := req.URL()
+
+	values, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		t.Fatalf("parse query %q: %v", u.RawQuery, err)
+	}
+
+	commands := values["command"]
+	if len(commands) != 1 || commands[0] != "koolna-attach" {
+		t.Errorf("command query = %v, want [koolna-attach]", commands)
+	}
+	if got := values.Get("container"); got != "session-manager" {
+		t.Errorf("container query = %q, want session-manager", got)
+	}
+	for _, k := range []string{"stdin", "stdout", "stderr", "tty"} {
+		if got := values.Get(k); got != "true" {
+			t.Errorf("%s query = %q, want true", k, got)
+		}
+	}
+	if got, want := u.Path, "/api/v1/namespaces/"+testNS+"/pods/any-pod/exec"; got != want {
+		t.Errorf("exec path = %q, want %q", got, want)
 	}
 }
 
