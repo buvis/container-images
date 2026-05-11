@@ -214,29 +214,7 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	} else if pod != nil {
 		koolna.Status.PodName = pod.Name
 		koolna.Status.IP = pod.Status.PodIP
-		switch pod.Status.Phase {
-		case corev1.PodRunning:
-			allReady := true
-			for _, cs := range pod.Status.ContainerStatuses {
-				if !cs.Ready {
-					allReady = false
-					break
-				}
-			}
-			if allReady {
-				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseRunning
-			} else if step := pod.Annotations["koolna.buvis.net/bootstrap-step"]; step != "" {
-				koolna.Status.Phase = koolnav1alpha1.KoolnaPhase(step)
-			} else {
-				koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseBootstrapping
-			}
-		case corev1.PodPending:
-			koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
-		case corev1.PodFailed:
-			koolna.Status.Phase = koolnav1alpha1.KoolnaPhaseFailed
-		default:
-			koolna.Status.Phase = koolnav1alpha1.KoolnaPhasePending
-		}
+		koolna.Status.Phase = phaseFromPodStatus(pod)
 	} else {
 		koolna.Status.PodName = ""
 		koolna.Status.IP = ""
@@ -271,6 +249,70 @@ func (r *KoolnaReconciler) updateStatus(ctx context.Context, koolna *koolnav1alp
 	meta.SetStatusCondition(&koolna.Status.Conditions, condition)
 	meta.SetStatusCondition(&koolna.Status.Conditions, status.BootstrappedCondition(pod, koolna.Status.Phase, koolna.Generation))
 	return r.Status().Update(ctx, koolna)
+}
+
+// phaseFromPodStatus classifies a pod's status into the corresponding
+// Koolna phase. Extracted from updateStatus() for unit testability (see
+// phase_test.go) and to surface the PullingImage sub-state of Pending.
+func phaseFromPodStatus(pod *corev1.Pod) koolnav1alpha1.KoolnaPhase {
+	switch pod.Status.Phase {
+	case corev1.PodRunning:
+		allReady := true
+		for _, cs := range pod.Status.ContainerStatuses {
+			if !cs.Ready {
+				allReady = false
+				break
+			}
+		}
+		if allReady {
+			return koolnav1alpha1.KoolnaPhaseRunning
+		}
+		if step := pod.Annotations["koolna.buvis.net/bootstrap-step"]; step != "" {
+			return koolnav1alpha1.KoolnaPhase(step)
+		}
+		return koolnav1alpha1.KoolnaPhaseBootstrapping
+	case corev1.PodPending:
+		if isPullingImage(pod) {
+			return koolnav1alpha1.KoolnaPhasePullingImage
+		}
+		return koolnav1alpha1.KoolnaPhasePending
+	case corev1.PodFailed:
+		return koolnav1alpha1.KoolnaPhaseFailed
+	default:
+		return koolnav1alpha1.KoolnaPhasePending
+	}
+}
+
+// isPullingImage reports whether kubelet is currently pulling the image
+// for any (init or main) container. Init containers are checked first
+// because koolna-git-clone pulls before the koolna container on a fresh
+// node, so its state determines the user-facing phase during that window.
+func isPullingImage(pod *corev1.Pod) bool {
+	for _, cs := range pod.Status.InitContainerStatuses {
+		if containerIsPulling(cs) {
+			return true
+		}
+	}
+	for _, cs := range pod.Status.ContainerStatuses {
+		if containerIsPulling(cs) {
+			return true
+		}
+	}
+	return false
+}
+
+// containerIsPulling matches the transient `Waiting.ContainerCreating`
+// window with an empty `ImageID`. The Running/Terminated guard prevents
+// misclassification when kubelet leaves stale concurrent state fields
+// populated (see PRD 00028 Risks: stale-imageID semantics).
+func containerIsPulling(cs corev1.ContainerStatus) bool {
+	if cs.State.Running != nil || cs.State.Terminated != nil {
+		return false
+	}
+	if cs.State.Waiting == nil || cs.State.Waiting.Reason != "ContainerCreating" {
+		return false
+	}
+	return cs.ImageID == ""
 }
 
 func (r *KoolnaReconciler) handleDeletion(ctx context.Context, koolna *koolnav1alpha1.Koolna) error {
