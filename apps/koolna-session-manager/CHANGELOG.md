@@ -11,7 +11,7 @@
 
 ### Changed
 
-- **koolna-session-manager**: collapse the `manager` and `worker` tmux sessions into a single `web-remote` session and set `exit-empty off` on the tmux server so killing the only session leaves the server (and the pod) running. Persists the recreate command to `/tmp/koolna-web-remote-cmd` for `koolna-attach` to consume. Hard cut — pods built from older webui images that exec `tmux attach -t manager|worker` will fail; recreate the koolna resource.
+- **koolna-session-manager**: collapse the `manager` and `worker` tmux sessions into a single `web-remote` session and set `exit-empty off` on the tmux server so killing the only session leaves the server (and the pod) running. Persists the recreate command to `/tmp/koolna-web-remote-cmd` for `koolna-attach` to consume. Hard cut: pods built from older webui images that exec `tmux attach -t manager|worker` will fail; recreate the koolna resource.
 - **koolna-session-manager**: extract credential-sync helpers and the post-bootstrap `wait_for_bootstrap` loop from `entrypoint.sh` into a sourceable `/lib.sh`. Pure refactor for testability (the helpers are now unit-tested via bats); runtime contract unchanged.
 - **koolna-session-manager**: poll the bootstrap phase file every 1s (was 2s) so fine-grained sub-phases written in tight succession surface in the bootstrap-step annotation more promptly
 - **koolna-session-manager**: locate koolna's PID by reading `/cache/.koolna/pid` (written by bootstrap.sh) instead of scanning `/proc` for a `sleep infinity` cmdline. The old scan failed during the install phase because bootstrap.sh's cmdline isn't `sleep infinity` until the install completes.

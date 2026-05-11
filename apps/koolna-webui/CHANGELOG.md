@@ -8,7 +8,7 @@
 
 ### Changed
 
-- **koolna-webui**: replace Manager/Worker buttons with a single shell button and drop the session URL segment. Hard cut — bookmarks of the old `/terminal/{name}/manager` or `/terminal/{name}/worker` URLs no longer route to a working terminal.
+- **koolna-webui**: replace Manager/Worker buttons with a single shell button and drop the session URL segment. Hard cut: bookmarks of the old `/terminal/{name}/manager` or `/terminal/{name}/worker` URLs no longer route to a working terminal.
 
 ## 2026-04-11
 
