@@ -14,7 +14,7 @@ COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERN
 RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 # renovate: datasource=npm depName=tree-sitter-cli
-ARG TREE_SITTER_CLI_VERSION=0.26.8
+ARG TREE_SITTER_CLI_VERSION=0.26.9
 RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TREE_SITTER_CLI_VERSION}'
 
 CMD ["sh", "-c", "exec sleep infinity"]

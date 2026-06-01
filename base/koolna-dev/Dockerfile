@@ -25,12 +25,12 @@ COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERN
 RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 # renovate: datasource=npm depName=tree-sitter-cli
-ARG TREE_SITTER_CLI_VERSION=0.26.8
+ARG TREE_SITTER_CLI_VERSION=0.26.9
 RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TREE_SITTER_CLI_VERSION}'
 
 # Runtime convenience: kept for users adding cargo: tools at runtime
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
-ARG CARGO_BINSTALL_VERSION=v1.19.0
+ARG CARGO_BINSTALL_VERSION=v1.19.1
 ARG CARGO_BINSTALL_SHA256=c2e963fbab3bdd8653b59c28d349bf85740cf4998e5e398d250dcd2884cd667d
 RUN curl -fsSL "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/${CARGO_BINSTALL_VERSION}/install-from-binstall-release.sh" -o /tmp/install-binstall.sh \
   && echo "${CARGO_BINSTALL_SHA256}  /tmp/install-binstall.sh" | sha256sum -c - \
