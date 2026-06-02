@@ -120,7 +120,7 @@ jobs:
           fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
         with:
           version: latest
           driver-opts: image=moby/buildkit:latest
@@ -135,7 +135,7 @@ jobs:
 
       - name: Build test image
         if: ${{ steps.prep.outputs.goss == 'true' }}
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
@@ -152,7 +152,7 @@ jobs:
           dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
 
       - name: Build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
@@ -196,7 +196,7 @@ jobs:
           fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
         with:
           version: latest
           driver-opts: image=moby/buildkit:latest
@@ -211,7 +211,7 @@ jobs:
 
       - name: Build test image
         if: ${{ steps.prep.outputs.goss == 'true' }}
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
@@ -228,7 +228,7 @@ jobs:
           dgoss run ghcr.io/${{ github.repository_owner }}/${{ matrix.container }}:test
 
       - name: Build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
