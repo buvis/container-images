@@ -25,7 +25,7 @@ def test_settings() -> Generator[Settings, None, None]:
         db_path=db_path,
         backup_dir=backup_dir,
         symbols={},  # Empty to prevent startup backfill
-        auto_backfill_time="23:59",
+        auto_backfill_times=("23:59",),
         auto_backfill_days=1,
         scheduler_tick_seconds=10,
         rate_limit_wait=0,

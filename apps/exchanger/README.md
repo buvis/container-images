@@ -15,7 +15,7 @@ Multi-provider caching proxy for exchange rates. Stores daily rates in SQLite, a
 | `DB_PATH` | no | `/data/exchanger.db` | SQLite path |
 | `BACKUP_DIR` | no | `backups/` next to DB | Backup directory |
 | `SYMBOLS` | no | - | Format: `provider:symbol,...` (e.g. `fcs:EURCZK,cnb:USDCZK`) |
-| `AUTO_BACKFILL_TIME` | no | `16:30` | Daily task time (HH:MM) |
+| `AUTO_BACKFILL_TIME` | no | `16:30` | Daily task time(s), HH:MM, comma-separated for multiple (e.g. `08:00,16:30`) |
 | `AUTO_BACKFILL_DAYS` | no | `31` | Days to fetch per backfill |
 | `SYMBOLS_MAX_AGE_DAYS` | no | `30` | Refresh symbols after N days |
 | `PROVIDER_CNB_FETCH_DELAY` | no | `2.0` | Seconds between CNB API calls |

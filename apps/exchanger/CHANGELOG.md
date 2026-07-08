@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **exchanger**: support multiple daily backfill times via comma-separated AUTO_BACKFILL_TIME config
+
 ## 2026-02-24
 
 ### Added

@@ -9,6 +9,15 @@ from app.services.backfill import BackfillService
 from app.sources.registry import SourceRegistry
 
 
+class FixedDatetime(datetime):
+    """datetime whose now() is pinned to 2024-06-01 17:00 for deterministic tests."""
+
+    @classmethod
+    def now(cls, tz=None):
+        base = datetime(2024, 6, 1, 17, 0)
+        return base.replace(tzinfo=tz) if tz else base
+
+
 class MockSource:
     def __init__(self, source_id: str, symbols: list[SymbolInfo], history: dict[str, dict[str, float]] | None = None):
         self._source_id = source_id
@@ -191,12 +200,12 @@ class TestBackfillService:
 class TestNeedsBackfill:
     def test_needs_backfill_no_record(self, temp_db: SQLiteDatabase) -> None:
         registry = SourceRegistry()
-        service = BackfillService(db=temp_db, registry=registry, auto_backfill_time="16:30")
+        service = BackfillService(db=temp_db, registry=registry, auto_backfill_times=("16:30",))
         assert service.needs_backfill("fcs") is True
 
     def test_needs_backfill_done_yesterday(self, temp_db: SQLiteDatabase) -> None:
         registry = SourceRegistry()
-        service = BackfillService(db=temp_db, registry=registry, auto_backfill_time="16:30")
+        service = BackfillService(db=temp_db, registry=registry, auto_backfill_times=("16:30",))
 
         yesterday = datetime.now(timezone.utc) - timedelta(days=1)
         temp_db.set_backfill_done_at("fcs", yesterday.isoformat())
@@ -206,7 +215,7 @@ class TestNeedsBackfill:
 
     def test_needs_backfill_done_today_after_scheduled(self, temp_db: SQLiteDatabase) -> None:
         registry = SourceRegistry()
-        service = BackfillService(db=temp_db, registry=registry, auto_backfill_time="16:30")
+        service = BackfillService(db=temp_db, registry=registry, auto_backfill_times=("16:30",))
 
         # Done today at 17:00 (after 16:30)
         now = datetime.now(timezone.utc)
@@ -216,9 +225,32 @@ class TestNeedsBackfill:
 
         assert service.needs_backfill("fcs") is False
 
+    def test_needs_backfill_multiple_times_second_slot(
+        self, temp_db: SQLiteDatabase, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A later daily slot re-triggers backfill even after an earlier same-day run."""
+        import app.services.backfill as backfill_mod
+
+        monkeypatch.setattr(backfill_mod, "datetime", FixedDatetime)  # now = 17:00
+
+        registry = SourceRegistry()
+        service = BackfillService(
+            db=temp_db, registry=registry, auto_backfill_times=("08:00", "16:30")
+        )
+
+        # Ran today at 09:00 (after 08:00, before 16:30). 16:30 slot has since passed.
+        temp_db.set_backfill_done_at("fcs", "2024-06-01T09:00:00")
+        temp_db.commit()
+        assert service.needs_backfill("fcs") is True
+
+        # Ran today at 16:45 (after the last passed slot) → nothing due.
+        temp_db.set_backfill_done_at("fcs", "2024-06-01T16:45:00")
+        temp_db.commit()
+        assert service.needs_backfill("fcs") is False
+
     def test_mark_done_records_timestamp(self, temp_db: SQLiteDatabase) -> None:
         registry = SourceRegistry()
-        service = BackfillService(db=temp_db, registry=registry, auto_backfill_time="16:30")
+        service = BackfillService(db=temp_db, registry=registry, auto_backfill_times=("16:30",))
 
         assert temp_db.get_backfill_done_at("fcs") is None
         service.mark_done("fcs")
@@ -277,5 +309,5 @@ class TestCheckpointResume:
         temp_db.commit()
 
         registry = SourceRegistry()
-        service = BackfillService(db=temp_db, registry=registry, auto_backfill_time="16:30")
+        service = BackfillService(db=temp_db, registry=registry, auto_backfill_times=("16:30",))
         assert service.needs_backfill("fcs") is True

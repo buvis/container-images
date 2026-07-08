@@ -8,6 +8,7 @@ from app.config import (
     DEFAULT_SCHEDULER_TICK_SECONDS,
     Settings,
     load_settings,
+    parse_backfill_times,
 )
 
 
@@ -22,7 +23,7 @@ class TestSettings:
         assert s.provider_api_keys == {}
         assert s.db_path == DEFAULT_DB_PATH
         assert s.symbols == {}
-        assert s.auto_backfill_time == DEFAULT_AUTO_BACKFILL_TIME
+        assert s.auto_backfill_times == (DEFAULT_AUTO_BACKFILL_TIME,)
         assert s.auto_backfill_days == DEFAULT_AUTO_BACKFILL_DAYS
         assert s.scheduler_tick_seconds == DEFAULT_SCHEDULER_TICK_SECONDS
         assert s.rate_limit_wait == DEFAULT_RATE_LIMIT_WAIT
@@ -46,8 +47,13 @@ class TestLoadSettings:
         assert settings.provider_api_keys["fcs"] == "test-key-123"
         assert settings.db_path == "/tmp/test.db"
         assert settings.symbols == {"fcs": ["GBPUSD", "ETHUSD"], "cnb": ["EURCZK"]}
-        assert settings.auto_backfill_time == "12:00"
+        assert settings.auto_backfill_times == ("12:00",)
         assert settings.auto_backfill_days == 14
+
+    def test_load_settings_multiple_backfill_times(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("AUTO_BACKFILL_TIME", "16:30,8:00")
+        settings = load_settings()
+        assert settings.auto_backfill_times == ("08:00", "16:30")
 
     def test_load_settings_empty_symbols(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("PROVIDER_FCS_API_KEY", raising=False)
@@ -72,3 +78,26 @@ class TestLoadSettings:
 
         assert settings.provider_api_keys["fcs"] == "fcs-key"
         assert settings.provider_api_keys["other"] == "other-key"
+
+
+class TestParseBackfillTimes:
+    def test_single(self) -> None:
+        assert parse_backfill_times("16:30") == ("16:30",)
+
+    def test_multiple_sorted_and_deduped(self) -> None:
+        assert parse_backfill_times("16:30, 08:00 ,16:30") == ("08:00", "16:30")
+
+    def test_normalizes_padding(self) -> None:
+        assert parse_backfill_times("8:5") == ("08:05",)
+
+    def test_empty_raises(self) -> None:
+        with pytest.raises(ValueError):
+            parse_backfill_times("  ,  ")
+
+    def test_bad_format_raises(self) -> None:
+        with pytest.raises(ValueError):
+            parse_backfill_times("noon")
+
+    def test_out_of_range_raises(self) -> None:
+        with pytest.raises(ValueError):
+            parse_backfill_times("25:00")

@@ -23,10 +23,18 @@ class BackfillDatabase(Protocol):
 
 
 class BackfillService:
-    def __init__(self, db: BackfillDatabase, registry: SourceRegistry, auto_backfill_time: str = "16:30"):
+    def __init__(
+        self,
+        db: BackfillDatabase,
+        registry: SourceRegistry,
+        auto_backfill_times: tuple[str, ...] = ("16:30",),
+    ):
         self._db = db
         self._registry = registry
-        self._auto_backfill_time = auto_backfill_time
+        self._scheduled_times = sorted(
+            time(int(hour), int(minute))
+            for hour, minute in (t.split(":") for t in auto_backfill_times)
+        )
 
     def needs_backfill(self, provider: str) -> bool:
         """Check if provider needs backfill.
@@ -35,7 +43,7 @@ class BackfillService:
         - There's an interrupted checkpoint to resume
         - Backfill was never done
         - Backfill was done on a different day
-        - Backfill was done before scheduled time and we're now past scheduled time
+        - Backfill was done before a scheduled slot that has since passed today
         """
         # Always resume interrupted backfills
         checkpoint = self._db.get_backfill_checkpoint(provider)
@@ -61,21 +69,14 @@ class BackfillService:
         if last_dt.date() != now.date():
             return True
 
-        # Parse scheduled time
-        hour, minute = map(int, self._auto_backfill_time.split(":"))
-        scheduled = time(hour, minute)
-
-        last_time = last_dt.time()
-        current_time = now.time()
-
-        # Done after scheduled time → already ran today's scheduled task
-        if last_time >= scheduled:
+        # Last run is today. Find the most recent scheduled slot that has passed.
+        passed = [slot for slot in self._scheduled_times if now.time() >= slot]
+        if not passed:
+            # No slot reached yet today, and we already ran today → nothing due.
             return False
 
-        # Done before scheduled time:
-        # - Current time before scheduled → skip (haven't reached scheduled time)
-        # - Current time at/after scheduled → need to run (catch up)
-        return current_time >= scheduled
+        # Need backfill if we haven't run since that slot (catch up).
+        return last_dt.time() < passed[-1]
 
     def mark_done(self, provider: str) -> None:
         """Record backfill completion timestamp."""

@@ -19,7 +19,7 @@ class Settings:
     db_path: str = DEFAULT_DB_PATH
     backup_dir: str = ""  # defaults to 'backups' subdir next to db_path
     symbols: dict[str, list[str]] = field(default_factory=dict)  # provider → symbols
-    auto_backfill_time: str = DEFAULT_AUTO_BACKFILL_TIME
+    auto_backfill_times: tuple[str, ...] = (DEFAULT_AUTO_BACKFILL_TIME,)
     auto_backfill_days: int = DEFAULT_AUTO_BACKFILL_DAYS
     symbols_max_age_days: int = DEFAULT_SYMBOLS_MAX_AGE_DAYS
     scheduler_tick_seconds: float = DEFAULT_SCHEDULER_TICK_SECONDS
@@ -45,7 +45,9 @@ def load_settings() -> Settings:
         db_path=db_path,
         backup_dir=backup_dir,
         symbols=symbols,
-        auto_backfill_time=os.getenv("AUTO_BACKFILL_TIME", DEFAULT_AUTO_BACKFILL_TIME),
+        auto_backfill_times=parse_backfill_times(
+            os.getenv("AUTO_BACKFILL_TIME", DEFAULT_AUTO_BACKFILL_TIME)
+        ),
         auto_backfill_days=_parse_int("AUTO_BACKFILL_DAYS", DEFAULT_AUTO_BACKFILL_DAYS),
         symbols_max_age_days=_parse_int("SYMBOLS_MAX_AGE_DAYS", DEFAULT_SYMBOLS_MAX_AGE_DAYS),
         scheduler_tick_seconds=_parse_float(
@@ -76,6 +78,28 @@ def _parse_float(env_var: str, default: float) -> float:
         return float(val)
     except ValueError:
         raise ValueError(f"Invalid {env_var}={val!r} (expected number)")
+
+
+def parse_backfill_times(raw: str) -> tuple[str, ...]:
+    """Parse AUTO_BACKFILL_TIME into normalized, sorted, deduped HH:MM strings.
+
+    Accepts one or more comma-separated times (e.g. '08:00,16:30').
+    """
+    times: list[str] = []
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            hour, minute = (int(part) for part in item.split(":"))
+        except ValueError:
+            raise ValueError(f"Invalid AUTO_BACKFILL_TIME entry {item!r} (expected HH:MM)")
+        if not (0 <= hour < 24 and 0 <= minute < 60):
+            raise ValueError(f"Invalid AUTO_BACKFILL_TIME entry {item!r} (hour 0-23, minute 0-59)")
+        times.append(f"{hour:02d}:{minute:02d}")
+    if not times:
+        raise ValueError("AUTO_BACKFILL_TIME must contain at least one HH:MM time")
+    return tuple(sorted(dict.fromkeys(times)))
 
 
 def _parse_symbols(raw: str) -> dict[str, list[str]]:

@@ -25,7 +25,7 @@ def settings(temp_db: SQLiteDatabase, tmp_path: str) -> Settings:
         db_path=":memory:",
         backup_dir=str(tmp_path / "backups"),
         symbols={"fcs": ["EURUSD", "BTCUSD"]},
-        auto_backfill_time="00:30",
+        auto_backfill_times=("00:30",),
         auto_backfill_days=7,
         scheduler_tick_seconds=0.1,
         rate_limit_wait=1,

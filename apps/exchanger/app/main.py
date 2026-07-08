@@ -46,7 +46,7 @@ class Application:
         self.backfill_service = BackfillService(
             db=self.db,
             registry=self.registry,
-            auto_backfill_time=settings.auto_backfill_time,
+            auto_backfill_times=settings.auto_backfill_times,
         )
         self.symbols_service = SymbolsService(
             db=self.db,
@@ -177,9 +177,9 @@ class Application:
 
     def startup(self) -> None:
         logger.debug(
-            "startup: symbols=%s, backfill_time=%s",
+            "startup: symbols=%s, backfill_times=%s",
             self.settings.symbols,
-            self.settings.auto_backfill_time,
+            self.settings.auto_backfill_times,
         )
 
         # Populate symbols first (required before backfill) - only if stale/missing
@@ -224,7 +224,8 @@ class Application:
                         provider, backfill_map[provider], self.settings.auto_backfill_days
                     )
 
-        self.scheduler.schedule_daily(self.settings.auto_backfill_time, scheduled_task)
+        for backfill_time in self.settings.auto_backfill_times:
+            self.scheduler.schedule_daily(backfill_time, scheduled_task)
         self.scheduler.start()
         logger.info("app started, scheduler running")
 

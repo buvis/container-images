@@ -65,7 +65,7 @@ curl -X POST "http://localhost:8000/api/restore?timestamp=20250122_163000"
 - `DB_PATH` - SQLite path (default: `/data/exchanger.db`)
 - `BACKUP_DIR` - backup directory (default: `backups/` next to DB file)
 - `SYMBOLS` - format: `provider:symbol,...` (e.g. `fcs:BTCEUR,cnb:USDCZK`)
-- `AUTO_BACKFILL_TIME` - daily task time HH:MM (default: `16:30`)
+- `AUTO_BACKFILL_TIME` - daily task time(s) HH:MM, comma-separated for multiple runs/day (default: `16:30`, e.g. `08:00,16:30`)
 - `SYMBOLS_MAX_AGE_DAYS` - refresh symbols after N days (default: `30`)
 - `PROVIDER_CNB_FETCH_DELAY` - seconds between CNB API calls (default: `2.0`, polite rate limiting)
 - `DASHBOARD_HISTORY_DAYS` - default range for dashboard sparklines (default: `7`)
