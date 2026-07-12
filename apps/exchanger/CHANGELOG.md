@@ -4,6 +4,7 @@
 
 ### Added
 
+- **exchanger**: retry failed auto-backfill after 5 min, doubling the delay each failure (capped at 1 h) until it succeeds
 - **exchanger**: support multiple daily backfill times via comma-separated AUTO_BACKFILL_TIME config
 
 ## 2026-02-24

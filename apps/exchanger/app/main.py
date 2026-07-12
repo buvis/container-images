@@ -24,6 +24,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger(__name__)
 
+BACKFILL_RETRY_INITIAL_SECONDS = 300
+# ponytail: hourly cap so a long outage keeps retrying instead of backing off past the next scheduled run
+BACKFILL_RETRY_MAX_SECONDS = 3600
+
 
 class ShutdownRequested(Exception):
     """Raised when shutdown is requested during a background task."""
@@ -37,6 +41,7 @@ class Application:
         self.db = SQLiteDatabase(settings.db_path)
         self.task_manager = TaskManager()
         self.scheduler = BackgroundScheduler(settings.scheduler_tick_seconds)
+        self._backfill_retry_delays: dict[str, int] = {}
 
         # Create source registry and register providers
         self.registry = SourceRegistry()
@@ -71,7 +76,9 @@ class Application:
         cnb_source = CnbSource(fetch_delay=settings.provider_cnb_fetch_delay)
         self.registry.register(cnb_source)
 
-    def start_backfill_if_idle(self, provider: str, symbols: list[str], length: int) -> bool:
+    def start_backfill_if_idle(
+        self, provider: str, symbols: list[str], length: int, retry_on_failure: bool = False
+    ) -> bool:
         task_key = f"backfill:{provider}"
 
         def on_progress(data: str | dict) -> None:
@@ -97,6 +104,10 @@ class Application:
                 msg = f"Completed: {total} rows"
                 if failures:
                     msg += f" ({len(failures)} failed: {', '.join(failures)})"
+                if failures and retry_on_failure:
+                    self._schedule_backfill_retry(provider, symbols, length)
+                elif not failures:
+                    self._backfill_retry_delays.pop(provider, None)
                 self.task_manager.set_status(task_key, {
                     "status": "done",
                     "message": msg,
@@ -109,9 +120,20 @@ class Application:
                 self.task_manager.set_status(task_key, {"status": "cancelled", "message": "Shutdown requested"})
             except Exception as e:
                 logger.error(f"Backfill {provider} failed: {e}")
+                if retry_on_failure:
+                    self._schedule_backfill_retry(provider, symbols, length)
                 self.task_manager.set_status(task_key, {"status": "error", "message": str(e)})
 
         return self.task_manager.start_if_idle(task_key, run)
+
+    def _schedule_backfill_retry(self, provider: str, symbols: list[str], length: int) -> None:
+        delay = self._backfill_retry_delays.get(provider, BACKFILL_RETRY_INITIAL_SECONDS)
+        self._backfill_retry_delays[provider] = min(delay * 2, BACKFILL_RETRY_MAX_SECONDS)
+        logger.info("Backfill %s failed, retrying in %d s", provider, delay)
+        self.scheduler.schedule_once(
+            delay,
+            lambda: self.start_backfill_if_idle(provider, symbols, length, retry_on_failure=True),
+        )
 
     def _build_backfill_map(self) -> dict[str, list[str]]:
         """Build map of provider → symbols for backfill.
@@ -165,7 +187,9 @@ class Application:
                     if fav["provider"] == provider and fav["provider_symbol"] not in actual_symbols:
                         actual_symbols.append(fav["provider_symbol"])
                 if actual_symbols:
-                    self.start_backfill_if_idle(provider, actual_symbols, self.settings.auto_backfill_days)
+                    self.start_backfill_if_idle(
+                        provider, actual_symbols, self.settings.auto_backfill_days, retry_on_failure=True
+                    )
             except ShutdownRequested:
                 logger.info(f"Populate symbols {provider} interrupted by shutdown")
                 self.task_manager.set_status(task_key, {"status": "cancelled", "message": "Shutdown requested"})
@@ -210,7 +234,7 @@ class Application:
                     # Use checkpoint length if resuming, otherwise auto_backfill_days
                     checkpoint = self.db.get_backfill_checkpoint(provider)
                     length = checkpoint.get("length", self.settings.auto_backfill_days) if checkpoint else self.settings.auto_backfill_days
-                    self.start_backfill_if_idle(provider, symbols, length)
+                    self.start_backfill_if_idle(provider, symbols, length, retry_on_failure=True)
 
         def scheduled_task() -> None:
             logger.debug("scheduled task triggered")
@@ -221,7 +245,8 @@ class Application:
                     self._start_populate_then_backfill(provider)
                 elif provider in backfill_map and self.backfill_service.needs_backfill(provider):
                     self.start_backfill_if_idle(
-                        provider, backfill_map[provider], self.settings.auto_backfill_days
+                        provider, backfill_map[provider], self.settings.auto_backfill_days,
+                        retry_on_failure=True,
                     )
 
         for backfill_time in self.settings.auto_backfill_times:

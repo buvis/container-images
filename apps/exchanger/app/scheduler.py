@@ -13,7 +13,19 @@ class BackgroundScheduler:
         self._lock = threading.Lock()
 
     def schedule_daily(self, time_str: str, job: Callable[[], None]) -> None:
-        self._scheduler.every().day.at(time_str).do(job)
+        with self._lock:
+            self._scheduler.every().day.at(time_str).do(job)
+
+    def schedule_once(self, delay_seconds: float, job: Callable[[], None]) -> None:
+        """Run job once, delay_seconds from now."""
+
+        def run_once() -> object:
+            job()
+            return schedule.CancelJob
+
+        with self._lock:
+            # interval 0 sends schedule's _schedule_next_run into an infinite loop
+            self._scheduler.every(max(1, int(delay_seconds))).seconds.do(run_once)
 
     def start(self) -> None:
         with self._lock:
@@ -32,5 +44,6 @@ class BackgroundScheduler:
 
     def _loop(self) -> None:
         while not self._stop_event.is_set():
-            self._scheduler.run_pending()
+            with self._lock:
+                self._scheduler.run_pending()
             self._stop_event.wait(self._tick_seconds)
