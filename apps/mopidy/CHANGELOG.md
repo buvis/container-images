@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **mopidy**: install extensions from a pinned requirements.txt and stop pip failing with `uninstall-no-record-file` when a plugin needs a newer typing-extensions than Debian's apt-owned copy
+
 ## 2026-02-13
 
 ### Fixed

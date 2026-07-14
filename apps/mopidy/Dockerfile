@@ -69,21 +69,16 @@ COPY ./patches/fix-gstreamer-structurewrapper.py /tmp/fix-gstreamer-structurewra
 RUN python3 /tmp/fix-gstreamer-structurewrapper.py && rm /tmp/fix-gstreamer-structurewrapper.py
 
 # Install Mopidy extensions
-# hadolint ignore=DL3008,DL3015,SC2086
+# Debian owns typing-extensions via apt and ships it with no RECORD file, so pip cannot
+# uninstall it when a plugin's dependency closure wants a newer one, and the build dies
+# with "error: uninstall-no-record-file". Installing our own copy into /usr/local first
+# shadows Debian's; the pinned set below then resolves against that copy, so pip never
+# attempts the impossible uninstall.
+COPY ./requirements.txt /tmp/requirements.txt
 RUN \
-  python3 -m pip install --break-system-packages \
-  Mopidy-DefaultPlaylist \
-  Mopidy-Iris \
-  Mopidy-Local \
-  Mopidy-MPD \
-  Mopidy-Muse \
-  Mopidy-Scrobbler \
-  Mopidy-Tidal \
-  Mopidy-TuneIn \
-  Mopidy-Youtube \
-  Mopidy-YTMusic \
-  youtube-dl \
-  ytmusicapi
+  python3 -m pip install --break-system-packages --ignore-installed typing-extensions \
+  && python3 -m pip install --break-system-packages -r /tmp/requirements.txt \
+  && rm /tmp/requirements.txt
 
 # Switch to app directory
 WORKDIR "/app"

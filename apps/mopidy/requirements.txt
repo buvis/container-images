@@ -1,0 +1,18 @@
+# Mopidy extensions, pinned so upstream drift cannot land straight on master.
+# typing-extensions is pinned here on purpose: Debian ships it via apt with no RECORD
+# file, so pip cannot uninstall it. The Dockerfile installs our own copy first
+# (--ignore-installed) and this pin is what that copy converges to.
+typing-extensions==4.16.0
+
+Mopidy-DefaultPlaylist==0.1.0
+Mopidy-Iris==3.70.0
+Mopidy-Local==4.0.0
+Mopidy-MPD==4.0.0
+Mopidy-Muse==0.0.36
+Mopidy-Scrobbler==3.1.0
+Mopidy-Tidal==0.3.13
+Mopidy-TuneIn==1.1.0
+Mopidy-Youtube==4.0.2
+Mopidy-YTMusic==0.3.8
+youtube-dl==2021.12.17
+ytmusicapi==1.12.1
