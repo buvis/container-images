@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **mopidy**: drop Mopidy-YTMusic; its current release declares `Mopidy<4` and the image runs Mopidy 4.x, so it cannot coexist. While the plugin set was unpinned, pip hid this by silently installing YTMusic 0.1.1 (a 2020 release) instead of failing
+
 ### Fixed
 
 - **mopidy**: install extensions from a pinned requirements.txt and stop pip failing with `uninstall-no-record-file` when a plugin needs a newer typing-extensions than Debian's apt-owned copy
