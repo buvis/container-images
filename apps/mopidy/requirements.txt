@@ -1,10 +1,8 @@
 # Mopidy extensions, pinned so upstream drift cannot land straight on master.
+# The Dockerfile installs these with --ignore-installed: several transitive deps
+# (typing-extensions, idna, ...) are apt-owned and have no RECORD file, so pip cannot
+# uninstall them and must shadow them in /usr/local instead.
 #
-# typing-extensions is pinned here on purpose: Debian ships it via apt with no RECORD
-# file, so pip cannot uninstall it. The Dockerfile installs our own copy first
-# (--ignore-installed) and this pin is what that copy converges to.
-typing-extensions==4.16.0
-
 # Mopidy-YTMusic is deliberately absent. Its current release (0.3.8) declares Mopidy<4,
 # and this image runs Mopidy 4.x, so the two cannot coexist. While the plugin set was
 # unpinned, pip hid this by silently backtracking YTMusic to 0.1.1 (a 2020 release) --
