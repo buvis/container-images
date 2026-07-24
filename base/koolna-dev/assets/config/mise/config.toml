@@ -3,18 +3,18 @@ experimental = true
 
 [tools]
 node = "24.15.0"
-pnpm = "10.33.2"
+pnpm = "10.33.4"
 deno = "2.7.14"
-python = "3.14.4"
-uv = "0.11.11"
-ruff = "0.15.12"
-poetry = "2.4.0"
+python = "3.14.6"
+uv = "0.11.32"
+ruff = "0.15.22"
+poetry = "2.4.1"
 rust = "1.95.0"
 "cargo:zoxide" = "0.9.9"
 "cargo:rumdl" = "0.1.67"
-"pipx:buvis-gems" = { version = "0.11.0", extras = "all" }
+"pipx:buvis-gems" = { version = "0.11.1", extras = "all" }
 "pipx:yt-dlp" = "2026.3.17"
 "pipx:beets" = "2.11.0"
 "pipx:gita" = "0.16.8.2"
-"npm:@github/copilot" = "1.0.40"
-"npm:pake-cli" = "3.11.4"
+"npm:@github/copilot" = "1.0.73"
+"npm:pake-cli" = "3.11.10"
