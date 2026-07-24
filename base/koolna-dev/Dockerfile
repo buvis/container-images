@@ -1,4 +1,4 @@
-FROM ghcr.io/buvis/koolna-base:latest@sha256:b4612ce17970262944a8514013c4961d28b0f23bc99a44b775f73dbf850c0733
+FROM ghcr.io/buvis/koolna-base:latest@sha256:5b41aaccf5f14c104098aa2589c1d8576d7aa40e33171dda339342e175b7cf85
 
 ARG USERNAME=bob
 
@@ -30,7 +30,7 @@ RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TR
 
 # Runtime convenience: kept for users adding cargo: tools at runtime
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
-ARG CARGO_BINSTALL_VERSION=v1.19.0
+ARG CARGO_BINSTALL_VERSION=v1.21.0
 ARG CARGO_BINSTALL_SHA256=c2e963fbab3bdd8653b59c28d349bf85740cf4998e5e398d250dcd2884cd667d
 RUN curl -fsSL "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/${CARGO_BINSTALL_VERSION}/install-from-binstall-release.sh" -o /tmp/install-binstall.sh \
   && echo "${CARGO_BINSTALL_SHA256}  /tmp/install-binstall.sh" | sha256sum -c - \
