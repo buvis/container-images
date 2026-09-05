@@ -3,6 +3,6 @@ experimental = true
 
 [tools]
 python = "3.14.4"
-uv = "0.11.10"
-ruff = "0.15.12"
+uv = "0.12.10"
+ruff = "0.16.6"
 poetry = "2.4.0"
