@@ -2,19 +2,19 @@
 experimental = true
 
 [tools]
-node = "24.15.0"
-pnpm = "10.33.2"
-deno = "2.7.14"
+node = "24.20.0"
+pnpm = "10.34.5"
+deno = "2.9.6"
 python = "3.14.4"
-uv = "0.11.11"
-ruff = "0.15.12"
+uv = "0.12.10"
+ruff = "0.16.6"
 poetry = "2.4.0"
-rust = "1.95.0"
-"cargo:zoxide" = "0.9.9"
-"cargo:rumdl" = "0.1.67"
-"pipx:buvis-gems" = { version = "0.11.0", extras = "all" }
-"pipx:yt-dlp" = "2026.3.17"
-"pipx:beets" = "2.11.0"
+rust = "1.98.1"
+"cargo:zoxide" = "0.10.0"
+"cargo:rumdl" = "0.2.65"
+"pipx:buvis-gems" = { version = "0.13.0", extras = "all" }
+"pipx:yt-dlp" = "2026.8.19"
+"pipx:beets" = "2.13.1"
 "pipx:gita" = "0.16.8.2"
 "npm:@github/copilot" = "1.0.40"
-"npm:pake-cli" = "3.11.4"
+"npm:pake-cli" = "3.15.7"
