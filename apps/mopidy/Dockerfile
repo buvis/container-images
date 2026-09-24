@@ -69,21 +69,16 @@ COPY ./patches/fix-gstreamer-structurewrapper.py /tmp/fix-gstreamer-structurewra
 RUN python3 /tmp/fix-gstreamer-structurewrapper.py && rm /tmp/fix-gstreamer-structurewrapper.py
 
 # Install Mopidy extensions
-# hadolint ignore=DL3008,DL3015,SC2086
+# Debian installs several of these deps (typing-extensions, idna, ...) via apt without a
+# RECORD file, so pip cannot uninstall them when a plugin needs a different version and
+# the build dies with "error: uninstall-no-record-file". --ignore-installed makes pip
+# install its own copy into /usr/local (earlier on sys.path) and shadow Debian's, rather
+# than attempt an uninstall it can never complete. With the pins in requirements.txt the
+# resulting set is explicit rather than whatever apt happens to ship.
+COPY ./requirements.txt /tmp/requirements.txt
 RUN \
-  python3 -m pip install --break-system-packages \
-  Mopidy-DefaultPlaylist \
-  Mopidy-Iris \
-  Mopidy-Local \
-  Mopidy-MPD \
-  Mopidy-Muse \
-  Mopidy-Scrobbler \
-  Mopidy-Tidal \
-  Mopidy-TuneIn \
-  Mopidy-Youtube \
-  Mopidy-YTMusic \
-  youtube-dl \
-  ytmusicapi
+  python3 -m pip install --break-system-packages --ignore-installed -r /tmp/requirements.txt \
+  && rm /tmp/requirements.txt
 
 # Switch to app directory
 WORKDIR "/app"
