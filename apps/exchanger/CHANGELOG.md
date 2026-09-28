@@ -7,6 +7,10 @@
 - **exchanger**: retry failed auto-backfill after 5 min, doubling the delay each failure (capped at 1 h) until it succeeds
 - **exchanger**: support multiple daily backfill times via comma-separated AUTO_BACKFILL_TIME config
 
+### Fixed
+
+- **exchanger**: pin esrap to 2.2.11; 2.2.13 strips TypeScript type annotations but leaves the optional-parameter `?`, emitting invalid JavaScript that fails the frontend build
+
 ## 2026-02-24
 
 ### Added
