@@ -1,0 +1,21 @@
+# Mopidy extensions, pinned so upstream drift cannot land straight on master.
+# The Dockerfile installs these with --ignore-installed: several transitive deps
+# (typing-extensions, idna, ...) are apt-owned and have no RECORD file, so pip cannot
+# uninstall them and must shadow them in /usr/local instead.
+#
+# Mopidy-YTMusic is deliberately absent. Its current release (0.3.8) declares Mopidy<4,
+# and this image runs Mopidy 4.x, so the two cannot coexist. While the plugin set was
+# unpinned, pip hid this by silently backtracking YTMusic to 0.1.1 (a 2020 release) --
+# i.e. the image shipped a plugin five years stale rather than the one we asked for.
+# Do not re-add it until upstream supports Mopidy 4. Mopidy-Youtube covers YouTube.
+Mopidy-DefaultPlaylist==0.1.0
+Mopidy-Iris==3.70.0
+Mopidy-Local==4.0.0
+Mopidy-MPD==4.0.0
+Mopidy-Muse==0.0.36
+Mopidy-Scrobbler==3.1.0
+Mopidy-Tidal==0.3.13
+Mopidy-TuneIn==1.1.0
+Mopidy-Youtube==4.0.2
+youtube-dl==2021.12.17
+ytmusicapi==1.12.1

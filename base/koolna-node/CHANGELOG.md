@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **koolna-node**: install pnpm via mise's npm backend so bumps stop failing on a GitHub release asset (`pnpm-linux-x64.tar.gz`) that upstream does not publish
+
 ## 2026-04-06
 
 ### Added
