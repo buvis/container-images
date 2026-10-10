@@ -2,7 +2,7 @@
 experimental = true
 
 [tools]
-python = "3.14.4"
-uv = "0.11.10"
-ruff = "0.15.12"
-poetry = "2.4.0"
+python = "3.15.0"
+uv = "0.13.0"
+ruff = "0.17.0"
+poetry = "2.5.1"
