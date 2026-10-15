@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **koolna-rust**: vendor the cargo-binstall installer so a version bump no longer fails `sha256sum -c` against a hand-pinned checksum Renovate cannot co-bump
+
 ## 2026-04-07
 
 ### Fixed

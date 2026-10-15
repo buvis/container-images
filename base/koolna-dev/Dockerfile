@@ -28,13 +28,15 @@ RUN bash -c 'eval "$(mise activate bash)" && mise install'
 ARG TREE_SITTER_CLI_VERSION=0.26.8
 RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TREE_SITTER_CLI_VERSION}'
 
-# Runtime convenience: kept for users adding cargo: tools at runtime
+# Runtime convenience: kept for users adding cargo: tools at runtime.
+# The installer is vendored (reviewed in git) instead of curl'd at build time. Pairing a
+# Renovate-tracked ARG *_VERSION with a static ARG *_SHA256 is unbumpable: Renovate raises
+# the version but cannot know the new script's hash, so every bump fails `sha256sum -c`.
+# The script honours BINSTALL_VERSION to pick the release, so version tracking survives.
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
 ARG CARGO_BINSTALL_VERSION=v1.19.0
-ARG CARGO_BINSTALL_SHA256=c2e963fbab3bdd8653b59c28d349bf85740cf4998e5e398d250dcd2884cd667d
-RUN curl -fsSL "https://raw.githubusercontent.com/cargo-bins/cargo-binstall/${CARGO_BINSTALL_VERSION}/install-from-binstall-release.sh" -o /tmp/install-binstall.sh \
-  && echo "${CARGO_BINSTALL_SHA256}  /tmp/install-binstall.sh" | sha256sum -c - \
-  && bash /tmp/install-binstall.sh \
+COPY --chown=${USERNAME}:${USERNAME} assets/install-binstall.sh /tmp/install-binstall.sh
+RUN BINSTALL_VERSION="${CARGO_BINSTALL_VERSION}" bash /tmp/install-binstall.sh \
   && rm /tmp/install-binstall.sh
 
 CMD ["sh", "-c", "exec sleep infinity"]
