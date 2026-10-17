@@ -1,4 +1,4 @@
-FROM python:3.14-alpine@sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d94ca837a
+FROM python:3.15-alpine@sha256:2699b90f4d562a22e2dd076c82f964032f64814204bff36d271a54ba4cc2c7e2
 
 ENV PYTHONUNBUFFERED=1 \
     PATH="/home/app/.local/bin:$PATH" \
