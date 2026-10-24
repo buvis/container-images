@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
+    image: postgres:18@sha256:edb0c08dc33befd0262ab3b5cf1c4f3f8cfd8b09e88c05b45adee29d6761ddb6
     environment:
       POSTGRES_DB: clara
       POSTGRES_USER: clara
@@ -11,7 +11,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   redis:
-    image: redis:8-alpine@sha256:b9646e7cdf8165d985b88bb3e61b3f2f7625db7f6c98af79def91997d04f26b9
+    image: redis:8-alpine@sha256:0bf6577d7774e592b29d093e3ac9390eb91e13d72c21e506afce736de5e0eeb0
     ports:
       - "6379:6379"
 

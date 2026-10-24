@@ -1,5 +1,5 @@
 # hadolint ignore=DL3007
-FROM ghcr.io/buvis/debian-slim:latest@sha256:0f6ff8c0482212ffd25cb6466d72bf31faf9a700b721ade9aceb46e0dffddffc
+FROM ghcr.io/buvis/debian-slim:latest@sha256:712e50695da0e15cf986b26493d96f68635802db9d4223f451061433a44cc87c
 
 ARG VERSION
 
