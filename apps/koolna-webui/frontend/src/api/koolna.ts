@@ -87,7 +87,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
   try {
     return JSON.parse(text) as T
   } catch (err) {
-    throw new Error(`Unable to parse JSON response: ${(err as Error).message}`)
+    throw new Error(`Unable to parse JSON response: ${(err as Error).message}`, { cause: err })
   }
 }
 
