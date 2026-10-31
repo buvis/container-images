@@ -1,4 +1,4 @@
-FROM node:24-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f AS frontend
+FROM node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85 AS frontend
 
 WORKDIR /app/frontend
 
@@ -8,7 +8,7 @@ RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
-FROM golang:1.26-alpine@sha256:91eda9776261207ea25fd06b5b7fed8d397dd2c0a283e77f2ab6e91bfa71079d AS backend
+FROM golang:1.27-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS backend
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY k8s/ k8s/
 ENV CGO_ENABLED=0
 RUN go build -ldflags='-s -w' -o koolna-webui .
 
-FROM gcr.io/distroless/static:nonroot@sha256:e3f945647ffb95b5839c07038d64f9811adf17308b9121d8a2b87b6a22a80a39
+FROM gcr.io/distroless/static:nonroot@sha256:18f4cc26c9ffa7f20a359298be7deadac5c607c8e03a02b8119f1a5fc2f82c99
 
 WORKDIR /app
 
