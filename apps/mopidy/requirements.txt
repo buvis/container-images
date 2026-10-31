@@ -1,7 +1,7 @@
 # Mopidy extensions, pinned so upstream drift cannot land straight on master.
-# The Dockerfile installs these with --ignore-installed: several transitive deps
-# (typing-extensions, idna, ...) are apt-owned and have no RECORD file, so pip cannot
-# uninstall them and must shadow them in /usr/local instead.
+# Mopidy itself, pygobject, pykka, httpx, pydantic, ... come from apt and must stay
+# that way: pip must resolve against them, never replace them (a PyPI Mopidy would
+# shadow the patched scan.py, and pygobject cannot be built in this image).
 #
 # Mopidy-YTMusic is deliberately absent. Its current release (0.3.8) declares Mopidy<4,
 # and this image runs Mopidy 4.x, so the two cannot coexist. While the plugin set was
@@ -15,7 +15,14 @@ Mopidy-MPD==4.0.0
 Mopidy-Muse==0.0.36
 Mopidy-Scrobbler==3.1.0
 Mopidy-Tidal==0.3.13
-Mopidy-TuneIn==1.1.0
+Mopidy-TuneIn==2.0.0
 Mopidy-Youtube==4.0.2
 youtube-dl==2021.12.17
 ytmusicapi==1.12.1
+
+# Transitive pin (Mopidy-Scrobbler wants pylast>=5.3). pylast >=7.1 switched from httpx
+# to httpx2, whose httpcore2 needs an h11 newer than Debian's apt-owned httpcore allows
+# (h11<0.15). pip then backtracks through every httpx2 release into a broken docutils
+# sdist and the build fails. 7.0.2 is the last release on plain httpx. Only bump this
+# once Debian's httpcore/h11 move, or the plugins run outside the system site-packages.
+pylast==7.0.2

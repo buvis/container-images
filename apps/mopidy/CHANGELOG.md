@@ -9,6 +9,8 @@
 ### Fixed
 
 - **mopidy**: install extensions from a pinned requirements.txt and stop pip failing with `uninstall-no-record-file` when a plugin needs a newer typing-extensions than Debian's apt-owned copy
+- **mopidy**: pin pylast to 7.0.2 (last release on httpx; 7.1+ needs httpx2, which conflicts with Debian's h11) and drop `--ignore-installed`, which made pip try to rebuild Mopidy and pygobject from PyPI instead of using the apt packages
+- **mopidy**: bump Mopidy-TuneIn to 2.0.0; 1.1.0 imports `mopidy.internal`, which Mopidy 4 removed, so the extension failed during setup
 
 ## 2026-02-13
 
