@@ -69,21 +69,16 @@ COPY ./patches/fix-gstreamer-structurewrapper.py /tmp/fix-gstreamer-structurewra
 RUN python3 /tmp/fix-gstreamer-structurewrapper.py && rm /tmp/fix-gstreamer-structurewrapper.py
 
 # Install Mopidy extensions
-# hadolint ignore=DL3008,DL3015,SC2086
+# pip resolves against the apt-installed Mopidy/pygobject/... and only adds what is
+# missing. Do NOT add --ignore-installed: it makes pip reinstall Mopidy and pygobject
+# from PyPI (pygobject has no wheel and no compiler is present, so the build fails, and
+# a PyPI Mopidy would shadow the patched scan.py). If pip ever needs to *replace* an
+# apt-owned package it fails with "uninstall-no-record-file" -- fix that by pinning the
+# offending dependency in requirements.txt, not by shadowing apt.
+COPY ./requirements.txt /tmp/requirements.txt
 RUN \
-  python3 -m pip install --break-system-packages \
-  Mopidy-DefaultPlaylist \
-  Mopidy-Iris \
-  Mopidy-Local \
-  Mopidy-MPD \
-  Mopidy-Muse \
-  Mopidy-Scrobbler \
-  Mopidy-Tidal \
-  Mopidy-TuneIn \
-  Mopidy-Youtube \
-  Mopidy-YTMusic \
-  youtube-dl \
-  ytmusicapi
+  python3 -m pip install --no-cache-dir --break-system-packages -r /tmp/requirements.txt \
+  && rm /tmp/requirements.txt
 
 # Switch to app directory
 WORKDIR "/app"
