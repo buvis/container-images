@@ -1,4 +1,4 @@
-FROM alpine/git@sha256:d453f54c83320412aa89c391b076930bd8569bc1012285e8c68ce2d4435826a3
+FROM alpine/git@sha256:e8ceedc73bd80992ae8d58a7d24c58b8322146c354f1d2e81a97db4452068ec0
 
 COPY clone.sh /clone.sh
 COPY bootstrap.sh /bootstrap.sh
