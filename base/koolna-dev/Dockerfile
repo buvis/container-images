@@ -22,6 +22,13 @@ RUN gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD8
 COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERNAME/.config/mise/config.toml
 
 # --- Install all runtimes via mise ---
+# python, uv and ruff installs call the GitHub API (aqua release lookups, artifact
+# attestations); unauthenticated CI runners share a 60 req/h limit and get 403s. Only this
+# step gets a token, as a BuildKit secret (never written to a layer). Everything else,
+# including npm/cargo/pipx tools that run third-party install scripts, installs without it.
+# No secret (e.g. local builds) falls back to unauthenticated requests.
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN,required=false \
+  bash -c 'eval "$(mise activate bash)" && mise install python uv ruff'
 RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 # renovate: datasource=npm depName=tree-sitter-cli
