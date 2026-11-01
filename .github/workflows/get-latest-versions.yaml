@@ -8,7 +8,7 @@ on:
 
 jobs:
   detect-updates:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       matrix: ${{ steps.check.outputs.matrix }}
       has-updates: ${{ steps.check.outputs.has-updates }}
@@ -42,7 +42,7 @@ jobs:
         fi
 
   create-pr:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: detect-updates
     if: needs.detect-updates.outputs.has-updates == 'true'
     strategy:
