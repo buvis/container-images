@@ -214,6 +214,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
+          secrets: github_token=${{ secrets.MISE_GITHUB_TOKEN }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
           file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
           load: true
@@ -231,6 +232,7 @@ jobs:
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           build-args: VERSION=${{ steps.prep.outputs.version }}
+          secrets: github_token=${{ secrets.MISE_GITHUB_TOKEN }}
           context: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}
           file: ./${{ steps.prep.outputs.category }}/${{ matrix.container }}/Dockerfile
           push: false
