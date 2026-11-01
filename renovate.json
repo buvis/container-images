@@ -27,6 +27,12 @@
       "groupName": "koolna-dev mise tools"
     },
     {
+      "description": "buvis-gems is our own package: give it a separate PR so a broken tool in the koolna-dev group cannot hold it back. Must stay after the koolna-dev group rule to override its groupName.",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["pipx:buvis-gems"],
+      "groupName": "buvis-gems"
+    },
+    {
       "matchPackageNames": [
         "k8s.io/api",
         "k8s.io/apimachinery",

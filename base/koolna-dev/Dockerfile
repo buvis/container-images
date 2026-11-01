@@ -14,6 +14,10 @@ USER $USERNAME
 
 ENV HOME=/home/$USERNAME
 ENV PATH="$HOME/.cargo/bin:$PATH"
+# buvis-gems is pinned in mise config and bumped by Renovate. Without this, every CLI start
+# (even --help) self-upgrades it from PyPI synchronously when a newer release exists,
+# stalling first use in a fresh pod and replacing the pinned version at runtime.
+ENV BUVIS_AUTO_UPDATE=false
 # --- Node.js GPG keys ---
 RUN gpg --keyserver hkps://keys.openpgp.org --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4 \
   || gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 5BE8A3F6C8A5C01D106C0AD820B1A390B168D356 C82FA3AE1CBEDC6BE46B9360C433C3C1CE20D5E4
