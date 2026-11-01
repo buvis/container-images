@@ -14,7 +14,7 @@ poetry = "2.5.1"
 rust = "1.99.1"
 "cargo:zoxide" = "0.10.0"
 "cargo:rumdl" = "0.3.2"
-"pipx:buvis-gems" = { version = "0.11.1", extras = "all" }
+"pipx:buvis-gems" = { version = "0.16.0", extras = "all" }
 "pipx:yt-dlp" = "2026.10.26"
 "pipx:beets" = "2.14.1"
 "pipx:gita" = "0.16.8.2"
