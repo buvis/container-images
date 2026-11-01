@@ -1,4 +1,4 @@
-FROM ghcr.io/buvis/koolna-base:latest@sha256:b4612ce17970262944a8514013c4961d28b0f23bc99a44b775f73dbf850c0733
+FROM ghcr.io/buvis/koolna-base:latest@sha256:5b41aaccf5f14c104098aa2589c1d8576d7aa40e33171dda339342e175b7cf85
 
 ARG USERNAME=bob
 
@@ -39,7 +39,7 @@ RUN --mount=type=secret,id=github_token,required=false,mode=0444 \
 RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 # renovate: datasource=npm depName=tree-sitter-cli
-ARG TREE_SITTER_CLI_VERSION=0.26.8
+ARG TREE_SITTER_CLI_VERSION=0.27.1
 RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TREE_SITTER_CLI_VERSION}'
 
 # Runtime convenience: kept for users adding cargo: tools at runtime.
@@ -48,7 +48,7 @@ RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TR
 # the version but cannot know the new script's hash, so every bump fails `sha256sum -c`.
 # The script honours BINSTALL_VERSION to pick the release, so version tracking survives.
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
-ARG CARGO_BINSTALL_VERSION=v1.19.0
+ARG CARGO_BINSTALL_VERSION=v1.26.2
 COPY --chown=${USERNAME}:${USERNAME} assets/install-binstall.sh /tmp/install-binstall.sh
 RUN BINSTALL_VERSION="${CARGO_BINSTALL_VERSION}" bash /tmp/install-binstall.sh \
   && rm /tmp/install-binstall.sh
