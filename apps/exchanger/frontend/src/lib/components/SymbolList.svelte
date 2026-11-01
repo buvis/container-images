@@ -1,6 +1,6 @@
 <script lang="ts">
     import { createEventDispatcher } from 'svelte';
-    import type { Rate, Favorite } from '$lib/api';
+    import type { Rate, Favorite } from '#lib/api.ts';
     import SearchInput from './ui/SearchInput.svelte';
     import SegmentedControl from './ui/SegmentedControl.svelte';
 

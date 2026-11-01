@@ -4,7 +4,7 @@
   import Spinner from '$components/ui/Spinner.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import { Bell, CheckSquare, Users, ChevronRight } from 'lucide-svelte';
-  import type { Reminder, Activity, Task, Contact } from '$lib/types/models';
+  import type { Reminder, Activity, Task, Contact } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import CalendarPicker from '$lib/components/CalendarPicker.svelte';
+    import CalendarPicker from '#lib/components/CalendarPicker.svelte';
     import { onMount } from 'svelte';
     import {
         getSymbols,
@@ -8,8 +8,8 @@
         type SymbolItem,
         type Favorite,
         type ChainRate
-    } from '$lib/api';
-    import { formatRate, formatResult, isCrypto } from '$lib/formatters';
+    } from '#lib/api.ts';
+    import { formatRate, formatResult, isCrypto } from '#lib/formatters.ts';
 
     let symbols: SymbolItem[] = [];
     let favorites: Favorite[] = [];

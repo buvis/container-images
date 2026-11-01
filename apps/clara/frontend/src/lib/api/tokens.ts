@@ -1,5 +1,5 @@
 import { api } from '$api/client';
-import type { PersonalAccessToken } from '$lib/types/models';
+import type { PersonalAccessToken } from '#lib/types/models.ts';
 
 export interface PatCreateInput {
   name: string;

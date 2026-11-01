@@ -1,6 +1,6 @@
 import { api, qs } from '$api/client';
-import type { JournalEntry } from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { JournalEntry } from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export interface JournalEntryCreateInput {
   entry_date: string;

@@ -2,7 +2,7 @@
   import { contactsApi, tagsApi } from '$api/contacts';
   import Button from '$components/ui/Button.svelte';
   import { Plus, X } from 'lucide-svelte';
-  import type { Tag } from '$lib/types/models';
+  import type { Tag } from '#lib/types/models.ts';
 
   interface Props {
     vaultId: string;

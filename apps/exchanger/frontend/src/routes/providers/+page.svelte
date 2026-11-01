@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getProvidersStatus, type ProviderStatus } from '$lib/api';
+  import { getProvidersStatus, type ProviderStatus } from '#lib/api.ts';
 
   let providers: ProviderStatus[] = [];
   let loading = true;

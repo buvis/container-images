@@ -6,7 +6,7 @@
   import Modal from '$components/ui/Modal.svelte';
   import Spinner from '$components/ui/Spinner.svelte';
   import { Plus, Pencil, Trash2, Archive } from 'lucide-svelte';
-  import type { Vault } from '$lib/types/models';
+  import type { Vault } from '#lib/types/models.ts';
 
   let vaults = $state<Vault[]>([]);
   let loading = $state(true);

@@ -7,9 +7,13 @@
 - **exchanger**: retry failed auto-backfill after 5 min, doubling the delay each failure (capped at 1 h) until it succeeds
 - **exchanger**: support multiple daily backfill times via comma-separated AUTO_BACKFILL_TIME config
 
+### Changed
+
+- **exchanger**: migrate the frontend to SvelteKit 3 (with adapter-static 4, svelte 5.57, vite 8.3): config moves from `svelte.config.js` into `sveltekit()` in `vite.config.ts`, `$lib` becomes the `#lib` subpath import, `$app/stores` becomes `$app/state` (the legacy-mode admin page wraps `page.url` with `toStore` so its tabs stay reactive), and `$app/environment` becomes `$app/env`
+
 ### Fixed
 
-- **exchanger**: pin esrap to 2.2.11; 2.2.13 strips TypeScript type annotations but leaves the optional-parameter `?`, emitting invalid JavaScript that fails the frontend build
+- **exchanger**: fix the frontend build failing with esrap 2.2.13, which strips TypeScript type annotations but leaves the optional-parameter `?` and emits invalid JavaScript; svelte 5.57 brings esrap 2.4, which no longer has the bug, so the temporary esrap 2.2.11 pin is removed
 
 ## 2026-02-24
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
+  import { browser } from '$app/env';
   import { goto } from '$app/navigation';
   import { auth } from '$state/auth.svelte';
   import Spinner from '$components/ui/Spinner.svelte';

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { customizationApi } from '$api/customization';
-  import type { CustomField, CustomFieldValue } from '$lib/types/models';
+  import type { CustomField, CustomFieldValue } from '#lib/types/models.ts';
   import Spinner from '$components/ui/Spinner.svelte';
   import { Check, X } from 'lucide-svelte';
 

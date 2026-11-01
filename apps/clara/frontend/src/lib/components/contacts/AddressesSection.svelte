@@ -2,7 +2,7 @@
   import { contactsApi } from '$api/contacts';
   import Button from '$components/ui/Button.svelte';
   import { Plus, Trash2, MapPin } from 'lucide-svelte';
-  import type { Address } from '$lib/types/models';
+  import type { Address } from '#lib/types/models.ts';
 
   interface Props {
     vaultId: string;

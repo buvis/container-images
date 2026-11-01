@@ -9,7 +9,7 @@
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
   import { Plus, Users } from 'lucide-svelte';
-  import type { Contact } from '$lib/types/models';
+  import type { Contact } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
 

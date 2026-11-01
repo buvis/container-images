@@ -1,5 +1,5 @@
 import { api } from '$api/client';
-import type { Vault, VaultSettings, Member } from '$lib/types/models';
+import type { Vault, VaultSettings, Member } from '#lib/types/models.ts';
 
 export interface VaultCreateInput {
   name: string;

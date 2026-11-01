@@ -2,8 +2,8 @@
   import { contactsApi, relationshipTypesApi } from '$api/contacts';
   import Button from '$components/ui/Button.svelte';
   import { Plus, Trash2, Users } from 'lucide-svelte';
-  import type { ContactRelationship, RelationshipType, Contact } from '$lib/types/models';
-  import type { PaginatedResponse } from '$lib/types/common';
+  import type { ContactRelationship, RelationshipType, Contact } from '#lib/types/models.ts';
+  import type { PaginatedResponse } from '#lib/types/common.ts';
   import { api } from '$api/client';
 
   interface Props {

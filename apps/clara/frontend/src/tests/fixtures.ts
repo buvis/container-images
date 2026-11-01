@@ -17,7 +17,7 @@ import type {
   FileRecord,
   ContactRelationship,
   RelationshipType
-} from '$lib/types/models';
+} from '#lib/types/models.ts';
 
 let seq = 0;
 function uuid(): string {

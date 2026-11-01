@@ -5,13 +5,13 @@
   import { importExportApi } from '$api/importExport';
   import { customizationApi } from '$api/customization';
   import type { TemplateCreateInput, CustomFieldCreateInput, TemplatePageCreateInput, TemplateModuleCreateInput } from '$api/customization';
-  import type { TemplatePage, TemplateModule } from '$lib/types/models';
+  import type { TemplatePage, TemplateModule } from '#lib/types/models.ts';
   import { relationshipTypesApi } from '$api/contacts';
   import { activitiesApi } from '$api/activities';
   import { tokensApi } from '$api/tokens';
   import type { PatCreateInput, PatCreateResponse } from '$api/tokens';
   import type { TwoFactorSetupResponse } from '$api/types';
-  import type { Member, Template, CustomField, RelationshipType, ActivityType, PersonalAccessToken } from '$lib/types/models';
+  import type { Member, Template, CustomField, RelationshipType, ActivityType, PersonalAccessToken } from '#lib/types/models.ts';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Input from '$components/ui/Input.svelte';

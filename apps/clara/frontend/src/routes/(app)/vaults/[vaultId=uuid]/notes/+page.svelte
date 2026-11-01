@@ -8,7 +8,7 @@
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import { Plus, Pencil, Trash2, StickyNote } from 'lucide-svelte';
-  import type { Note, Contact } from '$lib/types/models';
+  import type { Note, Contact } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
 

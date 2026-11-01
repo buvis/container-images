@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getHealth, getFavorites, getCoverage, getMissingSymbols, getProvidersStatus, type ProviderStatus, type Favorite } from '$lib/api';
+  import { getHealth, getFavorites, getCoverage, getMissingSymbols, getProvidersStatus, type ProviderStatus, type Favorite } from '#lib/api.ts';
   import TaskPipeline from './TaskPipeline.svelte';
-  import CalendarHeatmap from '$lib/components/CalendarHeatmap.svelte';
+  import CalendarHeatmap from '#lib/components/CalendarHeatmap.svelte';
 
   let healthStatus = 'loading';
   let favorites: Favorite[] = [];

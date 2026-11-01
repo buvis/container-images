@@ -9,7 +9,7 @@
   import Textarea from '$components/ui/Textarea.svelte';
   import Select from '$components/ui/Select.svelte';
   import { Plus, CheckCircle, Circle, CheckSquare, Pencil, Trash2 } from 'lucide-svelte';
-  import type { Task } from '$lib/types/models';
+  import type { Task } from '#lib/types/models.ts';
   import { lookup } from '$state/lookup.svelte';
 
   const vaultId = $derived(page.params.vaultId!);

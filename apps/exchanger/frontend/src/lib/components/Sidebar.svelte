@@ -1,15 +1,15 @@
 <script lang="ts">
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
 
     let { isOpen = $bindable(false) } = $props();
 
     function isActive(href: string): boolean {
         const [path, query] = href.split('?');
-        if ($page.url.pathname !== path) return false;
+        if (page.url.pathname !== path) return false;
         if (!query) return true;
         const params = new URLSearchParams(query);
         for (const [key, value] of params) {
-            if ($page.url.searchParams.get(key) !== value) return false;
+            if (page.url.searchParams.get(key) !== value) return false;
         }
         return true;
     }

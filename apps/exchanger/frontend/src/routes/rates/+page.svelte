@@ -8,11 +8,11 @@
         removeFavorite,
         type Rate,
         type Favorite
-    } from '$lib/api';
+    } from '#lib/api.ts';
 
-    import CalendarPicker from '$lib/components/CalendarPicker.svelte';
-    import SymbolList from '$lib/components/SymbolList.svelte';
-    import RateChart from '$lib/components/RateChart.svelte';
+    import CalendarPicker from '#lib/components/CalendarPicker.svelte';
+    import SymbolList from '#lib/components/SymbolList.svelte';
+    import RateChart from '#lib/components/RateChart.svelte';
 
     let selectedDate = new Date().toISOString().split('T')[0];
     let selectedSymbol: string | null = null;

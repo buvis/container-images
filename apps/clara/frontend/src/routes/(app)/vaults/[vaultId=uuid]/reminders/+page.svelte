@@ -8,7 +8,7 @@
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
   import { Plus, Bell, BellOff, Pencil, Trash2 } from 'lucide-svelte';
-  import type { Reminder } from '$lib/types/models';
+  import type { Reminder } from '#lib/types/models.ts';
   import { lookup } from '$state/lookup.svelte';
 
   const vaultId = $derived(page.params.vaultId!);

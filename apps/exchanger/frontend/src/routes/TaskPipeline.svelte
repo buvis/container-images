@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { type TaskState } from '$lib/api';
-  import { formatDateTime } from '$lib/formatters';
+  import { type TaskState } from '#lib/api.ts';
+  import { formatDateTime } from '#lib/formatters.ts';
 
   let tasks: TaskState[] = [];
   let loading = true;

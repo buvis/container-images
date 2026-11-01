@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { page } from '$app/stores';
+    import { page } from '$app/state';
     import {
         getSymbols,
         getFavorites,
@@ -10,14 +10,14 @@
         type SymbolItem,
         type ProviderStatus,
         type Favorite
-    } from '$lib/api';
-    import SearchInput from '$lib/components/ui/SearchInput.svelte';
-    import FilterPills from '$lib/components/ui/FilterPills.svelte';
+    } from '#lib/api.ts';
+    import SearchInput from '#lib/components/ui/SearchInput.svelte';
+    import FilterPills from '#lib/components/ui/FilterPills.svelte';
 
     let symbols: SymbolItem[] = [];
     let favorites: Favorite[] = [];
     let providers: ProviderStatus[] = [];
-    const initialProvider = $page.url.searchParams.get('provider');
+    const initialProvider = page.url.searchParams.get('provider');
     let selectedProviders: Set<string> = initialProvider ? new Set([initialProvider]) : new Set();
     let loading = true;
     let search = '';

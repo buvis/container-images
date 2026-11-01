@@ -6,8 +6,8 @@
         getRatesHistory,
         type MultiProviderSymbol,
         type SymbolItem
-    } from '$lib/api';
-    import CalendarPicker from '$lib/components/CalendarPicker.svelte';
+    } from '#lib/api.ts';
+    import CalendarPicker from '#lib/components/CalendarPicker.svelte';
 
     let multiProviderSymbols: MultiProviderSymbol[] = [];
     let selectedNormalized: string | null = null;

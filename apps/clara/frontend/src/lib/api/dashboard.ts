@@ -1,6 +1,6 @@
 import { api } from '$api/client';
-import type { Reminder, Activity, Task, Contact } from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { Reminder, Activity, Task, Contact } from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export const dashboardApi = {
   upcomingReminders(vaultId: string) {
