@@ -7,7 +7,7 @@ node = "26.13.0"
 # (pnpm-linux-x64.tar.gz) that upstream does not publish, so every bump 404s.
 "npm:pnpm" = "12.16.1"
 deno = "2.9.8"
-python = "3.14.10"
+python = "3.15.2"
 uv = "0.13.6"
 ruff = "0.17.3"
 poetry = "2.5.1"
