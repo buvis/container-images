@@ -34,6 +34,12 @@
       "groupName": "buvis-gems"
     },
     {
+      "description": "pylast >=7.1 needs httpx2, whose httpcore2 conflicts with Debian's apt-owned h11 in the mopidy image (pip backtracks into a broken build). Keep it below 7.1 until Debian's httpcore/h11 move; see apps/mopidy/requirements.txt.",
+      "matchFileNames": ["apps/mopidy/requirements.txt"],
+      "matchDepNames": ["pylast"],
+      "allowedVersions": "<7.1.0"
+    },
+    {
       "matchPackageNames": [
         "k8s.io/api",
         "k8s.io/apimachinery",
