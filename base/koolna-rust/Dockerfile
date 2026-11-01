@@ -23,7 +23,7 @@ RUN bash -c 'eval "$(mise activate bash)" && mise install'
 # the version but cannot know the new script's hash, so every bump fails `sha256sum -c`.
 # The script honours BINSTALL_VERSION to pick the release, so version tracking survives.
 # renovate: datasource=github-releases depName=cargo-bins/cargo-binstall
-ARG CARGO_BINSTALL_VERSION=v1.19.0
+ARG CARGO_BINSTALL_VERSION=v1.19.1
 COPY --chown=${USERNAME}:${USERNAME} assets/install-binstall.sh /tmp/install-binstall.sh
 RUN BINSTALL_VERSION="${CARGO_BINSTALL_VERSION}" bash /tmp/install-binstall.sh \
   && rm /tmp/install-binstall.sh
