@@ -1,4 +1,4 @@
-import type { PaginatedResponse } from '$lib/types/common';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 import { mockPage } from './setup';
 
 /** Set vault route params for vault-scoped tests */

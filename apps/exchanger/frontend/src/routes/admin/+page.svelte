@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
-    import { page } from '$app/stores';
+    import { toStore } from 'svelte/store';
+    import { browser } from '$app/env';
+    import { page } from '$app/state';
     import {
         triggerBackfill,
         populateSymbols,
@@ -10,12 +11,16 @@
         restoreBackup,
         getTaskStatus,
         getSymbols
-    } from '$lib/api';
-    import { formatDateTime } from '$lib/formatters';
-    import type { TaskState, BackupInfo, SymbolItem } from '$lib/api';
+    } from '#lib/api.ts';
+    import { formatDateTime } from '#lib/formatters.ts';
+    import type { TaskState, BackupInfo, SymbolItem } from '#lib/api.ts';
 
-    $: activeTab = (['backfill', 'symbols', 'backups'].includes($page.url.searchParams.get('tab') || '')
-        ? $page.url.searchParams.get('tab')
+    // This is a legacy-mode component: `$:` only re-runs for stores/local state, not for
+    // `page` from $app/state, so wrap the URL in a store to keep tab switching reactive.
+    const url = toStore(() => page.url);
+
+    $: activeTab = (['backfill', 'symbols', 'backups'].includes($url.searchParams.get('tab') || '')
+        ? $url.searchParams.get('tab')
         : 'backfill') as 'backfill' | 'symbols' | 'backups';
 
     // Backfill state

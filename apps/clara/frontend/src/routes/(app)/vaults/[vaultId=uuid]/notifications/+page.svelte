@@ -4,7 +4,7 @@
   import Spinner from '$components/ui/Spinner.svelte';
   import Button from '$components/ui/Button.svelte';
   import { Bell, CheckCheck, Mail, MailOpen, Trash2 } from 'lucide-svelte';
-  import type { Notification } from '$lib/types/models';
+  import type { Notification } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
 

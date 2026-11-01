@@ -1,6 +1,6 @@
 import { api, qs } from '$api/client';
-import type { Debt } from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { Debt } from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export interface DebtCreateInput {
   contact_id: string;

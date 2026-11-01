@@ -4,7 +4,7 @@
   import FilterChips from '$components/data/FilterChips.svelte';
   import Spinner from '$components/ui/Spinner.svelte';
   import EmptyState from '$components/ui/EmptyState.svelte';
-  import type { PaginatedResponse } from '$lib/types/common';
+  import type { PaginatedResponse } from '#lib/types/common.ts';
   import type { Component, Snippet } from 'svelte';
 
   interface FilterChip {

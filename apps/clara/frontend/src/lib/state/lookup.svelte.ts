@@ -1,6 +1,6 @@
 import { api } from '$api/client';
 import type { Contact, Activity, ActivityType } from '$api/types';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 interface ContactLookup {
   id: string;

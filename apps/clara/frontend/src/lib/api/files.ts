@@ -1,6 +1,6 @@
 import { api, ApiClientError, getCsrfToken, qs } from '$api/client';
-import type { FileRecord } from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { FileRecord } from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export const filesApi = {
   list(vaultId: string, params?: { offset?: number; limit?: number; q?: string }) {

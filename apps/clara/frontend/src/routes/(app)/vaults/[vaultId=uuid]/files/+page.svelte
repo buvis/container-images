@@ -4,7 +4,7 @@
   import DataList from '$components/data/DataList.svelte';
   import Button from '$components/ui/Button.svelte';
   import { Upload, Download, Trash2, FolderOpen } from 'lucide-svelte';
-  import type { FileRecord } from '$lib/types/models';
+  import type { FileRecord } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
 

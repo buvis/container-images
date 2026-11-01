@@ -1,6 +1,6 @@
 import { api, qs } from '$api/client';
-import type { Gift } from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { Gift } from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export interface GiftCreateInput {
   contact_id: string;

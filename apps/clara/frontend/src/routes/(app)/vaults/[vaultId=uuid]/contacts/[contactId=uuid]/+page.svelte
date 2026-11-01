@@ -20,8 +20,8 @@
   import Textarea from '$components/ui/Textarea.svelte';
   import { Star, Pencil, Trash2, ArrowLeft, Camera } from 'lucide-svelte';
   import { filesApi } from '$api/files';
-  import type { Contact, Activity, Task, Note, Gift, Debt } from '$lib/types/models';
-  import type { PaginatedResponse } from '$lib/types/common';
+  import type { Contact, Activity, Task, Note, Gift, Debt } from '#lib/types/models.ts';
+  import type { PaginatedResponse } from '#lib/types/common.ts';
 
   const vaultId = $derived(page.params.vaultId!);
   const contactId = $derived(page.params.contactId!);

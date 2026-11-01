@@ -7,7 +7,7 @@
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
   import { Plus, DollarSign, Pencil, Trash2 } from 'lucide-svelte';
-  import type { Debt } from '$lib/types/models';
+  import type { Debt } from '#lib/types/models.ts';
   import { lookup } from '$state/lookup.svelte';
 
   const vaultId = $derived(page.params.vaultId!);

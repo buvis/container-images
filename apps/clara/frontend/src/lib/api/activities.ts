@@ -1,6 +1,6 @@
 import { api, qs } from '$api/client';
-import type { Activity, ActivityType } from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+import type { Activity, ActivityType } from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export interface ParticipantInput {
   contact_id: string;

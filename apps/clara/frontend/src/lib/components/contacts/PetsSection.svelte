@@ -2,7 +2,7 @@
   import { contactsApi } from '$api/contacts';
   import Button from '$components/ui/Button.svelte';
   import { Plus, Trash2, PawPrint } from 'lucide-svelte';
-  import type { Pet } from '$lib/types/models';
+  import type { Pet } from '#lib/types/models.ts';
 
   interface Props {
     vaultId: string;

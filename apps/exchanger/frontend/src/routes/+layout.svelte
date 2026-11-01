@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
-	import Sidebar from '$lib/components/Sidebar.svelte';
+	import favicon from '#lib/assets/favicon.svg';
+	import Sidebar from '#lib/components/Sidebar.svelte';
 
 	let { children } = $props();
 	let isSidebarOpen = $state(false);

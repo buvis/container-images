@@ -12,7 +12,7 @@
   import ParticipantsEditor from '$components/activities/ParticipantsEditor.svelte';
   import CustomFieldsSection from '$components/customization/CustomFieldsSection.svelte';
   import { ArrowLeft, Pencil, Trash2, Save, X } from 'lucide-svelte';
-  import type { Activity } from '$lib/types/models';
+  import type { Activity } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
   const activityId = $derived(page.params.activityId!);

@@ -8,7 +8,7 @@
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import { ArrowLeft, Pencil, Trash2, Save, X } from 'lucide-svelte';
-  import type { JournalEntry } from '$lib/types/models';
+  import type { JournalEntry } from '#lib/types/models.ts';
 
   const vaultId = $derived(page.params.vaultId!);
   const entryId = $derived(page.params.entryId!);

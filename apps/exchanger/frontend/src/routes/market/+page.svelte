@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getFavorites, getRatesHistory, getConfig, type Favorite } from '$lib/api';
+  import { getFavorites, getRatesHistory, getConfig, type Favorite } from '#lib/api.ts';
   import Sparkline from '../Sparkline.svelte';
 
   let favorites: Favorite[] = [];

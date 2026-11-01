@@ -1,4 +1,4 @@
-export type { PaginatedResponse, PaginationMeta, ApiError } from '$lib/types/common';
+export type { PaginatedResponse, PaginationMeta, ApiError } from '#lib/types/common.ts';
 export type {
   User,
   AuthResponse,
@@ -38,4 +38,4 @@ export type {
   TemplateModule,
   TemplatePage,
   Template
-} from '$lib/types/models';
+} from '#lib/types/models.ts';

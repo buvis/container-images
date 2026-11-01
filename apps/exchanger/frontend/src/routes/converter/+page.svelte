@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { getRate, getFavorites, getSymbols, type SymbolItem, type Favorite } from '$lib/api';
-    import { formatRate as fmtRate, formatResult as fmtResult, isCrypto } from '$lib/formatters';
-    import CalendarPicker from '$lib/components/CalendarPicker.svelte';
+    import { getRate, getFavorites, getSymbols, type SymbolItem, type Favorite } from '#lib/api.ts';
+    import { formatRate as fmtRate, formatResult as fmtResult, isCrypto } from '#lib/formatters.ts';
+    import CalendarPicker from '#lib/components/CalendarPicker.svelte';
 
     let symbols: SymbolItem[] = [];
     let favorites: Favorite[] = [];

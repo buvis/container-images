@@ -5,7 +5,7 @@
   import { auth } from '$state/auth.svelte';
   import { vaultState } from '$state/vault.svelte';
   import { Menu, LogOut, ChevronDown, Bell } from 'lucide-svelte';
-  import type { Notification } from '$lib/types/models';
+  import type { Notification } from '#lib/types/models.ts';
 
   let { ontogglesidebar }: { ontogglesidebar: () => void } = $props();
 

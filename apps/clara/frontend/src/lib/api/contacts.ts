@@ -7,8 +7,8 @@ import type {
   Pet,
   RelationshipType,
   Tag
-} from '$lib/types/models';
-import type { PaginatedResponse } from '$lib/types/common';
+} from '#lib/types/models.ts';
+import type { PaginatedResponse } from '#lib/types/common.ts';
 
 export interface ContactCreateInput {
   first_name: string;

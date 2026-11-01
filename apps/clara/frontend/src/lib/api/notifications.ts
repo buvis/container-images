@@ -1,5 +1,5 @@
 import { api } from '$api/client';
-import type { Notification } from '$lib/types/models';
+import type { Notification } from '#lib/types/models.ts';
 
 export interface UnreadCount {
   count: number;
