@@ -26,8 +26,6 @@ command:
     exit-status: 0
   dot --help:
     exit-status: 0
-  pidash --help:
-    exit-status: 0
   yt-dlp --version:
     exit-status: 0
   beet --version:
