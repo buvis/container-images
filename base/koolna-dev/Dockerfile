@@ -27,8 +27,9 @@ COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERN
 # step gets a token, as a BuildKit secret (never written to a layer). Everything else,
 # including npm/cargo/pipx tools that run third-party install scripts, installs without it.
 # No secret (e.g. local builds) falls back to unauthenticated requests.
-RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN,required=false \
-  bash -c 'eval "$(mise activate bash)" && mise install python uv ruff'
+# (File mount rather than env=: CI's hadolint 2.12 cannot parse the env= option.)
+RUN --mount=type=secret,id=github_token,required=false,mode=0444 \
+  bash -c 'if [ -s /run/secrets/github_token ]; then GITHUB_TOKEN="$(cat /run/secrets/github_token)"; export GITHUB_TOKEN; fi; eval "$(mise activate bash)" && mise install python uv ruff'
 RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 # renovate: datasource=npm depName=tree-sitter-cli
