@@ -16,14 +16,15 @@
   ],
   "packageRules": [
     {
-      "matchPackageNames": ["python"],
+      "description": "mise's python is depName `python` but packageName `python/cpython`, so match on depName.",
+      "matchDepNames": ["python"],
       "matchManagers": ["mise"],
       "groupName": "python"
     },
     {
       "matchManagers": ["mise"],
       "matchFileNames": ["base/koolna-dev/assets/config/mise/config.toml"],
-      "matchPackageNames": ["!python"],
+      "matchDepNames": ["!python"],
       "groupName": "koolna-dev mise tools"
     },
     {
