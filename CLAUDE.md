@@ -26,7 +26,7 @@ These invariants encode the failure modes that have actually bitten this repo. M
 - ⚠️ **The terminal proxy is an unauthenticated in-cluster shell** if reachable. Keep a NetworkPolicy limiting ingress to the nginx controller; never expose it without an auth layer. (Gap → PRD 00035.)
 - ⚠️ **webui hand-mirrors the operator CRD (`k8s/types.go`) and phase constants — this drifts.** Prefer importing operator types / generating the TS phase union. (Gap → PRD 00039.)
 - ✅ Frontend requires git identity + credentials even though the API treats them as optional — **intentional**, do not relax on reviewer feedback.
-- ✅ `@xterm/xterm` v6 is **blocked**: its three addons (fit, web-links, webgl) only have beta v6 releases; CI compiles but runtime breaks. Do not merge a Renovate xterm-v6 PR until addons ship stable.
+- ✅ `@xterm/xterm` and its addons move as a set: xterm 6.0 pairs with `addon-fit` 0.11 and `addon-web-links` 0.12 (webgl is no longer used). CI only compiles the frontend, so check a major bump at runtime (terminal page against a mocked PTY websocket: render, input, resize, OSC 52, link hover) before merging.
 
 ## CI / release
 
