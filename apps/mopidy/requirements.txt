@@ -10,15 +10,15 @@
 # Do not re-add it until upstream supports Mopidy 4. Mopidy-Youtube covers YouTube.
 Mopidy-DefaultPlaylist==0.1.0
 Mopidy-Iris==3.70.0
-Mopidy-Local==4.0.0
-Mopidy-MPD==4.0.0
+Mopidy-Local==4.0.1
+Mopidy-MPD==4.0.1
 Mopidy-Muse==0.0.36
-Mopidy-Scrobbler==3.1.0
+Mopidy-Scrobbler==3.1.1
 Mopidy-Tidal==0.3.13
 Mopidy-TuneIn==2.0.0
 Mopidy-Youtube==4.0.2
 youtube-dl==2021.12.17
-ytmusicapi==1.12.1
+ytmusicapi==1.12.3
 
 # Transitive pin (Mopidy-Scrobbler wants pylast>=5.3). pylast >=7.1 switched from httpx
 # to httpx2, whose httpcore2 needs an h11 newer than Debian's apt-owned httpcore allows
