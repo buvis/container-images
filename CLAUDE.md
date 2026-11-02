@@ -1,5 +1,7 @@
 # container-images — agent guardrails
 
+@AGENTS.md
+
 A monorepo of 20 container images (`apps/*`, `base/*`). Most complexity lives in the **koolna** dev-environment ecosystem (operator, webui, session-manager, git-clone, base chain). See `dev/local/audit-results/evolution-assessment-2026-07-09.md` for the current health assessment and `dev/local/audit-results/ROADMAP.md` for the phased backlog.
 
 These invariants encode the failure modes that have actually bitten this repo. Marked ✅ (holds today) or ⚠️ (gap, tracked by a PRD).
