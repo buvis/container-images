@@ -11,7 +11,7 @@
 Mopidy-DefaultPlaylist==0.1.0
 Mopidy-Iris==3.70.0
 Mopidy-Local==4.0.1
-Mopidy-MPD==4.0.1
+Mopidy-MPD==4.1.0
 Mopidy-Muse==0.0.36
 Mopidy-Scrobbler==3.1.1
 Mopidy-Tidal==0.3.13
