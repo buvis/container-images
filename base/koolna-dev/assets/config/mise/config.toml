@@ -5,7 +5,7 @@ experimental = true
 node = "26.13.0"
 # npm backend, not aqua: aqua resolves pnpm to a GitHub release asset
 # (pnpm-linux-x64.tar.gz) that upstream does not publish, so every bump 404s.
-"npm:pnpm" = "12.17.0"
+"npm:pnpm" = "12.18.0"
 deno = "2.9.8"
 python = "3.15.2"
 uv = "0.13.7"
@@ -19,4 +19,4 @@ rust = "1.99.1"
 "pipx:beets" = "2.14.1"
 "pipx:gita" = "0.16.8.2"
 "npm:@github/copilot" = "1.0.105"
-"npm:pake-cli" = "3.17.8"
+"npm:pake-cli" = "3.18.0"
