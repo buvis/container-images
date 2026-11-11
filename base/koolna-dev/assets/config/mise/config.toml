@@ -2,7 +2,7 @@
 experimental = true
 
 [tools]
-node = "26.13.0"
+node = "26.13.1"
 # npm backend, not aqua: aqua resolves pnpm to a GitHub release asset
 # (pnpm-linux-x64.tar.gz) that upstream does not publish, so every bump 404s.
 "npm:pnpm" = "12.18.0"
