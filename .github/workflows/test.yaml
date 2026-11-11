@@ -20,7 +20,7 @@ env:
 jobs:
   changes:
     name: Get changes
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       base_matrix: '{"container": ${{ steps.reduce.outputs.base_containers }} }'
       stack_matrix: '{"container": ${{ steps.reduce.outputs.stack_containers }} }'
@@ -76,7 +76,7 @@ jobs:
     name: Run hadolint
     needs: changes
     if: needs.changes.outputs.has_changes == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -90,7 +90,7 @@ jobs:
 
   build-base:
     name: Build base
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: needs.changes.outputs.has_base == 'true'
     needs:
       - hadolint
@@ -161,7 +161,7 @@ jobs:
 
   build-stack:
     name: Build stack
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: >-
       always() &&
       needs.changes.outputs.has_stack == 'true' &&
@@ -239,7 +239,7 @@ jobs:
 
   shell-tests:
     name: Shell tests (bats)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -250,7 +250,7 @@ jobs:
 
   koolna-operator-go:
     name: Go lint+test (koolna-operator)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -280,7 +280,7 @@ jobs:
     name: Test
     needs: [hadolint, build-base, build-stack, shell-tests, koolna-operator-go]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check results
         run: |
