@@ -18,7 +18,7 @@ Mopidy-Tidal==0.3.13
 Mopidy-TuneIn==2.0.0
 Mopidy-Youtube==4.0.4
 youtube-dl==2021.12.17
-ytmusicapi==1.12.3
+ytmusicapi==1.12.4
 
 # Transitive pin (Mopidy-Scrobbler wants pylast>=5.3). pylast >=7.1 switched from httpx
 # to httpx2, whose httpcore2 needs an h11 newer than Debian's apt-owned httpcore allows
