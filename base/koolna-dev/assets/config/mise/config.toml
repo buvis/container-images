@@ -13,7 +13,7 @@ ruff = "0.17.5"
 poetry = "2.5.1"
 rust = "1.100.0"
 "cargo:zoxide" = "0.10.0"
-"cargo:rumdl" = "0.3.4"
+"cargo:rumdl" = "0.3.5"
 "pipx:buvis-gems" = { version = "0.20.0", extras = "all" }
 "pipx:yt-dlp" = "2026.10.26"
 "pipx:beets" = "2.14.1"
