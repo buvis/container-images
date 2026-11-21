@@ -1,4 +1,4 @@
-FROM ghcr.io/buvis/koolna-base:latest@sha256:b4612ce17970262944a8514013c4961d28b0f23bc99a44b775f73dbf850c0733
+FROM ghcr.io/buvis/koolna-base:latest@sha256:a84e1d7c7cd052f99c2b43b60c07818fa0870723609920b8c7fa8cf7622171dd
 
 ARG USERNAME=bob
 
@@ -14,7 +14,7 @@ COPY --chown=${USERNAME}:${USERNAME} assets/config/mise/config.toml /home/$USERN
 RUN bash -c 'eval "$(mise activate bash)" && mise install'
 
 # renovate: datasource=npm depName=tree-sitter-cli
-ARG TREE_SITTER_CLI_VERSION=0.26.13
+ARG TREE_SITTER_CLI_VERSION=0.27.2
 RUN bash -c 'eval "$(mise activate bash)" && npm install -g tree-sitter-cli@${TREE_SITTER_CLI_VERSION}'
 
 CMD ["sh", "-c", "exec sleep infinity"]
