@@ -1,4 +1,4 @@
-FROM debian:trixie-slim@sha256:cedb1ef40439206b673ee8b33a46a03a0c9fa90bf3732f54704f99cb061d2c5a
+FROM debian:trixie-slim@sha256:8aa5a7bf5a1955bddbe7d74fcdd0b91ab30e74362a8b73af672b0481b35b44a0
 
 ARG USERNAME=bob
 ARG USER_UID=1000
@@ -23,9 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes extractVersion=^v(?<version>.+)$
-ARG KUBECTL_VERSION=1.36.7
+ARG KUBECTL_VERSION=1.37.3
 # renovate: datasource=github-releases depName=jdx/mise extractVersion=^v(?<version>.+)$
-ARG MISE_VERSION=2026.5.18
+ARG MISE_VERSION=2026.11.14
 RUN curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/$(dpkg --print-architecture)/kubectl" -o /tmp/kubectl \
   && install -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
   && rm /tmp/kubectl
